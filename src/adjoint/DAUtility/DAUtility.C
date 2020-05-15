@@ -1,0 +1,211 @@
+/*---------------------------------------------------------------------------*\
+
+    DAFoam  : Discrete Adjoint with OpenFOAM
+    Version : v2
+
+\*---------------------------------------------------------------------------*/
+
+#include "DAUtility.H"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+namespace Foam
+{
+
+// Constructors
+DAUtility::DAUtility()
+{
+}
+
+DAUtility::~DAUtility()
+{
+}
+
+void DAUtility::readVectorBinary(
+    Vec vecIn,
+    const word prefix) const
+{
+    /*
+    Description:
+        Read a vector in binary form
+    Input:
+        vecIn: a Petsc vector to read values into (also output)
+        prefix: Name of the Petsc vector from disk
+    Example:
+        If the vector storing in the disk reads: dFdWVector.bin
+        Then read the vector using:
+        Vec dFdW;
+        codes to initialize vector dFdW....
+        readVectorBinary(dFdW,"dFdwVector");
+        NOTE: the prefix does not include ".bin"
+    */
+
+    std::ostringstream fileNameStream("");
+    fileNameStream << prefix << ".bin";
+    word fileName = fileNameStream.str();
+
+    PetscViewer viewer;
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD, fileName.c_str(), FILE_MODE_READ, &viewer);
+    VecLoad(vecIn, viewer);
+    PetscViewerDestroy(&viewer);
+
+    return;
+}
+
+void DAUtility::writeVectorBinary(
+    const Vec vecIn,
+    const word prefix) const
+{
+    /*
+    Description:
+        Write a vector in binary form
+    Input:
+        vecIn: a Petsc vector to write to disk
+        prefix: Name of the Petsc vector to write to disk
+    Example:
+        Vec dFdW;
+        codes to initialize vector dFdW....
+        writeVectorBinary(dFdW,"dFdwVector");
+        This will write the dFdW vector to disk with name "dFdWVector.bin"
+        NOTE: the prefix does not include ".bin"
+    */
+
+    std::ostringstream fileNameStream("");
+    fileNameStream << prefix << ".bin";
+    word fileName = fileNameStream.str();
+
+    PetscViewer viewer;
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD, fileName.c_str(), FILE_MODE_WRITE, &viewer);
+    VecView(vecIn, viewer);
+    PetscViewerDestroy(&viewer);
+
+    return;
+}
+
+void DAUtility::writeVectorASCII(
+    const Vec vecIn,
+    const word prefix) const
+{
+    /*
+    Description:
+        Write a vector in ASCII form
+    Input:
+        vecIn: a Petsc vector to write to disk
+        prefix: Name of the Petsc vector to write to disk
+    Example:
+        Vec dFdW;
+        codes to initialize vector dFdW....
+        writeVectorASCII(dFdW,"dFdwVector");
+        This will write the dFdW vector to disk with name "dFdWVector.dat"
+        NOTE: the prefix does not include ".dat"
+    */
+
+    std::ostringstream fileNameStream("");
+    fileNameStream << prefix << ".dat";
+    word fileName = fileNameStream.str();
+
+    PetscViewer viewer;
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD, fileName.c_str(), &viewer);
+    PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_MATLAB); // write all the digits
+    VecView(vecIn, viewer);
+    PetscViewerDestroy(&viewer);
+
+    return;
+}
+
+void DAUtility::readMatrixBinary(
+    Mat matIn,
+    const word prefix) const
+{
+    /*
+    Description:
+        Read a matrix in binary form
+    Input:
+        matIn: a Petsc matrix to read values into (also output)
+        prefix: Name of the Petsc matrix from disk
+    Example:
+        If the matrix storing in the disk reads: dRdWMat.bin
+        Then read the matrix using:
+        Mat dRdW;
+        codes to initialize matrix dRdW....
+        readMatrixBinary(dRdW,"dRdwVector");
+        NOTE: the prefix does not include ".bin"
+    */
+
+    std::ostringstream fileNameStream("");
+    fileNameStream << prefix << ".bin";
+    word fileName = fileNameStream.str();
+
+    PetscViewer viewer;
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD, fileName.c_str(), FILE_MODE_READ, &viewer);
+    MatLoad(matIn, viewer);
+    PetscViewerDestroy(&viewer);
+
+    return;
+}
+
+void DAUtility::writeMatrixBinary(
+    const Mat matIn,
+    const word prefix) const
+{
+    /*
+    Description:
+        Write a matrix in binary form
+    Input:
+        matIn: a Petsc matrix to write to disk
+        prefix: Name of the Petsc matrix to write to disk
+    Example:
+        Mat dRdW;
+        codes to initialize matrix dRdW....
+        writeMatrixBinary(dRdW,"dRdWMat");
+        This will write the dRdW matrix to disk with name "dRdWMat.bin"
+        NOTE: the prefix does not include ".bin"
+    */
+
+    std::ostringstream fileNameStream("");
+    fileNameStream << prefix << ".bin";
+    word fileName = fileNameStream.str();
+
+    PetscViewer viewer;
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD, fileName.c_str(), FILE_MODE_WRITE, &viewer);
+    MatView(matIn, viewer);
+    PetscViewerDestroy(&viewer);
+
+    return;
+}
+
+void DAUtility::writeMatrixASCII(
+    const Mat matIn,
+    const word prefix) const
+{
+    /*
+    Description:
+        Write a matrix in ASCII form
+    Input:
+        matIn: a Petsc matrix to write to disk
+        prefix: Name of the Petsc matrix to write to disk
+    Example:
+        Mat dRdW;
+        codes to initialize matrix dRdW....
+        writeMatrixASCII(dRdW,"dRdWMat");
+        This will write the dRdW matrix to disk with name "dRdWMat.dat"
+        NOTE: the prefix does not include ".dat"
+    */
+
+    std::ostringstream fileNameStream("");
+    fileNameStream << prefix << ".dat";
+    word fileName = fileNameStream.str();
+
+    PetscViewer viewer;
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD, fileName.c_str(), &viewer);
+    MatView(matIn, viewer);
+    PetscViewerDestroy(&viewer);
+
+    return;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
+
+// ************************************************************************* //
