@@ -94,15 +94,9 @@ class PYDAFOAM(object):
             "adjEpsDerivFFD": [float, 1.0e-6],
             # system options
             "rootDir": [str, "./"],
-            "solverName": [str, "SimpleDAFoam"],
+            "solverName": [str, "DASimpleFoam"],
             "printAllOptions": [bool, False],
-            "test1": [list, [1.3, 2.2]],
-            "test2": [list, ["OK", "yes"]],
-            "test3": [list, [1, 2, 3]],
-            "test31": [list, [False, True]],
-            "test4": [float, 1.5],
-            "test5": [int, 2],
-            "test6": [dict, {"subdict1": [list, [1.5, 2.4]], "omg": [str, "ok"]}],
+
         }
 
         return defOpts

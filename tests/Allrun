@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+if [ -z "$WM_PROJECT" ]; then
+  echo "OpenFOAM environment not found, forgot to source the OpenFOAM bashrc?"
+  exit 1
+fi
+
+wget https://github.com/mdolab/dafoam/releases/download/v1.1.1/input.tar.gz
+tar -xvf input.tar.gz
+
+cd cpp/DAFoamIncompressible && make && python runTests.py
+cd ../../
+
+cd python && python runTests.py
+cd ../

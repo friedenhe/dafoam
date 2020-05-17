@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 """
-Run tests
+Run C++ tests
 """
 
-# =================================================================================================
-# Imports
-# =================================================================================================
 from mpi4py import MPI
 from dafoam import *
 import sys
+
+
+def checkErrors(testName, errorCode):
+    if errorCode != 0:
+        print("%s Failed!" % testName)
+        exit(1)
+    else:
+        print("%s Passed!" % testName)
+        exit(0)
+
 
 pyDict = {
     "key1": [int, 15],
@@ -39,12 +46,6 @@ from pyTestDAFoamIncompressible import pyTestDAFoamIncompressible
 solverArg = "tests -python"
 tests = pyTestDAFoamIncompressible(solverArg.encode())
 
-# test DAUtility
+# Test1: DAUtility
 testErrors = tests.test1(pyDict)
-
-if testErrors != 0:
-    print("Test1 Failed!")
-    exit(1)
-else:
-    print("Test1 Passed!")
-    exit(0)
+checkErrors("C++ Test1", testErrors)

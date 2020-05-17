@@ -30,5 +30,5 @@ clean:
 
 test:
 	@echo "********************Running tests********************"
-	cd tests/cpp/DAFoamIncompressible && make && python runTests.py
+	cd tests && ./Allrun
 
