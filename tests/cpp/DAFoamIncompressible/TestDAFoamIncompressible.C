@@ -56,7 +56,8 @@ label TestDAFoamIncompressible::test1(PyObject* pyDict)
         }
     }
     */
-    Info << ofDict << endl;
+
+    Info << "ofDict" << ofDict << endl;
     // Now check if ofDict is properly set
     if (readLabel(ofDict.lookup("key1")) != 15)
     {
@@ -177,7 +178,6 @@ label TestDAFoamIncompressible::test1(PyObject* pyDict)
     // **************************** pyDict2OFDict ****************************
 
     return testErrors;
-
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
