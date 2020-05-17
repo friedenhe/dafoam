@@ -12,6 +12,7 @@
 #define DAUtility_H
 
 #include <petscksp.h>
+#include "Python.h"
 #include "fvOptions.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -38,6 +39,11 @@ public:
 
     /// Destructor
     virtual ~DAUtility();
+
+    /// convert a python dictionary object to OpenFoam dictionary
+    void pyDict2OFDict(
+        PyObject* pyDict,
+        dictionary& ofDict);
 
     /// check whether a value is in the list
     template<class classType>

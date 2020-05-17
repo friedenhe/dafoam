@@ -95,7 +95,7 @@ class PYDAFOAM(object):
             # system options
             "rootDir": [str, "./"],
             "solverName": [str, "SimpleDAFoam"],
-            "printAllOptions": [bool, True],
+            "printAllOptions": [bool, False],
             "test1": [list, [1.3, 2.2]],
             "test2": [list, ["OK", "yes"]],
             "test3": [list, [1, 2, 3]],
@@ -203,10 +203,10 @@ class PYDAFOAM(object):
             print("|                        Running Primal Solver                             |")
             print("+--------------------------------------------------------------------------+")
 
-        self.primalSolver.solvePrimal()
+        self.solver.solvePrimal()
 
         return
-    
+
     def initSolver(self):
         """
         Initialize solver
@@ -217,8 +217,8 @@ class PYDAFOAM(object):
         if solverName == "DASimpleFoam":
             from .pyDASimpleFoam import pyDASimpleFoam
 
-            self.primalSolver = pyDASimpleFoam(solverArg.encode(), self.options)
-            self.primalSolver.init()
+            self.solver = pyDASimpleFoam(solverArg.encode(), self.options)
+            self.solver.init()
 
         return
 

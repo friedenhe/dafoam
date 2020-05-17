@@ -27,3 +27,8 @@ clean:
 	cd src/solvers && ./Allclean
 # clean src/utilities
 	cd src/utilities && ./Allclean
+
+test:
+	@echo "********************Running tests********************"
+	cd tests/cpp/DAFoamIncompressible && make && python runTests.py
+

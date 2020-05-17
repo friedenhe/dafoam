@@ -15,6 +15,7 @@
 
 #include "fvOptions.H"
 #include "Python.h"
+#include "DAUtility.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -66,6 +67,12 @@ public:
     const dictionary& getAllOptions()
     {
         return allOptions_;
+    }
+
+    /// print allOptions_
+    void printAllOptions()
+    {
+        Info << allOptions_ << endl;
     }
 
     /// get an option from subDict and key

@@ -2,7 +2,7 @@
 # distutils: language = c++
 # distutils: sources = DASimpleFoam.C
 
-'''
+"""
     DAFoam  : Discrete Adjoint with OpenFOAM
     Version : v2
 
@@ -10,7 +10,7 @@
         Cython wrapper functions that call OpenFOAM libraries defined
         in the *.C and *.H files. The python naming convention is to
         add "py" before the C++ class name
-'''
+"""
 
 # for using Petsc
 # from petsc4py.PETSc cimport Vec, PetscVec
@@ -41,7 +41,7 @@ cdef class pyDASimpleFoam:
 
     # point the class pointer to the cpp class constructor
     def __init__(self, argsAll, pyOptions):
-        '''
+        """
         Parameters
         ----------
 
@@ -58,7 +58,7 @@ cdef class pyDASimpleFoam:
         --------
         aeroOptions = {'solverName' : 'DASimpleFOam' }
         solver = DASimpleFoam("DASimpleFoam -parallel -python",aeroOptions)
-        '''
+        """
         self._thisptr = new DASimpleFoam(argsAll, pyOptions)
 
     # wrap all the other memeber functions in the cpp class
