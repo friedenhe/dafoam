@@ -4,7 +4,7 @@ Run Python tests
 """
 
 from mpi4py import MPI
-from dafoam import *
+from dafoam.src import pyDAFoam
 import sys
 import os
 
@@ -15,11 +15,11 @@ aeroOptions = {
     "printAllOptions": False,
 }
 
-pyDAFoam = PYDAFOAM(options=aeroOptions)
+dafoam = pyDAFoam.PYDAFOAM(options=aeroOptions)
 
-meshOK = pyDAFoam.runCheckMesh()
-pyDAFoam.initSolver()
-pyDAFoam.runPrimalSolver()
-pyDAFoam.runPrimalSolver()
+meshOK = dafoam.runCheckMesh()
+dafoam.initSolver()
+dafoam.runPrimalSolver()
+dafoam.runPrimalSolver()
 
 os.chdir('../../python')
