@@ -15,7 +15,6 @@
 #include "fvCFD.H"
 #include "Python.h"
 #include "DAUtility.H"
-#include "DAOption.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

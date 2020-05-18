@@ -4,8 +4,6 @@ Run C++ tests
 """
 
 from mpi4py import MPI
-from dafoam import *
-import sys
 
 
 def checkErrors(testName, errorCode):
