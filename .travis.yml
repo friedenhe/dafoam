@@ -32,6 +32,7 @@ install:
   - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR && make"
   # untar the input.tar.gz for tests
   - docker exec -it regtest /bin/bash -c "cd $DOCKER_WORKING_DIR/tests && tar -xvf input.tar.gz"
+  - docker exec -it regtest /bin/bash -c "cd $DOCKER_WORKING_DIR/tests/input/CurvedCubeHexMesh && decomposePar"
 
 jobs:
   include:
@@ -40,7 +41,7 @@ jobs:
         # install cpp-coveralls and coverage
         - docker exec -it regtest /bin/bash -c "pip install cpp-coveralls --user && pip install coverage --user"
         # compile and run the tests
-        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/cpp/DAFoamIncompressible && make && python runTests.py"
+        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/DAFoamIncompressible && make && mpirun -np 4 python runTests.py"
         # run coveralls, the -lp option is for inline functions in C++
         - docker exec -it -e TRAVIS="$TRAVIS" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/src/adjoint && COVERALLS_PARALLEL=true coveralls --gcov-options '\-lp'"
     - stage: python

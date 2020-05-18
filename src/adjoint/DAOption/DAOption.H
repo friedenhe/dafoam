@@ -214,7 +214,7 @@ void DAOption::setSubDictOption(
         daOption.setSubDictOption<scalar>("flowBCs","value",2.0);
     */
 
-    dictionary subDictF = allOptions_.subDict(subDict);
+    dictionary& subDictF = allOptions_.subDict(subDict);
     subDictF.set(subDictKey, value);
     return;
 }

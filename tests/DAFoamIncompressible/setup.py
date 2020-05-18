@@ -45,9 +45,9 @@ ext = [
             os.getenv("PETSC_DIR") + "/include",
             petsc4py.get_include(),
             os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/include",
-            "../../../src/adjoint/lnInclude",
+            "../../src/adjoint/lnInclude",
             "./",
-            "../../../src/include",
+            "../../src/include",
         ],
         # These are from Make/options:EXE_LIBS
         libraries=[

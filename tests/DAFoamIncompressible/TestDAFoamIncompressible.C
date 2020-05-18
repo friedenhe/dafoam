@@ -350,33 +350,172 @@ label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
     label testErrors = 0;
 
     DAOption daOption(mesh, pyDict);
-    
 
+    // test getAllOptions
     const dictionary& allOptions = daOption.getAllOptions();
-
     testErrors = validateOFDict(allOptions);
 
-    if ( daOption.getOption<label>("key1") != 15 )
+    // test getOption
+    if (daOption.getOption<label>("key1") != 15)
     {
         Pout << "key1 error in getOption!" << endl;
         testErrors += 1;
     }
 
-    if ( daOption.getOption<scalar>("key2") != 5.5)
+    if (daOption.getOption<scalar>("key2") != 5.5)
     {
         Pout << "key2 error in getOption!" << endl;
         testErrors += 1;
     }
 
-    if ( daOption.getOption<word>("key3") != "solver1")
+    if (daOption.getOption<word>("key3") != "solver1")
     {
         Pout << "key3 error in getOption!" << endl;
         testErrors += 1;
     }
 
+    labelList list5 = daOption.getOption<labelList>("key5");
+    labelList list5Ref = {1, 2, 3};
+    if (list5 != list5Ref)
+    {
+        Pout << "key5 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    scalarList list6 = daOption.getOption<scalarList>("key6");
+    scalarList list6Ref = {1.5, 2.3, 3.4};
+    if (list6 != list6Ref)
+    {
+        Pout << "key6 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    wordList list7 = daOption.getOption<wordList>("key7");
+    wordList list7Ref = {"ele1", "ele2", "ele3"};
+    if (list7 != list7Ref)
+    {
+        Pout << "key7 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    // test getSubDictOption
+    if (daOption.getSubDictOption<label>("key9", "subkey1") != 30)
+    {
+        Pout << "key9 subkey1 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    if (daOption.getSubDictOption<scalar>("key9", "subkey2") != 3.5)
+    {
+        Pout << "key9 subkey2 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    if (daOption.getSubDictOption<word>("key9", "subkey3") != "solver2")
+    {
+        Pout << "key9 subkey3 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    labelList subList5 = daOption.getSubDictOption<labelList>("key9", "subkey5");
+    labelList subList5Ref = {4, 5, 6};
+    if (subList5 != subList5Ref)
+    {
+        Pout << "key9 subkey5 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    scalarList subList6 = daOption.getSubDictOption<scalarList>("key9", "subkey6");
+    scalarList subList6Ref = {2.5, 7.7, 8.9};
+    if (subList6 != subList6Ref)
+    {
+        Pout << "key9 subkey6 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    wordList subList7 = daOption.getSubDictOption<wordList>("key9", "subkey7");
+    wordList subList7Ref = {"ele4", "ele5", "ele6"};
+    if (subList7 != subList7Ref)
+    {
+        Pout << "key9 subkey7 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    // test setOption
+    label newValLabel = 101;
+    daOption.setOption<label>("key1", newValLabel);
+    label newValLabelCheck = daOption.getOption<label>("key1");
+    if (newValLabel != newValLabelCheck)
+    {
+        Pout << "key1 error in setOption!" << endl;
+        testErrors += 1;
+    }
+
+    scalar newValScalar = 101.5;
+    daOption.setOption<scalar>("key2", newValScalar);
+    scalar newValScalarCheck = daOption.getOption<scalar>("key2");
+    if (newValScalar != newValScalarCheck)
+    {
+        Pout << "key2 error in setOption!" << endl;
+        testErrors += 1;
+    }
+
+    word newValWord = "solverN";
+    daOption.setOption<word>("key3", newValWord);
+    word newValWordCheck = daOption.getOption<word>("key3");
+    if (newValWord != newValWordCheck)
+    {
+        Pout << "key3 error in setOption!" << endl;
+        testErrors += 1;
+    }
+
+    labelList labelListNew = {8, 9}; // NOTE we set a different size 
+    daOption.setOption<labelList>("key5", labelListNew);
+    labelList labelListNewCheck = daOption.getOption<labelList>("key5");
+    if (labelListNew != labelListNewCheck)
+    {
+        Pout << "key5 error in setOption!" << endl;
+        testErrors += 1;
+    }
+
+    scalarList scalarListNew = {8.5, 9.2, 10.7};
+    daOption.setOption<scalarList>("key6", scalarListNew);
+    scalarList scalarListNewCheck = daOption.getOption<scalarList>("key6");
+    if (scalarListNew != scalarListNewCheck)
+    {
+        Pout << "key6 error in setOption!" << endl;
+        testErrors += 1;
+    }
+
+    wordList wordListNew = {"e9", "e5", "e4", "e3"};  // NOTE we set a different size 
+    daOption.setOption<wordList>("key7", wordListNew);
+    wordList wordListNewCheck = daOption.getOption<wordList>("key7");
+    if (wordListNew != wordListNewCheck)
+    {
+        Pout << "key7 error in setOption!" << endl;
+        testErrors += 1;
+    }
+
+    // test setSubDictOption we only test two typical scenarios
+    label labelSubDictNew = 101;
+    daOption.setSubDictOption<label>("key9","subkey1", labelSubDictNew);
+    label labelSubDictNewCheck = daOption.getSubDictOption<label>("key9","subkey1");
+    if (labelSubDictNew != labelSubDictNewCheck)
+    {
+        Pout << "key9 subkey1 error in setSubDictOption!" << endl;
+        testErrors += 1;
+    }
+
+    scalarList scalarSubListNew = {8.5, 9.2};
+    daOption.setSubDictOption<scalarList>("key9",  "subkey6", scalarSubListNew);
+    scalarList scalarSubListNewCheck = daOption.getSubDictOption<scalarList>("key9",  "subkey6");
+    if (scalarSubListNew != scalarSubListNewCheck)
+    {
+        Pout << "key9 subkey6 error in setSudDictOption!" << endl;
+        testErrors += 1;
+    }
+
     daOption.write();
-
-
 
     return testErrors;
 }

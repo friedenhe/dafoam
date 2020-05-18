@@ -5,12 +5,13 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
+rm -rf input
 tar -xvf input.tar.gz
-cd input && decomposePar
-cd ../
+cd input/CurvedCubeHexMesh && decomposePar
+cd ../../
 
 cd DAFoamIncompressible && make && mpirun -np 4 python runTests.py
 cd ../
 
-cd pyDAFoam && mpirun -np 4 python runTests.py
+cd pyDAFoam && python runTests.py
 cd ../
