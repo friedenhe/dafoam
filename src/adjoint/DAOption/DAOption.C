@@ -40,8 +40,8 @@ DAOption::DAOption(
     DAUtility daUtil;
     daUtil.pyDict2OFDict(pyOptions, allOptions_);
 
-    //Info << "All DAFoam Options:";
-    //Info << allOptions_ << endl;
+    Info << "All DAFoam Options:";
+    Info << this->getAllOptions() << endl;
 }
 
 DAOption::~DAOption()

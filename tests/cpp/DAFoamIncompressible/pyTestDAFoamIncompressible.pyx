@@ -20,6 +20,7 @@ cdef extern from "TestDAFoamIncompressible.H" namespace "Foam":
     cppclass TestDAFoamIncompressible:
         TestDAFoamIncompressible(char *) except +
         int testDAUtility(object)
+        int testDAOption(object)
 
 # create python wrappers that call cpp functions
 cdef class pyTestDAFoamIncompressible:
@@ -44,4 +45,8 @@ cdef class pyTestDAFoamIncompressible:
 
     def testDAUtility(self, pyDict):
         testErrors = self._thisptr.testDAUtility(pyDict)
+        return testErrors
+    
+    def testDAOption(self, pyDict):
+        testErrors = self._thisptr.testDAOption(pyDict)
         return testErrors

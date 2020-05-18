@@ -15,6 +15,7 @@
 #include "fvCFD.H"
 #include "Python.h"
 #include "DAUtility.H"
+#include "DAOption.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -47,8 +48,14 @@ public:
     /// Destructor
     virtual ~TestDAFoamIncompressible();
 
+    /// check if the dict matches the reference
+    label validateOFDict(const dictionary& ofDict1);
+
     /// test DAUtility
     label testDAUtility(PyObject* pyDict);
+
+    /// test DAOption
+    label testDAOption(PyObject* pyDict);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

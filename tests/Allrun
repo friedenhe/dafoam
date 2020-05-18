@@ -7,9 +7,11 @@ fi
 
 wget https://github.com/mdolab/dafoam/releases/download/v1.1.1/input.tar.gz
 tar -xvf input.tar.gz
+cd input && decomposePar
+cd ../
 
-cd cpp/DAFoamIncompressible && make && python runTests.py
-cd ../../
+cd DAFoamIncompressible && make && mpirun -np 4 python runTests.py
+cd ../
 
-cd python && python runTests.py
+cd pyDAFoam && mpirun -np 4 python runTests.py
 cd ../

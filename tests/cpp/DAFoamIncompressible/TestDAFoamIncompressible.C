@@ -21,16 +21,8 @@ TestDAFoamIncompressible::~TestDAFoamIncompressible()
 {
 }
 
-label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
+label TestDAFoamIncompressible::validateOFDict(const dictionary& ofDict)
 {
-    label testErrors = 0;
-
-    DAUtility daUtil;
-
-    // ********************* pyDict2OFDict *********************
-    dictionary ofDict;
-    daUtil.pyDict2OFDict(pyDict, ofDict);
-
     // This is how ofDict should look like, it contains
     // all the supported types
     /*
@@ -57,6 +49,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
     }
     */
 
+    label testErrors = 0;
     // Now check if ofDict is properly set
     if (readLabel(ofDict.lookup("key1")) != 15)
     {
@@ -178,6 +171,21 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
     {
         Pout << "ofDict" << ofDict << endl;
     }
+
+    return testErrors;
+}
+
+label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
+{
+    label testErrors = 0;
+
+    DAUtility daUtil;
+
+    // ********************* pyDict2OFDict *********************
+    dictionary ofDict;
+    daUtil.pyDict2OFDict(pyDict, ofDict);
+
+    testErrors = validateOFDict(ofDict);
 
     // ********************* List functions *********************
     // isInList
@@ -307,12 +315,12 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
     {
         for (label j = 0; j < 2; j++)
         {
-            scalar val = i*2.0+j;
+            scalar val = i * 2.0 + j;
             MatSetValue(tMat, i, j, val, INSERT_VALUES);
         }
     }
-    MatAssemblyBegin(tMat,MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(tMat,MAT_FINAL_ASSEMBLY);
+    MatAssemblyBegin(tMat, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(tMat, MAT_FINAL_ASSEMBLY);
 
     daUtil.writeMatrixBinary(tMat, "tMat");
     daUtil.writeMatrixASCII(tMat, "tMat");
@@ -328,6 +336,47 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
         Pout << "error in read/writeMatrixBinary!" << endl;
         testErrors += 1;
     }
+
+    return testErrors;
+}
+
+label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
+{
+#include "setArgs.H"
+#include "setRootCasePython.H"
+#include "createTime.H"
+#include "createMesh.H"
+
+    label testErrors = 0;
+
+    DAOption daOption(mesh, pyDict);
+    
+
+    const dictionary& allOptions = daOption.getAllOptions();
+
+    testErrors = validateOFDict(allOptions);
+
+    if ( daOption.getOption<label>("key1") != 15 )
+    {
+        Pout << "key1 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    if ( daOption.getOption<scalar>("key2") != 5.5)
+    {
+        Pout << "key2 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    if ( daOption.getOption<word>("key3") != "solver1")
+    {
+        Pout << "key3 error in getOption!" << endl;
+        testErrors += 1;
+    }
+
+    daOption.write();
+
+
 
     return testErrors;
 }

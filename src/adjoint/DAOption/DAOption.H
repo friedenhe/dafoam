@@ -40,19 +40,8 @@ private:
     /// Foam::fvMesh object
     const fvMesh& mesh_;
 
-protected:
-    /// read boolean options from dict
-    label readOptionBoolean(
-        const dictionary& dict,
-        const word option) const;
-
     /// all the options defined
     dictionary allOptions_;
-
-    /// setup allOptions_ based on pyOptions
-    void setAllOptions(
-        PyObject* pyOptions,
-        dictionary& allOptions);
 
 public:
     /// Constructors
@@ -67,12 +56,6 @@ public:
     const dictionary& getAllOptions()
     {
         return allOptions_;
-    }
-
-    /// print allOptions_
-    void printAllOptions()
-    {
-        Info << allOptions_ << endl;
     }
 
     /// get an option from subDict and key
