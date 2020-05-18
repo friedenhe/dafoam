@@ -32,7 +32,7 @@ install:
   - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR && make"
   # untar the input.tar.gz for tests
   - docker exec -it regtest /bin/bash -c "cd $DOCKER_WORKING_DIR/tests && tar -xvf input.tar.gz"
-  - docker exec -it regtest /bin/bash -c "cd $DOCKER_WORKING_DIR/tests/input/CurvedCubeHexMesh && decomposePar"
+  - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/input/CurvedCubeHexMesh && decomposePar"
 
 jobs:
   include:
