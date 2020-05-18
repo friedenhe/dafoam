@@ -7,7 +7,6 @@ from mpi4py import MPI
 from pyTestDAFoamIncompressible import pyTestDAFoamIncompressible
 import sys
 import os
-import subprocess
 import petsc4py
 
 petsc4py.init(sys.argv)
@@ -21,20 +20,6 @@ def checkErrors(testName, errorCode):
     else:
         print("Tests Passed for %s! Rank %d" % (testName, comm.rank))
 
-def runDecomposePar(comm):
-    """
-    Run decomposePar to parallel run
-    """
-    # don't run it if it is a serial case
-    if comm.size == 1:
-        return
-    if comm.rank == 0:
-        os.system("rm -rf processor*")
-        status = subprocess.call("decomposePar", stdout=sys.stdout, stderr=subprocess.STDOUT, shell=False)
-        if status != 0:
-            # raise Error('pyDAFoam: status %d: Unable to run decomposePar'%status)
-            print("\nUnable to run decomposePar, the domain has been already decomposed?\n")
-    comm.Barrier()
 
 pyDict = {
     "key1": [int, 15],
@@ -68,9 +53,8 @@ tests = pyTestDAFoamIncompressible(solverArg.encode())
 testErrors = tests.testDAUtility(pyDict)
 checkErrors("DAUtility", testErrors)
 
-
-os.chdir('../../input/CurvedCubeHexMesh')
-#runDecomposePar(comm)
+# Test2: DAOption
+os.chdir("../input/CurvedCubeHexMesh")
 testErrors = tests.testDAOption(pyDict)
 checkErrors("DAOption", testErrors)
-os.chdir('../../cpp/DAFoamIncompressible')
+os.chdir("../../DAFoamIncompressible")

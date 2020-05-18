@@ -64,7 +64,7 @@ class PYDAFOAM(object):
             self._printCurrentOptions()
 
         # run decomposePar for parallel runs
-        self.runDecomposePar()
+        # self.runDecomposePar()
 
         return
 
@@ -96,7 +96,6 @@ class PYDAFOAM(object):
             "rootDir": [str, "./"],
             "solverName": [str, "DASimpleFoam"],
             "printAllOptions": [bool, False],
-
         }
 
         return defOpts

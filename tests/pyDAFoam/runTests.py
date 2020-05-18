@@ -22,4 +22,4 @@ dafoam.initSolver()
 dafoam.runPrimalSolver()
 dafoam.runPrimalSolver()
 
-os.chdir('../../python')
+os.chdir('../../pyDAFoam')
