@@ -48,7 +48,7 @@ public:
     virtual ~TestDAFoamIncompressible();
 
     /// test DAUtility
-    label test1(PyObject* pyDict);
+    label testDAUtility(PyObject* pyDict);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

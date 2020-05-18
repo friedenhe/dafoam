@@ -4,14 +4,21 @@ Run C++ tests
 """
 
 from mpi4py import MPI
+from pyTestDAFoamIncompressible import pyTestDAFoamIncompressible
+import sys
+import petsc4py
+
+petsc4py.init(sys.argv)
+
+comm = MPI.COMM_WORLD
 
 
 def checkErrors(testName, errorCode):
     if errorCode != 0:
-        print("%s Failed!" % testName)
+        print("%s Failed! Rank %d" % (testName, comm.rank))
         exit(1)
     else:
-        print("%s Passed!" % testName)
+        print("%s Passed! Rank %d" % (testName, comm.rank))
         exit(0)
 
 
@@ -39,11 +46,10 @@ pyDict = {
     ],
 }
 
-from pyTestDAFoamIncompressible import pyTestDAFoamIncompressible
 
 solverArg = "tests -python"
 tests = pyTestDAFoamIncompressible(solverArg.encode())
 
 # Test1: DAUtility
-testErrors = tests.test1(pyDict)
-checkErrors("C++ Test1", testErrors)
+testErrors = tests.testDAUtility(pyDict)
+checkErrors("Test DAUtility", testErrors)

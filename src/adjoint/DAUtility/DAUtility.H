@@ -131,7 +131,7 @@ label DAUtility::listReplaceVal(
 {
     /*
     Description:
-        Replace a value in hte list
+        Replace a value in hte list, the list sequence is preserved
     Input:
         listIn: the list to replace
         valOrig: original value in the list
@@ -164,7 +164,8 @@ label DAUtility::listDeleteVal(
 {
     /*
     Description:
-        Delete a value in the list
+        Delete a value in the list, the sequence of other
+        elements will be preserved
     Input:
         listIn: the list to delete value
         valDel: value to delete
