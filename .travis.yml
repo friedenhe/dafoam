@@ -11,7 +11,6 @@ env:
     - DOCKER_WORKING_DIR=/home/dafoamuser/repos/$REPO_NAME
     - DOCKER_MOUNT_DIR=/home/dafoamuser/mount/$REPO_NAME
     - DOCKER_TAG=v1.1
-    - PY=3.6
 
 notifications:
   webhooks: https://coveralls.io/webhook
@@ -27,27 +26,31 @@ before_install:
 install:
   # We thrown away the existing repo in Docker, and copy the new one in-place
   - docker exec -it regtest /bin/bash -c "rm -rf $DOCKER_WORKING_DIR && cp -r $DOCKER_MOUNT_DIR $DOCKER_WORKING_DIR"
-  # Compile
+  # Add flags for code coverage and compile
   - docker exec regtest sed -i 's/-std=c++11/-std=c++11 -coverage/g' $DOCKER_WORKING_DIR/src/adjoint/Make/options_Incompressible
   - docker exec regtest sed -i 's/-lOpenFOAM/-lOpenFOAM -lgcov/g' $DOCKER_WORKING_DIR/src/adjoint/Make/options_Incompressible
   - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR && make"
-  - docker exec -it regtest /bin/bash -c "cd $DOCKER_WORKING_DIR/tests && wget https://github.com/mdolab/dafoam/releases/download/v1.1.1/input.tar.gz && tar -xvf input.tar.gz"
+  # untar the input.tar.gz for tests
+  - docker exec -it regtest /bin/bash -c "cd $DOCKER_WORKING_DIR/tests && tar -xvf input.tar.gz"
 
 jobs:
   include:
     - stage: cpp
       script:
+        # install cpp-coveralls and coverage
+        - docker exec -it regtest /bin/bash -c "pip install cpp-coveralls --user && pip install coverage --user"
+        # compile and run the tests
         - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/cpp/DAFoamIncompressible && make && python runTests.py"
-        - docker exec -it -u root regtest /bin/bash -c "cp -r $DOCKER_WORKING_DIR $DOCKER_MOUNT_DIR/coveralls_report_cpp"
-        - pip install cpp-coveralls --user && pip install coverage --user
-        - cd $TRAVIS_BUILD_DIR/coveralls_report_cpp/src/adjoint && COVERALLS_PARALLEL=true coveralls --gcov-options '\-lp'
+        # run coveralls, the -lp option is for inline functions in C++
+        - docker exec -it -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/src/adjoint && COVERALLS_PARALLEL=true coveralls --gcov-options '\-lp'"
     - stage: python
       script:
-        - docker exec -it regtest /bin/bash -c "pip install coverage --user"
-        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/python && coverage run --source=dafoam runTests.py"
-        - docker exec -it -u root regtest /bin/bash -c "cp -r $DOCKER_WORKING_DIR $DOCKER_MOUNT_DIR/coveralls_report_python"
-        - pip install coveralls --user  && pip install coverage --user
-        - cd $TRAVIS_BUILD_DIR/coveralls_report_python/tests/python && COVERALLS_PARALLEL=true coveralls
+        # install coveralls and coverage
+        - docker exec -it regtest /bin/bash -c "pip install coveralls --user && pip install coverage --user"
+        # run the tests
+        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/python && coverage run --source=pyDASimpleFoam runTests.py"
+        # run coveralls
+        - docker exec -it -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/python && COVERALLS_PARALLEL=true coveralls"
 
 after_script:
   - docker rm -f regtest
