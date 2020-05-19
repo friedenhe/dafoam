@@ -18,7 +18,6 @@ aeroOptions = {
 dafoam = pyDAFoam.PYDAFOAM(options=aeroOptions)
 
 meshOK = dafoam.runCheckMesh()
-dafoam.initSolver()
 dafoam.runPrimalSolver()
 dafoam.runPrimalSolver()
 

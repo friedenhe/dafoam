@@ -89,6 +89,7 @@ class PYDAFOAM(object):
             # flow options
             "flowEndTime": [float, 1.0],
             "flowDeltaT": [float, 1.0],
+            "varBounds": [dict, {}],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivFFD": [float, 1.0e-6],
@@ -196,22 +197,20 @@ class PYDAFOAM(object):
             print("|                        Running Primal Solver                             |")
             print("+--------------------------------------------------------------------------+")
 
-        self.solver.solvePrimal()
-
-        return
-
-    def initSolver(self):
-        """
-        Initialize solver
-        """
-
         solverName = self.getOption("solverName")
         solverArg = solverName + " -python " + self.parallelFlag
         if solverName == "DASimpleFoam":
             from .pyDASimpleFoam import pyDASimpleFoam
 
-            self.solver = pyDASimpleFoam(solverArg.encode(), self.options)
-            self.solver.init()
+            solver = pyDASimpleFoam(solverArg.encode(), self.options)
+        elif solverName == "DARhoSimpleFoam":
+            from .pyDARhoSimpleFoam import pyDARhoSimpleFoam
+
+            solver = pyDARhoSimpleFoam(solverArg.encode(), self.options)
+
+        solver.solvePrimal()
+
+        solver = None
 
         return
 

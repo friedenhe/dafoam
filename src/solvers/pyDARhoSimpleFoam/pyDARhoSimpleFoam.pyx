@@ -1,6 +1,6 @@
 
 # distutils: language = c++
-# distutils: sources = DASimpleFoam.C
+# distutils: sources = DARhoSimpleFoam.C
 
 """
     DAFoam  : Discrete Adjoint with OpenFOAM
@@ -16,17 +16,17 @@
 # from petsc4py.PETSc cimport Vec, PetscVec
 
 # declear cpp functions
-cdef extern from "DASimpleFoam.H" namespace "Foam":
-    cppclass DASimpleFoam:
-        DASimpleFoam(char *, object) except +
+cdef extern from "DARhoSimpleFoam.H" namespace "Foam":
+    cppclass DARhoSimpleFoam:
+        DARhoSimpleFoam(char *, object) except +
         void solvePrimal()
 
 # create python wrappers that call cpp functions
-cdef class pyDASimpleFoam:
+cdef class pyDARhoSimpleFoam:
 
     # define a class pointer for cpp functions
     cdef:
-        DASimpleFoam * _thisptr
+        DARhoSimpleFoam * _thisptr
 
     # initialize this class pointer with NULL
     def __cinit__(self):
@@ -55,11 +55,12 @@ cdef class pyDASimpleFoam:
 
         Examples
         --------
-        aeroOptions = {'solverName' : 'DASimpleFOam' }
-        solver = DASimpleFoam("DASimpleFoam -parallel -python",aeroOptions)
+        aeroOptions = {'solverName' : 'DARhoSimpleFoam' }
+        solver = DARhoSimpleFoam("DARhoSimpleFoam -parallel -python",aeroOptions)
         """
-        self._thisptr = new DASimpleFoam(argsAll, pyOptions)
+        self._thisptr = new DARhoSimpleFoam(argsAll, pyOptions)
 
     # wrap all the other memeber functions in the cpp class
     def solvePrimal(self):
         self._thisptr.solvePrimal()
+

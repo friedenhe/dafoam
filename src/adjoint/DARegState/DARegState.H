@@ -50,8 +50,7 @@ public:
         autoPtr,
         DARegState,
         dictionary,
-        (
-            const fvMesh& mesh),
+        (const fvMesh& mesh),
         (mesh));
 
     // Constructors

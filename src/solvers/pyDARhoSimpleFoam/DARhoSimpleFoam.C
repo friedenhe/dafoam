@@ -4,7 +4,7 @@
     Version : v2
 
 \*---------------------------------------------------------------------------*/
-#include "DASimpleFoam.H"
+#include "DARhoSimpleFoam.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -12,7 +12,7 @@ namespace Foam
 {
 
 // Constructors
-DASimpleFoam::DASimpleFoam(
+DARhoSimpleFoam::DARhoSimpleFoam(
     char* argsAll,
     PyObject* pyOptions)
     : argsAll_(argsAll),
@@ -20,12 +20,13 @@ DASimpleFoam::DASimpleFoam(
 {
 }
 
-DASimpleFoam::~DASimpleFoam()
+DARhoSimpleFoam::~DARhoSimpleFoam()
 {
 }
 
-void DASimpleFoam::solvePrimal()
+void DARhoSimpleFoam::solvePrimal()
 {
+
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTime.H"
@@ -33,13 +34,13 @@ void DASimpleFoam::solvePrimal()
 #include "createControl.H"
 #include "createFields.H"
 #include "createAdjoint.H"
+#include "createFieldRefs.H"
 #include "createFvOptions.H"
 #include "initContinuityErrs.H"
 
     turbulence->validate();
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
     Info << "\nStarting time loop\n"
          << endl;
 
@@ -47,13 +48,11 @@ void DASimpleFoam::solvePrimal()
     {
         Info << "Time = " << runTime.timeName() << nl << endl;
 
-        // --- Pressure-velocity SIMPLE corrector
-        {
+// Pressure-velocity SIMPLE corrector
 #include "UEqn.H"
+#include "EEqn.H"
 #include "pEqn.H"
-        }
 
-        laminarTransport.correct();
         turbulence->correct();
 
         runTime.write();

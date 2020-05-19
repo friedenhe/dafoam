@@ -93,6 +93,16 @@ public:
     void writeVectorBinary(
         const Vec vecIn,
         const word prefix) const;
+
+    /// bound a volScalar variable based on parametes defined in DAOption::allOptions_
+    void boundVar(
+        const dictionary& allOptions,
+        volScalarField& var);
+
+    /// bound a volVector variable based on parametes defined in DAOption::allOptions_
+    void boundVar(
+        const dictionary& allOptions,
+        volVectorField& var);
 };
 
 template<class classType>

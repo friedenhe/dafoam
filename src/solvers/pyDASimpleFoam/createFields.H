@@ -1,37 +1,45 @@
-Info << "Reading field p\n"
-     << endl;
-pPtr_.reset(
-    new volScalarField(
-        IOobject(
-            "p",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE),
-        mesh));
-volScalarField& p = pPtr_();
+Info<< "Reading field p\n" << endl;
+volScalarField p
+(
+    IOobject
+    (
+        "p",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
 
-Info << "Reading field U\n"
-     << endl;
-UPtr_.reset(
-    new volVectorField(
-        IOobject(
-            "U",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE),
-        mesh));
-volVectorField& U = UPtr_();
+Info<< "Reading field U\n" << endl;
+volVectorField U
+(
+    IOobject
+    (
+        "U",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
 
-#include "createPhiPython.H"
+#include "createPhi.H"
 
-setRefCell(p, simple.dict(), pRefCell_, pRefValue_);
+
+label pRefCell = 0;
+scalar pRefValue = 0.0;
+setRefCell(p, simple.dict(), pRefCell, pRefValue);
 mesh.setFluxRequired(p.name());
 
-laminarTransportPtr_.reset(
-    new singlePhaseTransportModel(U, phi));
-singlePhaseTransportModel& laminarTransport = laminarTransportPtr_();
 
-turbulencePtr_.reset(
-    incompressible::turbulenceModel::New(U, phi, laminarTransport));
+singlePhaseTransportModel laminarTransport(U, phi);
+
+autoPtr<incompressible::turbulenceModel> turbulence
+(
+    incompressible::turbulenceModel::New(U, phi, laminarTransport)
+);
+
+#include "createMRF.H"

@@ -4,19 +4,21 @@
     Version : v2
 
     Description:
-        Python wrapper library for DASimpleFoam
+        Python wrapper library for DARhoSimpleFoam
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DASimpleFoam_H
-#define DASimpleFoam_H
+#ifndef DARhoSimpleFoam_H
+#define DARhoSimpleFoam_H
 
 #include <petscksp.h>
 #include "Python.h"
 #include "fvCFD.H"
-#include "singlePhaseTransportModel.H"
-#include "turbulentTransportModel.H"
+#include "fluidThermo.H"
+#include "turbulentFluidThermoModel.H"
 #include "simpleControl.H"
+#include "pressureControl.H"
+#include "fvOptions.H"
 #include "DAUtility.H"
 #include "DAOption.H"
 #include "DARegState.H"
@@ -27,18 +29,18 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DASimpleFoam Declaration
+                       Class DARhoSimpleFoam Declaration
 \*---------------------------------------------------------------------------*/
 
-class DASimpleFoam
+class DARhoSimpleFoam
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DASimpleFoam(const DASimpleFoam&);
+    DARhoSimpleFoam(const DARhoSimpleFoam&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DASimpleFoam&);
+    void operator=(const DARhoSimpleFoam&);
 
     /// all the arguments
     char* argsAll_;
@@ -50,12 +52,12 @@ public:
     // Constructors
 
     /// Construct from components
-    DASimpleFoam(
+    DARhoSimpleFoam(
         char* argsAll,
         PyObject* pyOptions);
 
     /// Destructor
-    virtual ~DASimpleFoam();
+    virtual ~DARhoSimpleFoam();
 
     /// solve the primal equations
     void solvePrimal();

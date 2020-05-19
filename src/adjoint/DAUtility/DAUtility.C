@@ -357,6 +357,128 @@ void DAUtility::writeMatrixASCII(
     return;
 }
 
+void DAUtility::boundVar(
+    const dictionary& allOptions,
+    volScalarField& var)
+{
+    const scalar vGreat = 1e200;
+    label useUpperBound = 0, useLowerBound = 0;
+
+    dictionary varBoundsDict = allOptions.subDict("varBounds");
+
+    word lowerBoundName = var.name() + "LowerBound";
+    word upperBoundName = var.name() + "UpperBound";
+
+    scalar varMin = varBoundsDict.lookupOrDefault<scalar>(lowerBoundName,-vGreat);
+    scalar varMax = varBoundsDict.lookupOrDefault<scalar>(upperBoundName,vGreat);
+
+    forAll(var, cellI)
+    {
+        if (var[cellI] <= varMin)
+        {
+            var[cellI] = varMin;
+            useLowerBound = 1;
+        }
+        if (var[cellI] >= varMax)
+        {
+            var[cellI] = varMax;
+            useUpperBound = 1;
+        }
+    }
+
+    forAll(var.boundaryField(), patchI)
+    {
+        forAll(var.boundaryField()[patchI], faceI)
+        {
+            if (var.boundaryFieldRef()[patchI][faceI] <= varMin)
+            {
+                var.boundaryFieldRef()[patchI][faceI] = varMin;
+                useLowerBound = 1;
+            }
+            if (var.boundaryFieldRef()[patchI][faceI] >= varMax)
+            {
+                var.boundaryFieldRef()[patchI][faceI] = varMax;
+                useUpperBound = 1;
+            }
+        }
+    }
+
+    if (useUpperBound)
+    {
+        Info << "Bounding " << var.name() << "<" << varMax << endl;
+    }
+    if (useLowerBound)
+    {
+        Info << "Bounding " << var.name() << ">" << varMin << endl;
+    }
+
+    return;
+}
+
+void DAUtility::boundVar(
+    const dictionary& allOptions,
+    volVectorField& var)
+{
+    const scalar vGreat = 1e200;
+    label useUpperBound = 0, useLowerBound = 0;
+
+    dictionary varBoundsDict = allOptions.subDict("varBounds");
+
+    word lowerBoundName = var.name() + "LowerBound";
+    word upperBoundName = var.name() + "UpperBound";
+
+    scalar varMin = varBoundsDict.lookupOrDefault<scalar>(lowerBoundName,-vGreat);
+    scalar varMax = varBoundsDict.lookupOrDefault<scalar>(upperBoundName,vGreat);
+
+    forAll(var, cellI)
+    {
+        for (label i = 0; i < 3; i++)
+        {
+            if (var[cellI][i] <= varMin)
+            {
+                var[cellI][i] = varMin;
+                useLowerBound = 1;
+            }
+            if (var[cellI][i] >= varMax)
+            {
+                var[cellI][i] = varMax;
+                useUpperBound = 1;
+            }
+        }
+    }
+
+    forAll(var.boundaryField(), patchI)
+    {
+        forAll(var.boundaryField()[patchI], faceI)
+        {
+            for (label i = 0; i < 3; i++)
+            {
+                if (var.boundaryFieldRef()[patchI][faceI][i] <= varMin)
+                {
+                    var.boundaryFieldRef()[patchI][faceI][i] = varMin;
+                    useLowerBound = 1;
+                }
+                if (var.boundaryFieldRef()[patchI][faceI][i] >= varMax)
+                {
+                    var.boundaryFieldRef()[patchI][faceI][i] = varMax;
+                    useUpperBound = 1;
+                }
+            }
+        }
+    }
+
+    if (useUpperBound)
+    {
+        Info << "Bounding " << var.name() << "<" << varMax << endl;
+    }
+    if (useLowerBound)
+    {
+        Info << "Bounding " << var.name() << ">" << varMin << endl;
+    }
+
+    return;
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

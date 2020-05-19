@@ -13,5 +13,5 @@ cd ../../
 cd DAFoamIncompressible && make && mpirun -np 4 python runTests.py
 cd ../
 
-cd pyDAFoam && python runTests.py
+cd pyDAFoam && python mpirun -np 4 python runTests.py
 cd ../
