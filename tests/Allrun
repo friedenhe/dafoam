@@ -7,11 +7,14 @@ fi
 
 rm -rf input
 tar -xvf input.tar.gz
-cd input/CurvedCubeHexMesh && decomposePar
+cd input/CurvedCubeHexMesh && cp -r 0.incompressible/* 0/ && decomposePar
 cd ../../
 
 cd DAFoamIncompressible && make && mpirun -np 4 python runTests.py
 cd ../
 
-cd pyDAFoam && python mpirun -np 4 python runTests.py
+rm -rf input
+tar -xvf input.tar.gz
+
+cd pyDAFoam && mpirun -np 4 python runTests.py
 cd ../

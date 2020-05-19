@@ -64,7 +64,7 @@ class PYDAFOAM(object):
             self._printCurrentOptions()
 
         # run decomposePar for parallel runs
-        # self.runDecomposePar()
+        self.runDecomposePar()
 
         return
 

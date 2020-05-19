@@ -7,4 +7,3 @@ fi
 
 rm -rf input
 cd DAFoamIncompressible && make clean
-rm -rf DAFoamIncompressible/*.bin DAFoamIncompressible/*.dat DAFoamIncompressible/*.info
