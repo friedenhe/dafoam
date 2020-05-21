@@ -38,5 +38,5 @@ clean:
 
 test:
 	@echo "********************Running tests********************"
-	cd tests && ./Allrun
+	cd tests && ./Allclean && ./Allrun
 

@@ -35,7 +35,11 @@ install:
 
 jobs:
   include:
-    - stage: cppIncomp
+    - stage: makeTest
+      script:
+        # just run make test
+        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR && make test"
+    - stage: cppCodeCoverage
       script:
         # decompose
         - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/input/CurvedCubeHexMesh && cp 0.incompressible/* 0/ && decomposePar"
@@ -45,23 +49,11 @@ jobs:
         - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/DAFoamIncompressible && make && mpirun -np 4 python runTests.py"
         # run coveralls, the -lp option is for inline functions in C++
         - docker exec -it -e TRAVIS="$TRAVIS" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/src/adjoint && COVERALLS_PARALLEL=true coveralls --gcov-options '\-lp'"
-    - stage: cppComp
-      script:
-        # decompose
-        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/input/CurvedCubeHexMesh && cp 0.compressible/* 0/ && decomposePar"
-        # install cpp-coveralls and coverage
-        - docker exec -it regtest /bin/bash -c "pip install cpp-coveralls --user && pip install coverage --user"
-        # compile and run the tests
-        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/DAFoamCompressible && make && mpirun -np 4 python runTests.py"
-        # run coveralls, the -lp option is for inline functions in C++
-        - docker exec -it -e TRAVIS="$TRAVIS" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/src/adjoint && COVERALLS_PARALLEL=true coveralls --gcov-options '\-lp'"
-    - stage: python
+    - stage: pythonCodeCoverage
       script:
         # install coveralls and coverage
         - docker exec -it regtest /bin/bash -c "pip install coveralls --user && pip install coverage --user"
-        # run the tests
-        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/pyDAFoam && mpirun -np 4 runTests.py" # parallel run without coverage check
-        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/pyDAFoam && coverage run --include=$DOCKER_WORKING_DIR/src/pyDAFoam.py runTests.py" # serial run for coverage
+        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/pyDAFoam && coverage run --include=$DOCKER_WORKING_DIR/src/pyDAFoam.py runTests.py"
         # run coveralls
         - docker exec -it -e TRAVIS="$TRAVIS" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/pyDAFoam && COVERALLS_PARALLEL=true coveralls"
 
