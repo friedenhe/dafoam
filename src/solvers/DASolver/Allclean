@@ -5,8 +5,6 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-rm -rf input
-cd DAFoamIncompressible && make clean
-cd ../
-cd DAFoamCompressible && make clean
-cd ../
+wclean
+rm -rf Make/files Make/options
+

@@ -16,7 +16,7 @@ from Cython.Build import cythonize
 import os
 import petsc4py
 
-libName = "pyDARhoSimpleFoam"
+libName = "pyDASolverCompressible"
 
 os.environ["CC"] = "mpicc"
 os.environ["CXX"] = "mpicxx"
@@ -26,7 +26,7 @@ ext = [
     Extension(
         libName,
         # All source files, taken from Make/files
-        sources=["pyDARhoSimpleFoam.pyx", "DARhoSimpleFoam.C"],
+        sources=["pyDASolverCompressible.pyx", "DASolverCompressible.C"],
         # All include dirs, refer to Make/options in OpenFOAM
         include_dirs=[
             # These are from Make/options:EXE_INC
@@ -47,8 +47,9 @@ ext = [
             petsc4py.get_include(),
             os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/include",
             "../../adjoint/lnInclude",
-            "./",
             "../../include",
+            "../DASolver/lnInclude",
+            "./",
         ],
         # These are from Make/options:EXE_LIBS
         libraries=[
@@ -62,6 +63,7 @@ ext = [
             "meshTools",
             "fvOptions",
             "DAFoamCompressible",
+            "DASolverCompressible",
             "petsc",
         ],
         # These are pathes of linked libraries
@@ -74,8 +76,8 @@ ext = [
         ],
         # All other flags for OpenFOAM, users don't need to touch this
         extra_compile_args=[
-            "-DCompressibleFlow",
             "-std=c++11",
+            "-DCompressibleFlow",
             "-m64",
             "-DOPENFOAM_PLUS=1812",
             "-Dlinux64",
@@ -94,12 +96,7 @@ ext = [
             "-c",
         ],
         # Extra link flags for OpenFOAM, users don't need to touch this
-        extra_link_args=[
-            "-Xlinker", 
-            "--add-needed", 
-            "-Xlinker", 
-            "--no-as-needed"
-        ],
+        extra_link_args=["-Xlinker", "--add-needed", "-Xlinker", "--no-as-needed"],
     )
 ]
 

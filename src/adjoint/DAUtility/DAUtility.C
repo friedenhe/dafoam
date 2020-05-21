@@ -364,7 +364,7 @@ void DAUtility::boundVar(
     const scalar vGreat = 1e200;
     label useUpperBound = 0, useLowerBound = 0;
 
-    dictionary varBoundsDict = allOptions.subDict("varBounds");
+    dictionary varBoundsDict = allOptions.subDict("primalVarBounds");
 
     word lowerBoundName = var.name() + "LowerBound";
     word upperBoundName = var.name() + "UpperBound";
@@ -422,7 +422,7 @@ void DAUtility::boundVar(
     const scalar vGreat = 1e200;
     label useUpperBound = 0, useLowerBound = 0;
 
-    dictionary varBoundsDict = allOptions.subDict("varBounds");
+    dictionary varBoundsDict = allOptions.subDict("primalVarBounds");
 
     word lowerBoundName = var.name() + "LowerBound";
     word upperBoundName = var.name() + "UpperBound";

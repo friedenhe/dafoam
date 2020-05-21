@@ -1,0 +1,5 @@
+DASolver.C
+
+DARhoSimpleFoam/DARhoSimpleFoam.C
+
+LIB = $(FOAM_USER_LIBBIN)/libDASolverCompressible

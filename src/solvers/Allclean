@@ -5,9 +5,15 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-for d in ./*/ ; do 
-  cd "$d"
-  rm -rf *.cpp *.so build 
-  cd ../
-done
+cd DASolver
+./Allclean
+cd ../
+
+cd pyDASolverIncompressible
+rm -rf build *.so *.cpp
+cd ../
+
+cd pyDASolverCompressible
+rm -rf build *.so *.cpp
+cd ../
 

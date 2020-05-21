@@ -5,9 +5,18 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-for d in ./*/ ; do 
-  cd "$d" 
-  python setup.py build_ext --inplace 
-  mv *.so ../../
-  cd ../
-done
+cd DASolver
+./Allmake_Incompressible_Opt
+./Allclean
+./Allmake_Compressible_Opt
+cd ../
+
+cd pyDASolverIncompressible
+python setup.py build_ext --inplace 
+mv *.so ../../
+cd ../
+
+cd pyDASolverCompressible
+python setup.py build_ext --inplace 
+mv *.so ../../
+cd ../

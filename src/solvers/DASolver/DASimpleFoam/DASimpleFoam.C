@@ -4,6 +4,7 @@
     Version : v2
 
 \*---------------------------------------------------------------------------*/
+
 #include "DASimpleFoam.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -11,41 +12,53 @@
 namespace Foam
 {
 
-// Constructors
+defineTypeNameAndDebug(DASimpleFoam, 0);
+addToRunTimeSelectionTable(DASolver, DASimpleFoam, dictionary);
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
 DASimpleFoam::DASimpleFoam(
     char* argsAll,
     PyObject* pyOptions)
-    : argsAll_(argsAll),
-      pyOptions_(pyOptions)
+    : DASolver(argsAll, pyOptions),
+      runTimePtr_(nullptr),
+      meshPtr_(nullptr),
+      simplePtr_(nullptr),
+      pPtr_(nullptr),
+      UPtr_(nullptr),
+      phiPtr_(nullptr),
+      laminarTransportPtr_(nullptr),
+      turbulencePtr_(nullptr)
 {
 }
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-DASimpleFoam::~DASimpleFoam()
+void DASimpleFoam::initSolver()
 {
+    Info << "Initializing solvers" << endl;
+#include "setArgs.H"
+#include "setRootCasePython.H"
+#include "createTimePython.H"
+#include "createMeshPython.H"
+#include "createSimpleControlPython.H"
+#include "createFields.H"
+#include "createAdjoint.H"
 }
 
 void DASimpleFoam::solvePrimal()
 {
-#include "setArgs.H"
-#include "setRootCasePython.H"
-#include "createTime.H"
-#include "createMesh.H"
-#include "createControl.H"
-#include "createFields.H"
-#include "createAdjoint.H"
-#include "createFvOptions.H"
-#include "initContinuityErrs.H"
+#include "createRefs.H"
 
-    turbulence->validate();
-
-    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    turbulencePtr_->validate();
 
     Info << "\nStarting time loop\n"
          << endl;
 
-    while (simple.loop())
+    //while (simple.loop()) // using simple.loop() will have seg fault in parallel
+    while (runTime.loop())
     {
         Info << "Time = " << runTime.timeName() << nl << endl;
+
+        p.storePrevIter();
 
         // --- Pressure-velocity SIMPLE corrector
         {
@@ -54,7 +67,7 @@ void DASimpleFoam::solvePrimal()
         }
 
         laminarTransport.correct();
-        turbulence->correct();
+        turbulencePtr_->correct();
 
         runTime.write();
 
@@ -65,11 +78,13 @@ void DASimpleFoam::solvePrimal()
 
     Info << "End\n"
          << endl;
-
-    return;
 }
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+void DASimpleFoam::solveAdjoint()
+{
+}
+void DASimpleFoam::calcTotalDerivs()
+{
+}
 
 } // End namespace Foam
 

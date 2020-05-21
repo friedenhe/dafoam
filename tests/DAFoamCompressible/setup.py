@@ -16,7 +16,7 @@ from Cython.Build import cythonize
 import os
 import petsc4py
 
-libName = "pyTestDAFoamIncompressible"
+libName = "pyTestDAFoamCompressible"
 
 os.environ["CC"] = "mpicc"
 os.environ["CXX"] = "mpicxx"
@@ -26,17 +26,18 @@ ext = [
     Extension(
         libName,
         # All source files, taken from Make/files
-        sources=["pyTestDAFoamIncompressible.pyx", "TestDAFoamIncompressible.C"],
+        sources=["pyTestDAFoamCompressible.pyx", "TestDAFoamCompressible.C"],
         # All include dirs, refer to Make/options in OpenFOAM
         include_dirs=[
             # These are from Make/options:EXE_INC
-            os.getenv("FOAM_SRC") + "/TurbulenceModels/turbulenceModels/lnInclude",
-            os.getenv("FOAM_SRC") + "/TurbulenceModels/incompressible/lnInclude",
-            os.getenv("FOAM_SRC") + "/transportModels",
-            os.getenv("FOAM_SRC") + "/transportModels/incompressible/singlePhaseTransportModel",
-            os.getenv("FOAM_SRC") + "/finiteVolume/lnInclude",
-            os.getenv("FOAM_SRC") + "/meshTools/lnInclude",
-            os.getenv("FOAM_SRC") + "/sampling/lnInclude",
+            os.getenv("FOAM_SRC")+"/transportModels/compressible/lnInclude",
+            os.getenv("FOAM_SRC")+"/thermophysicalModels/basic/lnInclude",
+            os.getenv("FOAM_SRC")+"/TurbulenceModels/turbulenceModels/lnInclude",
+            os.getenv("FOAM_SRC")+"/TurbulenceModels/compressible/lnInclude",
+            os.getenv("FOAM_SRC")+"/finiteVolume/cfdTools",
+            os.getenv("FOAM_SRC")+"/finiteVolume/lnInclude",
+            os.getenv("FOAM_SRC")+"/meshTools/lnInclude",
+            os.getenv("FOAM_SRC")+"/sampling/lnInclude",
             # These are common for all OpenFOAM executives
             os.getenv("FOAM_SRC") + "/OpenFOAM/lnInclude",
             os.getenv("FOAM_SRC") + "/OSspecific/POSIX/lnInclude",
@@ -51,14 +52,16 @@ ext = [
         ],
         # These are from Make/options:EXE_LIBS
         libraries=[
-            "turbulenceModels",
-            "incompressibleTurbulenceModels",
-            "incompressibleTransportModels",
+            "compressibleTransportModels",
+            "fluidThermophysicalModels",
+            "specie",
+            "turbulenceModels", 
+            "compressibleTurbulenceModels",
             "finiteVolume",
             "sampling",
             "meshTools",
             "fvOptions",
-            "DAFoamIncompressible",
+            "DAFoamCompressible",
             "petsc",
         ],
         # These are pathes of linked libraries
@@ -72,7 +75,7 @@ ext = [
         # All other flags for OpenFOAM, users don't need to touch this
         extra_compile_args=[
             "-std=c++11",
-            "-DIncompressibleFlow",
+            "-DCompressibleFlow",
             "-m64",
             "-DOPENFOAM_PLUS=1812",
             "-Dlinux64",

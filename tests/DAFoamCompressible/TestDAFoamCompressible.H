@@ -4,19 +4,16 @@
     Version : v2
 
     Description:
-        Python wrapper library for DASimpleFoam
+        Test functions in libDAFoamCompressible.so
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DASimpleFoam_H
-#define DASimpleFoam_H
+#ifndef TestDAFoamCompressible_H
+#define TestDAFoamCompressible_H
 
 #include <petscksp.h>
-#include "Python.h"
 #include "fvCFD.H"
-#include "singlePhaseTransportModel.H"
-#include "turbulentTransportModel.H"
-#include "simpleControl.H"
+#include "Python.h"
 #include "DAUtility.H"
 #include "DAOption.H"
 #include "DARegState.H"
@@ -27,44 +24,36 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DASimpleFoam Declaration
+                       Class TestDAFoamCompressible Declaration
 \*---------------------------------------------------------------------------*/
 
-class DASimpleFoam
+class TestDAFoamCompressible
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DASimpleFoam(const DASimpleFoam&);
+    TestDAFoamCompressible(const TestDAFoamCompressible&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DASimpleFoam&);
+    void operator=(const TestDAFoamCompressible&);
 
     /// all the arguments
     char* argsAll_;
-
-    /// all options in DAFoam
-    PyObject* pyOptions_;
 
 public:
     // Constructors
 
     /// Construct from components
-    DASimpleFoam(
-        char* argsAll,
-        PyObject* pyOptions);
+    TestDAFoamCompressible(char* argsAll);
 
     /// Destructor
-    virtual ~DASimpleFoam();
+    virtual ~TestDAFoamCompressible();
 
-    /// solve the primal equations
-    void solvePrimal();
+    /// check if the dict matches the reference
+    label validateOFDict(const dictionary& ofDict1);
 
-    /// solve the adjoint linear equations
-    void solveAdjoint();
-
-    /// compute the total derivatives
-    void calcTotalDerivs();
+    /// test DARegState
+    label testDARegState(PyObject* pyDict);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

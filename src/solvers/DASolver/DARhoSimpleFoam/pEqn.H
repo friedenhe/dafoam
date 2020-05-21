@@ -12,10 +12,6 @@ tUEqn.clear();
 bool closedVolume = false;
 
 surfaceScalarField phiHbyA("phiHbyA", fvc::interpolate(rho) * fvc::flux(HbyA));
-MRF.makeRelative(fvc::interpolate(rho), phiHbyA);
-
-// Update the pressure BCs to ensure flux consistency
-constrainPressure(p, rho, U, phiHbyA, rhorAUf, MRF);
 
 if (simple.transonic())
 {
@@ -29,9 +25,8 @@ if (simple.transonic())
     {
         fvScalarMatrix pEqn(
             fvc::div(phiHbyA)
-                + fvm::div(phid, p)
-                - fvm::laplacian(rhorAUf, p)
-            == fvOptions(psi, p, rho.name()));
+            + fvm::div(phid, p)
+            - fvm::laplacian(rhorAUf, p));
 
         // Relax the pressure equation to ensure diagonal-dominance
         pEqn.relax();
@@ -56,8 +51,7 @@ else
     {
         fvScalarMatrix pEqn(
             fvc::div(phiHbyA)
-                - fvm::laplacian(rhorAUf, p)
-            == fvOptions(psi, p, rho.name()));
+            - fvm::laplacian(rhorAUf, p));
 
         pEqn.setReference(
             pressureControl.refCell(),
@@ -78,13 +72,12 @@ else
 p.relax();
 
 // bound p
-daUtil.boundVar(allOptions, p);
+daUtilPtr_->boundVar(allOptions, p);
 
 U = HbyA - rAU * fvc::grad(p);
 // bound U
-daUtil.boundVar(allOptions, U);
+daUtilPtr_->boundVar(allOptions, U);
 U.correctBoundaryConditions();
-fvOptions.correct(U);
 
 bool pLimited = pressureControl.limit(p);
 
@@ -92,7 +85,7 @@ bool pLimited = pressureControl.limit(p);
 // to obey overall mass continuity
 if (closedVolume)
 {
-    p += (initialMass - fvc::domainIntegrate(psi * p))
+    p += (initialMass_ - fvc::domainIntegrate(psi * p))
         / fvc::domainIntegrate(psi);
 }
 
@@ -109,4 +102,4 @@ if (!simple.transonic())
 }
 
 // bound rho
-daUtil.boundVar(allOptions, rho);
+daUtilPtr_->boundVar(allOptions, rho);

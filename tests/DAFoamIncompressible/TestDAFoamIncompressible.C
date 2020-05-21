@@ -177,6 +177,11 @@ label TestDAFoamIncompressible::validateOFDict(const dictionary& ofDict)
 
 label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 {
+#include "setArgs.H"
+#include "setRootCasePython.H"
+#include "createTime.H"
+#include "createMesh.H"
+
     label testErrors = 0;
 
     DAUtility daUtil;
@@ -188,7 +193,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
     testErrors = validateOFDict(ofDict);
 
     // ********************* List functions *********************
-    // isInList
+    // DAUtility::isInList
     scalarList sList = {1.0, 2.3, 3.5};
     labelList lList = {1, 2, 3};
     wordList wList = {"e1", "e2", "e3"};
@@ -208,7 +213,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
         testErrors += 1;
     }
 
-    // listReplaceVal
+    // DAUtility::listReplaceVal
     scalarList sListRe = {1.0, 2.3, 3.5};
     labelList lListRe = {1, 2, 3};
     wordList wListRe = {"e1", "e2", "e3"};
@@ -237,7 +242,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
         testErrors += 1;
     }
 
-    // listDeleteVal
+    // DAUtility::listDeleteVal
     scalarList sListDel = {1.0, 2.3, 3.5, 1.0}; // delete multiple
     labelList lListDel = {1, 2, 3};
     wordList wListDel = {"e1", "e2", "e3"};
@@ -270,13 +275,13 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
     Vec tVec;
     label myProcNo = Pstream::myProcNo();
     VecCreate(PETSC_COMM_WORLD, &tVec);
-    VecSetSizes(tVec, myProcNo, PETSC_DETERMINE);
+    VecSetSizes(tVec, myProcNo+1, PETSC_DETERMINE);
     VecSetFromOptions(tVec);
     VecZeroEntries(tVec);
 
     PetscScalar* tVecArray;
     VecGetArray(tVec, &tVecArray);
-    for (label i = 0; i < myProcNo; i++)
+    for (label i = 0; i < myProcNo+1; i++)
     {
         tVecArray[i] = i * 2.0;
     }
@@ -291,6 +296,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 
     Vec tVecRead;
     VecCreate(PETSC_COMM_WORLD, &tVecRead);
+    VecSetSizes(tVecRead, myProcNo+1, PETSC_DETERMINE);
     daUtil.readVectorBinary(tVecRead, "tVec");
 
     PetscBool equalVec;
@@ -303,7 +309,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 
     Mat tMat;
     MatCreate(PETSC_COMM_WORLD, &tMat);
-    MatSetSizes(tMat, myProcNo, PETSC_DECIDE, PETSC_DETERMINE, 2);
+    MatSetSizes(tMat, myProcNo+1, PETSC_DECIDE, PETSC_DETERMINE, 2);
     MatSetFromOptions(tMat);
     MatMPIAIJSetPreallocation(tMat, 2, NULL, 2, NULL);
     MatSeqAIJSetPreallocation(tMat, 2, NULL);
@@ -327,6 +333,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 
     Mat tMatRead;
     MatCreate(PETSC_COMM_WORLD, &tMatRead);
+    MatSetSizes(tMatRead, myProcNo+1, PETSC_DECIDE, PETSC_DETERMINE, 2);
     daUtil.readMatrixBinary(tMatRead, "tMat");
 
     PetscBool equalMat;
@@ -336,6 +343,122 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
         Pout << "error in read/writeMatrixBinary!" << endl;
         testErrors += 1;
     }
+
+    // test DAUtility::boundVar
+    volScalarField T(
+        IOobject(
+            "T1",
+            runTime.timeName(),
+            runTime,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE),
+        mesh,
+        dimensionedScalar("T1", dimensionSet(0, 0, 0, 1, 0, 0, 0), 1.0),
+        zeroGradientFvPatchScalarField::typeName);
+
+    forAll(T, idxI)
+    {
+        T[idxI] = 1.0 * Foam::sin(idxI * 1.0);
+    }
+    forAll(T.boundaryField(), patchI)
+    {
+        forAll(T.boundaryField()[patchI], faceI)
+        {
+            T.boundaryFieldRef()[patchI][faceI] = 1.0 * Foam::sin(patchI * faceI * 1.0);
+        }
+    }
+    T.write();
+
+    volVectorField U(
+        IOobject(
+            "U1",
+            runTime.timeName(),
+            runTime,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE),
+        mesh,
+        dimensionedVector("U1", dimensionSet(0, 1, -1, 0, 0, 0, 0), vector::zero),
+        zeroGradientFvPatchVectorField::typeName);
+    forAll(U, idxI)
+    {
+        for (label i = 0; i < 3; i++)
+        {
+            U[idxI][i] = 1.0 * Foam::sin(idxI * i * 1.0);
+        }
+    }
+    forAll(U.boundaryField(), patchI)
+    {
+        forAll(U.boundaryField()[patchI], faceI)
+        {
+            for (label i = 0; i < 3; i++)
+            {
+                U.boundaryFieldRef()[patchI][faceI][i] = 1.0 * Foam::sin(patchI * faceI * i * 1.0);
+            }
+        }
+    }
+    U.write();
+
+    dictionary boundVarSubDict;
+    boundVarSubDict.set("T1UpperBound", 0.5);
+    boundVarSubDict.set("T1LowerBound", -0.2);
+    boundVarSubDict.set("U1UpperBound", 0.6);
+    boundVarSubDict.set("U1LowerBound", -0.3);
+    dictionary boundVarDict;
+    boundVarDict.set("primalVarBounds", boundVarSubDict);
+    Info << boundVarDict << endl;
+    daUtil.boundVar(boundVarDict, U);
+    daUtil.boundVar(boundVarDict, T);
+
+    forAll(U, idxI)
+    {
+        for (label i = 0; i < 3; i++)
+        {
+            if (U[idxI][i] > 0.6 || U[idxI][i] < -0.3)
+            {
+                Pout << "error in boundVar vector!" << endl;
+                testErrors += 1;
+            }
+        }
+    }
+    forAll(U.boundaryField(), patchI)
+    {
+        forAll(U.boundaryField()[patchI], faceI)
+        {
+            for (label i = 0; i < 3; i++)
+            {
+                if (U.boundaryField()[patchI][faceI][i] > 0.6 || U.boundaryField()[patchI][faceI][i] < -0.3)
+                {
+                    Pout << "error in boundVar vector!" << endl;
+                    testErrors += 1;
+                }
+            }
+        }
+    }
+
+    forAll(T, idxI)
+    {
+        if (T[idxI] > 0.5 || T[idxI] < -0.2)
+        {
+            Pout << "error in boundVar scalar!" << endl;
+            testErrors += 1;
+        }
+    }
+    forAll(T.boundaryField(), patchI)
+    {
+        forAll(T.boundaryField()[patchI], faceI)
+        {
+            if (T.boundaryField()[patchI][faceI] > 0.5 || T.boundaryField()[patchI][faceI] < -0.2)
+            {
+                Pout << "error in boundVar scalar!" << endl;
+                testErrors += 1;
+            }
+        }
+    }
+
+    T.rename("T1_bound");
+    T.write();
+    U.rename("U1_bound");
+    U.write();
 
     return testErrors;
 }
@@ -469,7 +592,7 @@ label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
         testErrors += 1;
     }
 
-    labelList labelListNew = {8, 9}; // NOTE we set a different size 
+    labelList labelListNew = {8, 9}; // NOTE we set a different size
     daOption.setOption<labelList>("key5", labelListNew);
     labelList labelListNewCheck = daOption.getOption<labelList>("key5");
     if (labelListNew != labelListNewCheck)
@@ -487,7 +610,7 @@ label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
         testErrors += 1;
     }
 
-    wordList wordListNew = {"e9", "e5", "e4", "e3"};  // NOTE we set a different size 
+    wordList wordListNew = {"e9", "e5", "e4", "e3"}; // NOTE we set a different size
     daOption.setOption<wordList>("key7", wordListNew);
     wordList wordListNewCheck = daOption.getOption<wordList>("key7");
     if (wordListNew != wordListNewCheck)
@@ -498,8 +621,8 @@ label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
 
     // test setSubDictOption we only test two typical scenarios
     label labelSubDictNew = 101;
-    daOption.setSubDictOption<label>("key9","subkey1", labelSubDictNew);
-    label labelSubDictNewCheck = daOption.getSubDictOption<label>("key9","subkey1");
+    daOption.setSubDictOption<label>("key9", "subkey1", labelSubDictNew);
+    label labelSubDictNewCheck = daOption.getSubDictOption<label>("key9", "subkey1");
     if (labelSubDictNew != labelSubDictNewCheck)
     {
         Pout << "key9 subkey1 error in setSubDictOption!" << endl;
@@ -507,8 +630,8 @@ label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
     }
 
     scalarList scalarSubListNew = {8.5, 9.2};
-    daOption.setSubDictOption<scalarList>("key9",  "subkey6", scalarSubListNew);
-    scalarList scalarSubListNewCheck = daOption.getSubDictOption<scalarList>("key9",  "subkey6");
+    daOption.setSubDictOption<scalarList>("key9", "subkey6", scalarSubListNew);
+    scalarList scalarSubListNewCheck = daOption.getSubDictOption<scalarList>("key9", "subkey6");
     if (scalarSubListNew != scalarSubListNewCheck)
     {
         Pout << "key9 subkey6 error in setSudDictOption!" << endl;
@@ -516,6 +639,41 @@ label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
     }
 
     daOption.write();
+
+    return testErrors;
+}
+
+label TestDAFoamIncompressible::testDARegState(PyObject* pyDict)
+{
+#include "setArgs.H"
+#include "setRootCasePython.H"
+#include "createTime.H"
+#include "createMesh.H"
+
+    label testErrors = 0;
+
+    DAOption daOption(mesh, pyDict);
+
+    autoPtr<DARegState> daRegState(DARegState::New(mesh));
+
+    const HashTable<wordList>& regStates = daRegState->getRegStates();
+
+    HashTable<wordList> regStatesRef;
+
+    regStatesRef.set("volScalarField", {});
+    regStatesRef.set("volVectorField", {});
+    regStatesRef.set("surfaceScalarField", {});
+    regStatesRef.set("surfaceVectorField", {});
+    regStatesRef["volScalarField"].append("p");
+    regStatesRef["volScalarField"].append("nut");
+    regStatesRef["volVectorField"].append("U");
+    regStatesRef["surfaceScalarField"].append("phi");
+
+    if( regStates != regStatesRef)
+    {
+        Pout << "compressible error in DARegState!" << endl;
+        testErrors += 1;
+    }
 
     return testErrors;
 }

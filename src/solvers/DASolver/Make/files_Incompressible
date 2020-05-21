@@ -1,0 +1,5 @@
+DASolver.C
+
+DASimpleFoam/DASimpleFoam.C
+
+LIB = $(FOAM_USER_LIBBIN)/libDASolverIncompressible

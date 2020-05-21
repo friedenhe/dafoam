@@ -86,10 +86,12 @@ class PYDAFOAM(object):
             NOTE: We support only one level of sub dictionary
         """
         defOpts = {
-            # flow options
-            "flowEndTime": [float, 1.0],
-            "flowDeltaT": [float, 1.0],
-            "varBounds": [dict, {}],
+            # primal options
+            "primalEndTime": [float, 1.0],
+            "primalDeltaT": [float, 1.0],
+            "primalVarBounds": [dict, {}],
+            "flowCondition": [str, "Incompressible"],
+            "physicalModels": [list, ["DATurbulenceModel"]],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivFFD": [float, 1.0e-6],
@@ -197,20 +199,30 @@ class PYDAFOAM(object):
             print("|                        Running Primal Solver                             |")
             print("+--------------------------------------------------------------------------+")
 
+        self.solver.solvePrimal()
+
+        return
+
+    def initSolver(self):
+        """
+        Initialize the solvers
+        """
+
         solverName = self.getOption("solverName")
         solverArg = solverName + " -python " + self.parallelFlag
-        if solverName == "DASimpleFoam":
-            from .pyDASimpleFoam import pyDASimpleFoam
+        if self.getOption("flowCondition") == "Incompressible":
 
-            solver = pyDASimpleFoam(solverArg.encode(), self.options)
-        elif solverName == "DARhoSimpleFoam":
-            from .pyDARhoSimpleFoam import pyDARhoSimpleFoam
+            from .pyDASolverIncompressible import pyDASolverIncompressible
 
-            solver = pyDARhoSimpleFoam(solverArg.encode(), self.options)
+            self.solver = pyDASolverIncompressible(solverArg.encode(), self.options)
+        elif self.getOption("flowCondition") == "Compressible":
 
-        solver.solvePrimal()
+            from .pyDASolverCompressible import pyDASolverCompressible
 
-        solver = None
+            self.solver = pyDASolverCompressible(solverArg.encode(), self.options)
+        else:
+            raise Error('pyDAFoam: flowCondition %s: not valid!'%self.getOption("flowCondition"))
+        self.solver.initSolver()
 
         return
 

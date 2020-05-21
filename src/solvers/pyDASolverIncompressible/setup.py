@@ -16,7 +16,7 @@ from Cython.Build import cythonize
 import os
 import petsc4py
 
-libName = "pyDASimpleFoam"
+libName = "pyDASolverIncompressible"
 
 os.environ["CC"] = "mpicc"
 os.environ["CXX"] = "mpicxx"
@@ -26,7 +26,7 @@ ext = [
     Extension(
         libName,
         # All source files, taken from Make/files
-        sources=["pyDASimpleFoam.pyx", "DASimpleFoam.C"],
+        sources=["pyDASolverIncompressible.pyx", "DASolverIncompressible.C"],
         # All include dirs, refer to Make/options in OpenFOAM
         include_dirs=[
             # These are from Make/options:EXE_INC
@@ -46,8 +46,9 @@ ext = [
             petsc4py.get_include(),
             os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/include",
             "../../adjoint/lnInclude",
-            "./",
             "../../include",
+            "../DASolver/lnInclude",
+            "./",
         ],
         # These are from Make/options:EXE_LIBS
         libraries=[
@@ -59,6 +60,7 @@ ext = [
             "meshTools",
             "fvOptions",
             "DAFoamIncompressible",
+            "DASolverIncompressible",
             "petsc",
         ],
         # These are pathes of linked libraries
@@ -72,6 +74,7 @@ ext = [
         # All other flags for OpenFOAM, users don't need to touch this
         extra_compile_args=[
             "-std=c++11",
+            "-DIncompressibleFlow",
             "-m64",
             "-DOPENFOAM_PLUS=1812",
             "-Dlinux64",

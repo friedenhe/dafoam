@@ -4,21 +4,18 @@
     Version : v2
 
     Description:
-        Python wrapper library for DARhoSimpleFoam
+        Solver class that calls primal and adjoint solvers,
+        and compute the total derivatives
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DARhoSimpleFoam_H
-#define DARhoSimpleFoam_H
+#ifndef DASolver_H
+#define DASolver_H
 
 #include <petscksp.h>
 #include "Python.h"
 #include "fvCFD.H"
-#include "fluidThermo.H"
-#include "turbulentFluidThermoModel.H"
-#include "simpleControl.H"
-#include "pressureControl.H"
-#include "fvOptions.H"
+#include "runTimeSelectionTables.H"
 #include "DAUtility.H"
 #include "DAOption.H"
 #include "DARegState.H"
@@ -29,18 +26,20 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DARhoSimpleFoam Declaration
+                    Class DASolver Declaration
 \*---------------------------------------------------------------------------*/
 
-class DARhoSimpleFoam
+class DASolver
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DARhoSimpleFoam(const DARhoSimpleFoam&);
+    DASolver(const DASolver&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DARhoSimpleFoam&);
+    void operator=(const DASolver&);
+
+protected:
 
     /// all the arguments
     char* argsAll_;
@@ -49,24 +48,52 @@ private:
     PyObject* pyOptions_;
 
 public:
+    /// Runtime type information
+    TypeName("DASolver");
+
+    // Declare run-time constructor selection table
+    declareRunTimeSelectionTable(
+        autoPtr,
+        DASolver,
+        dictionary,
+        (
+            char* argsAll,
+            PyObject* pyOptions),
+        (argsAll,pyOptions));
+
     // Constructors
 
-    /// Construct from components
-    DARhoSimpleFoam(
+    //- Construct from components
+    DASolver(
         char* argsAll,
         PyObject* pyOptions);
 
-    /// Destructor
-    virtual ~DARhoSimpleFoam();
+    // Selectors
+
+    //- Return a reference to the selected model
+    static autoPtr<DASolver> New(
+        char* argsAll,
+        PyObject* pyOptions);
+
+    //- Destructor
+    virtual ~DASolver()
+    {
+    }
+
+    // Member functions
+
+    /// initialize fields and variables
+    virtual void initSolver()=0;
 
     /// solve the primal equations
-    void solvePrimal();
+    virtual void solvePrimal()=0;
 
     /// solve the adjoint linear equations
-    void solveAdjoint();
+    virtual void solveAdjoint()=0;
 
     /// compute the total derivatives
-    void calcTotalDerivs();
+    virtual void calcTotalDerivs()=0;
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -76,3 +103,5 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif
+
+// ************************************************************************* //

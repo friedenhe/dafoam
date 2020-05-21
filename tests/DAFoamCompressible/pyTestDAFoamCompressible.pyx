@@ -1,6 +1,6 @@
 
 # distutils: language = c++
-# distutils: sources = TestDAFoamIncompressible.C
+# distutils: sources = TestDAFoamCompressible.C
 
 """
     DAFoam  : Discrete Adjoint with OpenFOAM
@@ -16,19 +16,17 @@
 # from petsc4py.PETSc cimport Vec, PetscVec
 
 # declear cpp functions
-cdef extern from "TestDAFoamIncompressible.H" namespace "Foam":
-    cppclass TestDAFoamIncompressible:
-        TestDAFoamIncompressible(char *) except +
-        int testDAUtility(object)
-        int testDAOption(object)
+cdef extern from "TestDAFoamCompressible.H" namespace "Foam":
+    cppclass TestDAFoamCompressible:
+        TestDAFoamCompressible(char *) except +
         int testDARegState(object)
 
 # create python wrappers that call cpp functions
-cdef class pyTestDAFoamIncompressible:
+cdef class pyTestDAFoamCompressible:
 
     # define a class pointer for cpp functions
     cdef:
-        TestDAFoamIncompressible * _thisptr
+        TestDAFoamCompressible * _thisptr
 
     # initialize this class pointer with NULL
     def __cinit__(self):
@@ -42,15 +40,7 @@ cdef class pyTestDAFoamIncompressible:
 
     # point the class pointer to the cpp class constructor
     def __init__(self, argsAll):
-        self._thisptr = new TestDAFoamIncompressible(argsAll)
-
-    def testDAUtility(self, pyDict):
-        testErrors = self._thisptr.testDAUtility(pyDict)
-        return testErrors
-    
-    def testDAOption(self, pyDict):
-        testErrors = self._thisptr.testDAOption(pyDict)
-        return testErrors
+        self._thisptr = new TestDAFoamCompressible(argsAll)
     
     def testDARegState(self, pyDict):
         testErrors = self._thisptr.testDARegState(pyDict)

@@ -4,19 +4,16 @@
     Version : v2
 
     Description:
-        Test functions in libDAFoamIncompressible.so
+        Python wrapper library for DASolverCompressible
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef TestDAFoamIncompressible_H
-#define TestDAFoamIncompressible_H
+#ifndef DASolverCompressible_H
+#define DASolverCompressible_H
 
 #include <petscksp.h>
-#include "fvCFD.H"
 #include "Python.h"
-#include "DAUtility.H"
-#include "DAOption.H"
-#include "DARegState.H"
+#include "DASolver.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -24,42 +21,50 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class TestDAFoamIncompressible Declaration
+                       Class DASolverCompressible Declaration
 \*---------------------------------------------------------------------------*/
 
-class TestDAFoamIncompressible
+class DASolverCompressible
 {
 
 private:
     /// Disallow default bitwise copy construct
-    TestDAFoamIncompressible(const TestDAFoamIncompressible&);
+    DASolverCompressible(const DASolverCompressible&);
 
     /// Disallow default bitwise assignment
-    void operator=(const TestDAFoamIncompressible&);
+    void operator=(const DASolverCompressible&);
 
     /// all the arguments
     char* argsAll_;
+
+    /// all options in DAFoam
+    PyObject* pyOptions_;
+
+    /// DASolver
+    autoPtr<DASolver> DASolverPtr_;
 
 public:
     // Constructors
 
     /// Construct from components
-    TestDAFoamIncompressible(char* argsAll);
+    DASolverCompressible(
+        char* argsAll,
+        PyObject* pyOptions);
 
     /// Destructor
-    virtual ~TestDAFoamIncompressible();
+    virtual ~DASolverCompressible();
 
-    /// check if the dict matches the reference
-    label validateOFDict(const dictionary& ofDict1);
+    /// initialize fields and variables
+    void initSolver();
 
-    /// test DAUtility
-    label testDAUtility(PyObject* pyDict);
+    /// solve the primal equations
+    void solvePrimal();
 
-    /// test DAOption
-    label testDAOption(PyObject* pyDict);
+    /// solve the adjoint linear equations
+    void solveAdjoint();
 
-    /// test DARegState
-    label testDARegState(PyObject* pyDict);
+    /// compute the total derivatives
+    void calcTotalDerivs();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

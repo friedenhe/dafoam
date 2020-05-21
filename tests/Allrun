@@ -15,6 +15,15 @@ cd ../
 
 rm -rf input
 tar -xvf input.tar.gz
+cd input/CurvedCubeHexMesh && cp -r 0.compressible/* 0/ && decomposePar
+cd ../../
+
+cd DAFoamCompressible && make && mpirun -np 4 python runTests.py
+cd ../
+
+rm -rf input
+tar -xvf input.tar.gz
 
 cd pyDAFoam && mpirun -np 4 python runTests.py
 cd ../
+
