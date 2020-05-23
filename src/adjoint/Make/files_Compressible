@@ -5,4 +5,17 @@ DAOption/DAOption.C
 DARegState/DARegState.C
 DARegState/DARegStateRhoSimpleFoam.C
 
+DARegDb/DAFluidThermo.C
+DARegDb/DANearWallDist.C
+
+DAModel/DAModel.C
+
+DAModel/DATurbulenceModel/DATurbulenceModel.C
+DAModel/DATurbulenceModel/DASpalartAllmaras.C
+
+DAModel/DARadiationModel/DARadiationModel.C
+DAModel/DARadiationModel/DAP1.C
+
+DAIndex/DAIndex.C
+
 LIB = $(FOAM_USER_LIBBIN)/libDAFoamCompressible

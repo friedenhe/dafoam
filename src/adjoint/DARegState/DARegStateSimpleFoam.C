@@ -21,21 +21,23 @@ DARegStateSimpleFoam::DARegStateSimpleFoam(
     : DARegState(mesh)
 {
     // Register state variables
-    // NOTE: *State Lists are for each solver and *ModelState lists are for selected physical
-    // models at runtime, such as turbulence model and radiation models.
-    // For *State lists, register the primitive variables for this solver. For model variables,
-    // register specific names to *ModelStates, refer to details in model's DA*.H header files,
-    // For example, register "nut" for RANS turbulence model to volScalarModelStates,
-    // refer to DATurbModel.H. Then in DATurbModel child class, we will call setModelState() to modify
-    // "nut" based on selected turbulence model, for SA model, setModelState will just replace "nut"
-    // with "nuTilda", for SST model, it will replace "nut" with "k" and append "omega" to
-    // volScalarModelStates. In other words, *State lists will not change for this solver while
-    // *ModelState lists will be modified based on the selected models at runtime.
+    // NOTE:
+    // For model variables, such as turbulence model, register specific names
+    // For example, register "nut" to modelStates for RANS turbulence models,
+    // Then, we will call correctModelStates(regStates_["modelStates"]) to modify
+    // "nut" based on the selected turbulence model. For example, for SA model, 
+    // correctModelStates will just replace "nut" with "nuTilda", for SST model,
+    // it will replace "nut" with "k" and append "omega" to modelStates. 
+    // In other words, the model variables will be modified based on the selected 
+    // models at runtime.
 
-    regStates_["volScalarField"].append("p");
-    regStates_["volScalarField"].append("nut");
-    regStates_["volVectorField"].append("U");
-    regStates_["surfaceScalarField"].append("phi");
+    regStates_["volScalarStates"].append("p");
+    regStates_["modelStates"].append("nut");
+    regStates_["volVectorStates"].append("U");
+    regStates_["surfaceScalarStates"].append("phi");
+
+    // correct the names for model states based on the selected physical model at runtime
+    this->correctModelStates(regStates_["modelStates"]);
 
     Info << "regStates: " << regStates_ << endl;
 }

@@ -4,18 +4,17 @@
     Version : v2
 
     Description:
-        Register state variables for the adjoint
+    Augmented radiation model for the adjoint method, including residual 
+    calculation functions, etc
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DARegState_H
-#define DARegState_H
+#ifndef DARadiationModel_H
+#define DARadiationModel_H
 
 #include "runTimeSelectionTables.H"
-#include "fvOptions.H"
-#include "surfaceFields.H"
 #include "DAOption.H"
-#include "DAModel.H"
+#include "DARegState.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -23,36 +22,31 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class DARegState Declaration
+                    Class DARadiationModel Declaration
 \*---------------------------------------------------------------------------*/
 
-class DARegState
+class DARadiationModel
     : public regIOobject
 {
 
 private:
-    /// Disallow default bitwise copy construct
-    DARegState(const DARegState&);
+    //- Disallow default bitwise copy construct
+    DARadiationModel(const DARadiationModel&);
 
-    /// Disallow default bitwise assignment
-    void operator=(const DARegState&);
+    //- Disallow default bitwise assignment
+    void operator=(const DARadiationModel&);
 
 protected:
-
-    /// fvMesh
     const fvMesh& mesh_;
-    
-    /// registered states 1st hash: solverName, 2nd hash: fieldType, 3nd list, stateNames
-    HashTable<wordList> regStates_;
 
 public:
-    /// Runtime type information
-    TypeName("DARegState");
+    //- Runtime type information
+    TypeName("DARadiationModel");
 
     // Declare run-time constructor selection table
     declareRunTimeSelectionTable(
         autoPtr,
-        DARegState,
+        DARadiationModel,
         dictionary,
         (const fvMesh& mesh),
         (mesh));
@@ -60,25 +54,19 @@ public:
     // Constructors
 
     //- Construct from components
-    DARegState(const fvMesh& mesh);
+    DARadiationModel(const fvMesh& mesh);
 
     // Selectors
 
     //- Return a reference to the selected model
-    static autoPtr<DARegState> New(const fvMesh& mesh);
+    static autoPtr<DARadiationModel> New(const fvMesh& mesh);
 
     //- Destructor
-    virtual ~DARegState()
+    virtual ~DARadiationModel()
     {
     }
 
-    /// return the reference of regStates
-    const HashTable<wordList>& getRegStates()
-    {
-        return regStates_;
-    }
-
-    void correctModelStates(wordList& modelStates);
+    // Members
 
     /// this is a virtual function for regIOobject
     bool writeData(Ostream& os) const;

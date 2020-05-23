@@ -91,10 +91,11 @@ class PYDAFOAM(object):
             "primalDeltaT": [float, 1.0],
             "primalVarBounds": [dict, {}],
             "flowCondition": [str, "Incompressible"],
-            "physicalModels": [list, ["DATurbulenceModel"]],
+            "turbulenceModel": [str, "SpalartAllmaras"],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivFFD": [float, 1.0e-6],
+            "adjJacMatOrdering": [str, "state"],
             # system options
             "rootDir": [str, "./"],
             "solverName": [str, "DASimpleFoam"],

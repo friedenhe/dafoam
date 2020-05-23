@@ -5,7 +5,7 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DARegState.H"
+#include "DARadiationModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -14,15 +14,15 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(DARegState, 0);
-defineRunTimeSelectionTable(DARegState, dictionary);
+defineTypeNameAndDebug(DARadiationModel, 0);
+defineRunTimeSelectionTable(DARadiationModel, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DARegState::DARegState(const fvMesh& mesh)
+DARadiationModel::DARadiationModel(const fvMesh& mesh)
     : regIOobject(
         IOobject(
-            "DARegState",
+            "DARadiationModel",
             mesh.time().timeName(),
             mesh, // register to mesh
             IOobject::NO_READ,
@@ -31,73 +31,48 @@ DARegState::DARegState(const fvMesh& mesh)
             )),
       mesh_(mesh)
 {
-    /*
-    Description:
-        Construct from Foam::fvMesh
-    Input:
-        mesh: a fvMesh object
-    */
-
-    // initialize regStates
-    regStates_.set("volScalarStates", {});
-    regStates_.set("volVectorStates", {});
-    regStates_.set("surfaceScalarStates", {});
-    regStates_.set("modelStates", {});
-
-    //Info<<regStates<<endl;
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
-autoPtr<DARegState> DARegState::New(const fvMesh& mesh)
+autoPtr<DARadiationModel> DARadiationModel::New(const fvMesh& mesh)
 {
-    // standard setup for runtime selectable classes
-
-    // look up the solver name defined in system/DADict
+    // look up the solver name 
     const DAOption& daOption = mesh.thisDb().lookupObject<DAOption>("DAOption");
-    word solverName = daOption.getOption<word>("solverName");
+    word solverName = daOption.getOption<word>("radiationModel");
 
-    Info << "Selecting " << solverName << " for DARegState" << endl;
+    Info << "Selecting " << solverName << " for DARadiationModel" << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(solverName);
 
-    // if the solver name is not found in any child class, print an error
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorIn(
-            "DARegState::New"
+            "DARadiationModel::New"
             "("
             "    const fvMesh&"
             ")")
-            << "Unknown DARegState type "
+            << "Unknown DARadiationModel type "
             << solverName << nl << nl
-            << "Valid DARegState types:" << endl
+            << "Valid DARadiationModel types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }
 
-    // child class found
-    return autoPtr<DARegState>(
+    return autoPtr<DARadiationModel>(
         cstrIter()(mesh));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 // this is a virtual function for regIOobject
-bool DARegState::writeData(Ostream& os) const
+bool DARadiationModel::writeData(Ostream& os) const
 {
     // do nothing
     return true;
 }
 
-void DARegState::correctModelStates(wordList& modelStates)
-{
-    DAModel& daModel = const_cast<DAModel&>(
-        mesh_.thisDb().lookupObject<DAModel>("DAModel"));
-    daModel.correctModelStates(modelStates);
-    return;
-}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

@@ -43,6 +43,7 @@ def checkErrors(testName, errorCode):
     else:
         print("Tests Passed for %s! Rank %d" % (testName, comm.rank))
 
+
 parallelFlag = ""
 if comm.size > 1:
     parallelFlag = "-parallel"
@@ -51,8 +52,7 @@ tests = pyTestDAFoamCompressible(solverArg.encode())
 
 # Test1: DARegState
 os.chdir("../input/CurvedCubeHexMesh")
-testDict = {"solverName": [str, "DARhoSimpleFoam"]}
+testDict = {"solverName": [str, "DARhoSimpleFoam"], "turbulenceModel": [str, "SpalartAllmaras"]}
 testErrors = tests.testDARegState(testDict)
 checkErrors("DARegState", testErrors)
 os.chdir("../../DAFoamCompressible")
-

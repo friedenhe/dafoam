@@ -19,6 +19,9 @@
 #include "DAUtility.H"
 #include "DAOption.H"
 #include "DARegState.H"
+#include "DAModel.H"
+#include "DATurbulenceModel.H"
+#include "DAIndex.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

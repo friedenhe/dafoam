@@ -275,13 +275,13 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
     Vec tVec;
     label myProcNo = Pstream::myProcNo();
     VecCreate(PETSC_COMM_WORLD, &tVec);
-    VecSetSizes(tVec, myProcNo+1, PETSC_DETERMINE);
+    VecSetSizes(tVec, myProcNo + 1, PETSC_DETERMINE);
     VecSetFromOptions(tVec);
     VecZeroEntries(tVec);
 
     PetscScalar* tVecArray;
     VecGetArray(tVec, &tVecArray);
-    for (label i = 0; i < myProcNo+1; i++)
+    for (label i = 0; i < myProcNo + 1; i++)
     {
         tVecArray[i] = i * 2.0;
     }
@@ -296,7 +296,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 
     Vec tVecRead;
     VecCreate(PETSC_COMM_WORLD, &tVecRead);
-    VecSetSizes(tVecRead, myProcNo+1, PETSC_DETERMINE);
+    VecSetSizes(tVecRead, myProcNo + 1, PETSC_DETERMINE);
     daUtil.readVectorBinary(tVecRead, "tVec");
 
     PetscBool equalVec;
@@ -309,7 +309,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 
     Mat tMat;
     MatCreate(PETSC_COMM_WORLD, &tMat);
-    MatSetSizes(tMat, myProcNo+1, PETSC_DECIDE, PETSC_DETERMINE, 2);
+    MatSetSizes(tMat, myProcNo + 1, PETSC_DECIDE, PETSC_DETERMINE, 2);
     MatSetFromOptions(tMat);
     MatMPIAIJSetPreallocation(tMat, 2, NULL, 2, NULL);
     MatSeqAIJSetPreallocation(tMat, 2, NULL);
@@ -333,7 +333,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 
     Mat tMatRead;
     MatCreate(PETSC_COMM_WORLD, &tMatRead);
-    MatSetSizes(tMatRead, myProcNo+1, PETSC_DECIDE, PETSC_DETERMINE, 2);
+    MatSetSizes(tMatRead, myProcNo + 1, PETSC_DECIDE, PETSC_DETERMINE, 2);
     daUtil.readMatrixBinary(tMatRead, "tMat");
 
     PetscBool equalMat;
@@ -654,22 +654,29 @@ label TestDAFoamIncompressible::testDARegState(PyObject* pyDict)
 
     DAOption daOption(mesh, pyDict);
 
+    autoPtr<DATurbulenceModel> daTurbmodel(
+        DATurbulenceModel::New(mesh));
+
+    DAModel daModel(mesh);
+
     autoPtr<DARegState> daRegState(DARegState::New(mesh));
 
     const HashTable<wordList>& regStates = daRegState->getRegStates();
 
     HashTable<wordList> regStatesRef;
 
-    regStatesRef.set("volScalarField", {});
-    regStatesRef.set("volVectorField", {});
-    regStatesRef.set("surfaceScalarField", {});
-    regStatesRef.set("surfaceVectorField", {});
-    regStatesRef["volScalarField"].append("p");
-    regStatesRef["volScalarField"].append("nut");
-    regStatesRef["volVectorField"].append("U");
-    regStatesRef["surfaceScalarField"].append("phi");
+    regStatesRef.set("volScalarStates", {});
+    regStatesRef.set("volVectorStates", {});
+    regStatesRef.set("modelStates", {});
+    regStatesRef.set("surfaceScalarStates", {});
+    regStatesRef["volScalarStates"].append("p");
+    regStatesRef["modelStates"].append("nut");
+    regStatesRef["volVectorStates"].append("U");
+    regStatesRef["surfaceScalarStates"].append("phi");
 
-    if( regStates != regStatesRef)
+    daRegState->correctModelStates(regStatesRef["modelStates"]);
+
+    if (regStates != regStatesRef)
     {
         Pout << "compressible error in DARegState!" << endl;
         testErrors += 1;

@@ -32,23 +32,30 @@ label TestDAFoamCompressible::testDARegState(PyObject* pyDict)
 
     DAOption daOption(mesh, pyDict);
 
+    autoPtr<DATurbulenceModel> daTurbmodel(
+        DATurbulenceModel::New(mesh));
+
+    DAModel daModel(mesh);
+
     autoPtr<DARegState> daRegState(DARegState::New(mesh));
 
     const HashTable<wordList>& regStates = daRegState->getRegStates();
 
     HashTable<wordList> regStatesRef;
 
-    regStatesRef.set("volScalarField", {});
-    regStatesRef.set("volVectorField", {});
-    regStatesRef.set("surfaceScalarField", {});
-    regStatesRef.set("surfaceVectorField", {});
-    regStatesRef["volScalarField"].append("p");
-    regStatesRef["volScalarField"].append("T");
-    regStatesRef["volScalarField"].append("nut");
-    regStatesRef["volVectorField"].append("U");
-    regStatesRef["surfaceScalarField"].append("phi");
+    regStatesRef.set("volScalarStates", {});
+    regStatesRef.set("volVectorStates", {});
+    regStatesRef.set("modelStates", {});
+    regStatesRef.set("surfaceScalarStates", {});
+    regStatesRef["volScalarStates"].append("p");
+    regStatesRef["volScalarStates"].append("T");
+    regStatesRef["modelStates"].append("nut");
+    regStatesRef["volVectorStates"].append("U");
+    regStatesRef["surfaceScalarStates"].append("phi");
 
-    if( regStates != regStatesRef)
+    daRegState->correctModelStates(regStatesRef["modelStates"]);
+
+    if (regStates != regStatesRef)
     {
         Pout << "compressible error in DARegState!" << endl;
         testErrors += 1;

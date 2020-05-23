@@ -88,7 +88,7 @@ os.chdir("../../DAFoamIncompressible")
 
 # Test2: DARegState
 os.chdir("../input/CurvedCubeHexMesh")
-testDict = {"solverName": [str, "DASimpleFoam"]}
+testDict = {"solverName": [str, "DASimpleFoam"], "turbulenceModel": [str, "SpalartAllmaras"]}
 testErrors = tests.testDARegState(testDict)
 checkErrors("DARegState", testErrors)
 os.chdir("../../DAFoamIncompressible")
