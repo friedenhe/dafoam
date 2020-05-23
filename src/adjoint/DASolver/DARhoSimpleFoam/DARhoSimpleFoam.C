@@ -49,13 +49,13 @@ void DARhoSimpleFoam::initSolver()
 #include "createTimePython.H"
 #include "createMeshPython.H"
 #include "createSimpleControlPython.H"
-#include "createFields.H"
-#include "createAdjoint.H"
+#include "createFieldsRhoSimple.H"
+#include "createAdjointRhoSimple.H"
 }
 
 void DARhoSimpleFoam::solvePrimal()
 {
-#include "createRefs.H"
+#include "createRefsRhoSimple.H"
 
     turbulencePtr_->validate();
 
@@ -67,9 +67,9 @@ void DARhoSimpleFoam::solvePrimal()
         Info << "Time = " << runTime.timeName() << nl << endl;
 
         // Pressure-velocity SIMPLE corrector
-#include "UEqn.H"
-#include "EEqn.H"
-#include "pEqn.H"
+#include "UEqnRhoSimple.H"
+#include "EEqnRhoSimple.H"
+#include "pEqnRhoSimple.H"
 
         turbulencePtr_->correct();
 

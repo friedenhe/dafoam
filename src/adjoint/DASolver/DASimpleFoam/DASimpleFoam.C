@@ -46,13 +46,13 @@ void DASimpleFoam::initSolver()
 #include "createTimePython.H"
 #include "createMeshPython.H"
 #include "createSimpleControlPython.H"
-#include "createFields.H"
-#include "createAdjoint.H"
+#include "createFieldsSimple.H"
+#include "createAdjointSimple.H"
 }
 
 void DASimpleFoam::solvePrimal()
 {
-#include "createRefs.H"
+#include "createRefsSimple.H"
 
     turbulencePtr_->validate();
 
@@ -68,8 +68,8 @@ void DASimpleFoam::solvePrimal()
 
         // --- Pressure-velocity SIMPLE corrector
         {
-#include "UEqn.H"
-#include "pEqn.H"
+#include "UEqnSimple.H"
+#include "pEqnSimple.H"
         }
 
         laminarTransport.correct();

@@ -18,4 +18,7 @@ DAModel/DARadiationModel/DAP1.C
 
 DAIndex/DAIndex.C
 
+DASolver/DASolver.C
+DASolver/DARhoSimpleFoam/DARhoSimpleFoam.C
+
 LIB = $(FOAM_USER_LIBBIN)/libDAFoamCompressible
