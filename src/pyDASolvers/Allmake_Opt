@@ -5,12 +5,6 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-cd DASolver
-./Allmake_Incompressible_Opt
-./Allclean
-./Allmake_Compressible_Opt
-cd ../
-
 cd pyDASolverIncompressible
 python setup.py build_ext --inplace 
 mv *.so ../../

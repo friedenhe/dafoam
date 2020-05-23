@@ -48,7 +48,6 @@ ext = [
             os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/include",
             "../../adjoint/lnInclude",
             "../../include",
-            "../DASolver/lnInclude",
             "./",
         ],
         # These are from Make/options:EXE_LIBS
@@ -63,7 +62,6 @@ ext = [
             "meshTools",
             "fvOptions",
             "DAFoamCompressible",
-            "DASolverCompressible",
             "petsc",
         ],
         # These are pathes of linked libraries

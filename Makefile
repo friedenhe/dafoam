@@ -10,7 +10,7 @@ opt:
 # compile src/adjoint with compressible
 	cd src/adjoint && ./Allmake_Compressible_Opt
 # compile srs/solvers/incompressible
-	cd src/solvers && ./Allmake_Opt
+	cd src/pyDASolvers && ./Allmake_Opt
 # compile src/utilities
 	cd src/utilities && ./Allmake
 
@@ -21,14 +21,14 @@ debug:
 # compile src/adjoint with incompressible
 	cd src/adjoint && ./Allmake_Compressible_Debug
 # compile srs/solvers/incompressible
-	cd src/solvers && ./Allmake_Debug
+	cd src/pyDASolvers && ./Allmake_Debug
 
 clean:
 	@echo "********************Cleaning up********************"
 # compile src/adjoint with incompressible
 	cd src/adjoint && ./Allclean
 # compile srs/solvers/incompressible
-	cd src/solvers && ./Allclean
+	cd src/pyDASolvers && ./Allclean
 # clean src/utilities
 	cd src/utilities && ./Allclean
 # clean src/utilities
