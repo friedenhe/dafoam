@@ -21,6 +21,9 @@ cdef extern from "DASolverIncompressible.H" namespace "Foam":
         DASolverIncompressible(char *, object) except +
         void initSolver()
         void solvePrimal()
+        void solveAdjoint()
+        void calcTotalDerivs()
+        int getGlobalXvIndex(int, int)
 
 # create python wrappers that call cpp functions
 cdef class pyDASolverIncompressible:
@@ -66,3 +69,12 @@ cdef class pyDASolverIncompressible:
 
     def solvePrimal(self):
         self._thisptr.solvePrimal()
+    
+    def solveAdjoint(self):
+        self._thisptr.solveAdjoint()
+    
+    def calcTotalDerivs(self):
+        self._thisptr.calcTotalDerivs()
+    
+    def getGlobalXvIndex(self, pointI, coordI):
+        return self._thisptr.getGlobalXvIndex(pointI, coordI)

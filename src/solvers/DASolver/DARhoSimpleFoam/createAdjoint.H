@@ -1,14 +1,13 @@
 // adjoint
+
 daUtilPtr_.reset(new DAUtility);
 
-daOptionPtr_.reset(new DAOption(mesh,pyOptions_));
+daOptionPtr_.reset(new DAOption(mesh, pyOptions_));
 
-autoPtr<DATurbulenceModel> daTurbmodel(
-    DATurbulenceModel::New(mesh));
+daTurbulenceModelPtr_.reset(DATurbulenceModel::New(mesh));
 
-DAModel daModel(mesh);
+daModelPtr_.reset(new DAModel(mesh));
 
-autoPtr<DARegState> daReg(
-    DARegState::New(mesh));
+daRegStatePtr_.reset(DARegState::New(mesh));
 
-DAIndex daIndex(mesh);
+daIndexPtr_.reset(new DAIndex(mesh));

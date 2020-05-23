@@ -43,7 +43,6 @@ private:
     void operator=(const DASolver&);
 
 protected:
-
     /// all the arguments
     char* argsAll_;
 
@@ -62,7 +61,7 @@ public:
         (
             char* argsAll,
             PyObject* pyOptions),
-        (argsAll,pyOptions));
+        (argsAll, pyOptions));
 
     // Constructors
 
@@ -86,17 +85,21 @@ public:
     // Member functions
 
     /// initialize fields and variables
-    virtual void initSolver()=0;
+    virtual void initSolver() = 0;
 
     /// solve the primal equations
-    virtual void solvePrimal()=0;
+    virtual void solvePrimal() = 0;
 
     /// solve the adjoint linear equations
-    virtual void solveAdjoint()=0;
+    virtual void solveAdjoint() = 0;
 
     /// compute the total derivatives
-    virtual void calcTotalDerivs()=0;
+    virtual void calcTotalDerivs() = 0;
 
+    /// basically, we call DAIndex::getGlobalXvIndex
+    virtual label getGlobalXvIndex(
+        const label idxPoint,
+        const label idxCoord) const = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

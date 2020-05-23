@@ -74,6 +74,18 @@ protected:
     /// DAOption pointer
     autoPtr<DAOption> daOptionPtr_;
 
+    /// DATurbulenceModel pointer
+    autoPtr<DATurbulenceModel> daTurbulenceModelPtr_;
+
+    /// DAModel pointer
+    autoPtr<DAModel> daModelPtr_;
+
+    /// DARegState pointer
+    autoPtr<DARegState> daRegStatePtr_;
+
+    /// DAIndex pointer
+    autoPtr<DAIndex> daIndexPtr_;
+
 public:
     TypeName("DARhoSimpleFoam");
     // Constructors
@@ -99,6 +111,11 @@ public:
 
     /// compute the total derivatives
     virtual void calcTotalDerivs();
+
+    /// basically, we call DAIndex::getGlobalXvIndex
+    virtual label getGlobalXvIndex(
+        const label idxPoint,
+        const label idxCoord) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -31,7 +31,12 @@ DARhoSimpleFoam::DARhoSimpleFoam(
       pressureControlPtr_(nullptr),
       turbulencePtr_(nullptr),
       initialMass_(dimensionedScalar("initialMass", dimensionSet(1, 0, 0, 0, 0, 0, 0), 0.0)),
-      daUtilPtr_(nullptr)
+      daUtilPtr_(nullptr),
+      daOptionPtr_(nullptr),
+      daTurbulenceModelPtr_(nullptr),
+      daModelPtr_(nullptr),
+      daRegStatePtr_(nullptr),
+      daIndexPtr_(nullptr)
 {
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -83,6 +88,14 @@ void DARhoSimpleFoam::solveAdjoint()
 }
 void DARhoSimpleFoam::calcTotalDerivs()
 {
+}
+
+/// basically, we call DAIndex::getGlobalXvIndex
+label DARhoSimpleFoam::getGlobalXvIndex(
+    const label idxPoint,
+    const label idxCoord) const
+{
+    return daIndexPtr_->getGlobalXvIndex(idxPoint, idxCoord);
 }
 
 } // End namespace Foam

@@ -65,6 +65,11 @@ public:
 
     /// compute the total derivatives
     void calcTotalDerivs();
+
+    /// basically, we call DAIndex::getGlobalXvIndex
+    label getGlobalXvIndex(
+        const label idxPoint,
+        const label idxCoord);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -38,6 +38,25 @@ void DASolverCompressible::solvePrimal()
     return;
 }
 
+void DASolverCompressible::solveAdjoint()
+{
+    DASolverPtr_->solveAdjoint();
+    return;
+}
+
+void DASolverCompressible::calcTotalDerivs()
+{
+    DASolverPtr_->calcTotalDerivs();
+    return;
+}
+
+label DASolverCompressible::getGlobalXvIndex(
+    const label idxPoint,
+    const label idxCoord)
+{
+    return DASolverPtr_->getGlobalXvIndex(idxPoint, idxCoord);
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

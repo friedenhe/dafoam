@@ -27,7 +27,13 @@ DASimpleFoam::DASimpleFoam(
       UPtr_(nullptr),
       phiPtr_(nullptr),
       laminarTransportPtr_(nullptr),
-      turbulencePtr_(nullptr)
+      turbulencePtr_(nullptr),
+      daUtilPtr_(nullptr),
+      daOptionPtr_(nullptr),
+      daTurbulenceModelPtr_(nullptr),
+      daModelPtr_(nullptr),
+      daRegStatePtr_(nullptr),
+      daIndexPtr_(nullptr)
 {
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -84,6 +90,14 @@ void DASimpleFoam::solveAdjoint()
 }
 void DASimpleFoam::calcTotalDerivs()
 {
+}
+
+/// basically, we call DAIndex::getGlobalXvIndex
+label DASimpleFoam::getGlobalXvIndex(
+    const label idxPoint,
+    const label idxCoord) const
+{
+    return daIndexPtr_->getGlobalXvIndex(idxPoint, idxCoord);
 }
 
 } // End namespace Foam
