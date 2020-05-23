@@ -24,6 +24,8 @@ cd ../
 rm -rf input
 tar -xvf input.tar.gz
 
-cd pyDAFoam && mpirun -np 4 python runTests.py
+cd pyDAFoam && mpirun -np 4 python runTests_DARhoSimpleFoam.py
+cd ../
+cd pyDAFoam && mpirun -np 4 python runTests_DASimpleFoam.py
 cd ../
 

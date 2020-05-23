@@ -7,10 +7,12 @@ pyDAFoam: Python wrapper for DAFoam.
 import subprocess
 import os
 import sys
+import copy
 from pprint import pprint as pp
 from mpi4py import MPI
 from collections import OrderedDict
 import petsc4py
+from petsc4py import PETSc
 
 petsc4py.init(sys.argv)
 
@@ -65,6 +67,12 @@ class PYDAFOAM(object):
 
         # run decomposePar for parallel runs
         self.runDecomposePar()
+
+        # initialize the pySolvers
+        self._initSolver()
+
+        # initialize mesh information and read grids
+        self._initializeMesh()
 
         return
 
@@ -204,7 +212,7 @@ class PYDAFOAM(object):
 
         return
 
-    def initSolver(self):
+    def _initSolver(self):
         """
         Initialize the solvers
         """
@@ -222,7 +230,7 @@ class PYDAFOAM(object):
 
             self.solver = pyDASolverCompressible(solverArg.encode(), self.options)
         else:
-            raise Error('pyDAFoam: flowCondition %s: not valid!'%self.getOption("flowCondition"))
+            raise Error("pyDAFoam: flowCondition %s: not valid!" % self.getOption("flowCondition"))
         self.solver.initSolver()
 
         return
@@ -271,6 +279,84 @@ class PYDAFOAM(object):
         self.comm.Barrier()
 
         return
+
+    def _initializeMesh(self):
+        """
+        Initialize mesh information and read mesh point
+        """
+
+        self.fileNames = {}
+        self.x0 = None
+        self.x = None
+        self.faces = None
+        self.boundaries = None
+        self.owners = None
+        self.neighbours = None
+
+        dirName = os.getcwd()
+
+        self._readOFGrid(dirName)
+
+        xvSize = len(self.x) * 3
+        self.xvVec = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
+        self.xvVec.setSizes((xvSize, PETSc.DECIDE), bsize=1)
+        self.xvVec.setFromOptions()
+
+        self.setXvVec(self.x, self.xvVec)
+
+        viewer = PETSc.Viewer().createASCII("xvVec", comm=PETSc.COMM_WORLD)
+        viewer(self.xvVec)
+
+        return
+
+    def setXvVec(self, x, xvVec):
+
+        xSize = len(x)
+
+        for i in range(xSize):
+            for j in range(3):
+                globalIdx = self.solver.getGlobalXvIndex(i, j)
+                xvVec[globalIdx] = x[i][j]
+
+        xvVec.assemblyBegin()
+        xvVec.assemblyEnd()
+
+        return
+
+    # base case files
+    def _readOFGrid(self, caseDir):
+        """
+        Read in the mesh information we need to run the case.
+
+        Parameters
+        ----------
+        caseDir : str
+            The directory containing the openFOAM Mesh files
+        """
+
+        if self.comm.rank == 0:
+            print("Reading OpenFOAM mesh information...")
+
+        from pyofm import PYOFM
+
+        # Initialize pyOFM
+        self.ofm = PYOFM(comm=self.comm)
+
+        # generate the file names
+        self.fileNames = self.ofm.getFileNames(caseDir, comm=self.comm)
+
+        # Read in the volume points
+        self.x0 = self.ofm.readVolumeMeshPoints()
+        self.x = copy.copy(self.x0)
+
+        # Read the face info for the mesh
+        self.faces = self.ofm.readFaceInfo()
+
+        # Read the boundary info
+        self.boundaries = self.ofm.readBoundaryInfo(self.faces)
+
+        # Read the cell info for the mesh
+        self.owners, self.neighbours = self.ofm.readCellInfo()
 
     def setOption(self, name, value):
         """

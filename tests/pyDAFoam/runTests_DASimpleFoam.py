@@ -10,6 +10,8 @@ import os
 
 comm = MPI.COMM_WORLD
 
+os.chdir('../input/CurvedCubeHexMesh')
+
 # test incompressible solvers
 aeroOptions = {
     "solverName": "DASimpleFoam",
@@ -17,7 +19,6 @@ aeroOptions = {
     "printAllOptions": False,
 }
 
-os.chdir('../input/CurvedCubeHexMesh')
 if comm.rank == 0:
     os.system('rm -rf  0/* processor*')
     os.system('cp 0.incompressible/* 0/')
@@ -25,24 +26,6 @@ if comm.rank == 0:
 dafoam = pyDAFoam.PYDAFOAM(options=aeroOptions)
 
 meshOK = dafoam.runCheckMesh()
-dafoam.initSolver()
-dafoam.runPrimalSolver()
-dafoam.runPrimalSolver()
-dafoam = None
-
-
-# test compressible solvers
-aeroOptions = {
-    "solverName": "DARhoSimpleFoam",
-    "flowCondition": "Compressible",
-    "printAllOptions": False,
-}
-if comm.rank == 0:
-    os.system('rm -rf  0/* processor*')
-    os.system('cp 0.compressible/* 0/')
-
-dafoam = pyDAFoam.PYDAFOAM(options=aeroOptions)
-dafoam.initSolver()
 dafoam.runPrimalSolver()
 dafoam.runPrimalSolver()
 dafoam = None
