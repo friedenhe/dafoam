@@ -60,7 +60,7 @@ void DASimpleFoam::solvePrimal()
          << endl;
 
     //while (simple.loop()) // using simple.loop() will have seg fault in parallel
-    while (runTime.loop())
+    while (this->loop(runTime))
     {
         Info << "Time = " << runTime.timeName() << nl << endl;
 
@@ -75,7 +75,7 @@ void DASimpleFoam::solvePrimal()
         laminarTransport.correct();
         turbulencePtr_->correct();
 
-        runTime.write();
+        //runTime.write();
 
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
              << "  ClockTime = " << runTime.elapsedClockTime() << " s"

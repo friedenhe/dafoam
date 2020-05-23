@@ -100,6 +100,9 @@ public:
     virtual label getGlobalXvIndex(
         const label idxPoint,
         const label idxCoord) const = 0;
+    
+    /// return whether to loop the primal solution, similar to runTime::loop() except we don't do file IO
+    label loop(Time& runTime); 
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

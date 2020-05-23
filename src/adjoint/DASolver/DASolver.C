@@ -70,6 +70,21 @@ autoPtr<DASolver> DASolver::New(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+label DASolver::loop(Time& runTime)
+{
+    const scalar& endTime = runTime.endTime().value();
+    const scalar& deltaT = runTime.deltaT().value();
+    const scalar t = runTime.timeOutputValue();
+    if (t > endTime - 0.5 * deltaT)
+    {
+        return 0;
+    }
+    else
+    {
+        ++runTime;
+        return 1;
+    }
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

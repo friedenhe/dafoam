@@ -62,9 +62,13 @@ void DARhoSimpleFoam::solvePrimal()
     Info << "\nStarting time loop\n"
          << endl;
 
-    while (simple.loop())
+    //while (simple.loop()) // using simple.loop() will have seg fault in parallel
+    while (this->loop(runTime))
     {
         Info << "Time = " << runTime.timeName() << nl << endl;
+
+        p.storePrevIter();
+        rho.storePrevIter();
 
         // Pressure-velocity SIMPLE corrector
 #include "UEqnRhoSimple.H"
@@ -73,7 +77,7 @@ void DARhoSimpleFoam::solvePrimal()
 
         turbulencePtr_->correct();
 
-        runTime.write();
+        //runTime.write();
 
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
              << "  ClockTime = " << runTime.elapsedClockTime() << " s"
