@@ -1,13 +1,21 @@
 #!/usr/bin/env python
 
 """
-pyDAFoam: Python wrapper for DAFoam.
+
+    DAFoam  : Discrete Adjoint with OpenFOAM
+    Version : v2
+
+    Description:
+    The Python interface to DAFoam. It controls the adjoint
+    solvers and external modules for design optimization
+
 """
 
 import subprocess
 import os
 import sys
 import copy
+import numpy as np
 from pprint import pprint as pp
 from mpi4py import MPI
 from collections import OrderedDict
@@ -80,11 +88,442 @@ class PYDAFOAM(object):
         # initialize state variable vector self.wVec
         self._initializeStateVec()
 
+        # get the reduced point connectivities for the base patches in the mesh
+        self._computeBasicFamilyInfo()
+
+        # Add a couple of special families.
+        self.allFamilies = "allSurfaces"
+        self.addFamilyGroup(self.allFamilies, self.basicFamilies)
+
+        self.allWallsGroup = "allWalls"
+        self.addFamilyGroup(self.allWallsGroup, self.wallList)
+
+        # Set the design families if given, otherwise default to all
+        # walls
+        self.designFamilyGroup = self.getOption("designSurfaceFamily")
+        if self.designFamilyGroup == "None":
+            self.designFamilyGroup = self.allWallsGroup
+
+        # Set the mesh families if given, otherwise default to all
+        # walls
+        self.meshFamilyGroup = self.getOption("meshSurfaceFamily")
+        if self.meshFamilyGroup == "None":
+            self.meshFamilyGroup = self.allWallsGroup
+
+        # get the surface coordinate of allFamilies
+        self.xs0 = self.getSurfaceCoordinates(self.allFamilies)
+
+        # By Default we don't have an external mesh object or a
+        # geometric manipulation object
+        self.mesh = None
+        self.DVGeo = None
+
+        if self.comm.rank == 0:
+            print("Done Init.")
+
         return
 
     def __del__(self):
 
         self.primalSolver = None
+
+        return
+
+    def __call__(self):
+        """
+        Solve the primal
+        """
+
+        # update the CFD Coordinates
+        # add point set and update the mesh based on the DV values
+        self.ptSetName = self.getPointSetName("dummy")
+        ptSetName = self.ptSetName
+        if self.DVGeo is not None:
+
+            # if the point set is not in DVGeo add it first
+            if ptSetName not in self.DVGeo.points:
+
+                xs0 = self.mapVector(self.xs0, self.allFamilies, self.designFamilyGroup)
+
+                self.DVGeo.addPointSet(xs0, self.ptSetName)
+                self.pointsSet = True
+
+            # set the surface coords xs
+            if self.comm.rank == 0:
+                print("DVGeo PointSet UpToDate: " + str(self.DVGeo.pointSetUpToDate(ptSetName)))
+            if not self.DVGeo.pointSetUpToDate(ptSetName):
+                if self.comm.rank == 0:
+                    print("Updating DVGeo PointSet....")
+                xs = self.DVGeo.update(ptSetName, config=None)
+                self.setSurfaceCoordinates(xs, self.designFamilyGroup)
+                if self.comm.rank == 0:
+                    print("DVGeo PointSet UpToDate: " + str(self.DVGeo.pointSetUpToDate(ptSetName)))
+
+                # warp the mesh
+                if self.comm.rank == 0:
+                    print("Warping the volume mesh....")
+                self.mesh.warpMesh()
+
+                # write the new volume coords to a file
+                if self.comm.rank == 0:
+                    print("Writing the updated volume mesh....")
+                xvNew = self.mesh.getSolverGrid()
+                self.xvFlatten2XvVec(xvNew, self.xvVec)
+                # self.ofm.writeVolumeMeshPoints(newGrid)
+
+        """
+        # remove the old post processing results if they exist
+        #self._cleanPostprocessingDir()
+
+        if self.printMesh and self.mesh is not None:
+            meshName = os.path.join(os.getcwd(), "caseMesh.dat")
+            self.mesh.writeOFGridTecplot(meshName)
+        # end
+
+        # For restart runs, we can directly read checkMeshLog
+        # so no need to run checkMesh until self.skipFlowAndAdjointRuns==False
+        if not self.skipFlowAndAdjointRuns:
+            # check the mesh quality
+            self.runCheckMeshQuality()
+            self._copyLogs(logOpt=3)  # copy for checkMesh
+
+        # check if mesh q failed
+        outputDir = self.getOption("outputdirectory")
+        if not self.getOption("multipointopt"):
+            logFileName = os.path.join(outputDir, "checkMeshLog_%3.3d" % self.flowRunsCounter)
+        else:
+            logFileName = os.path.join(
+                outputDir, "checkMeshLog_FC%d_%3.3d" % (self.multiPointFCIndex, self.flowRunsCounter)
+            )
+
+        # self.meshQualityFailure = self.checkMeshLog(logFileName)
+
+        if self.meshQualityFailure is True:
+            if self.comm.rank == 0:
+                print("Checking Mesh Quality. Failed!")
+        else:
+            if self.comm.rank == 0:
+                print("Checking Mesh Quality. Passed!")
+
+        if self.comm.rank == 0:
+            print("Calling Flow Solver %03d" % self.flowRunsCounter)
+
+        # For restart runs, we can directly read objFuncs.dat
+        # so no need to run OF solver or write logFiles until self.skipFlowAndAdjointRuns==False
+        if not self.skipFlowAndAdjointRuns:
+
+            logFileName = "flowLog"
+            # we don't need to solve OF if mesh quality fails
+            if self.meshQualityFailure is False:
+                # call the actual openfoam executable
+                self._callOpenFoamSolver(logFileName)
+                # check if we need to calculate the averaged obj funcs
+                if self.getOption("avgobjfuncs"):
+                    self._calcAveragedObjFuncs()
+
+            # copy flow to outputdirectory
+            outputDir = self.getOption("outputdirectory")
+            if self.getOption("writelinesearch"):
+                # figure out the output file options
+                caseName = self.getOption("casename") + "_flow_%3.3d" % self.flowRunsCounter
+                # outputdirectory and casename to get full output path
+                newDir = os.path.join(outputDir, caseName)
+                if not self.getOption("multipointopt"):
+                    origDir = "./"
+                else:
+                    origDir = "../FlowConfig%d/" % self.multiPointFCIndex
+                self._copyResults(origDir, newDir)
+
+            self._copyLogs(logOpt=1)  # copy for flow
+
+        self.flowRunsCounter += 1
+        """
+
+        return
+
+    def setDVGeo(self, DVGeo):
+        """
+        Set the DVGeometry object that will manipulate 'geometry' in
+        this object. Note that <SOLVER> does not **strictly** need a
+        DVGeometry object, but if optimization with geometric
+        changes is desired, then it is required.
+        Parameters
+        ----------
+        dvGeo : A DVGeometry object.
+            Object responsible for manipulating the constraints that
+            this object is responsible for.
+        Examples
+        --------
+        >>> CFDsolver = <SOLVER>(comm=comm, options=CFDoptions)
+        >>> CFDsolver.setDVGeo(DVGeo)
+        """
+
+        self.DVGeo = DVGeo
+
+    def addFamilyGroup(self, groupName, families):
+        """
+        Add a custom grouping of families called groupName. The groupName
+        must be distinct from the existing families. All families must
+        in the 'families' list must be present in the CGNS file.
+        Parameters
+        ----------
+        groupName : str
+            User-supplied custom name for the family groupings
+        families : list
+            List of string. Family names to combine into the family group
+        """
+
+        # Do some error checking
+        if groupName in self.families:
+            raise Error(
+                "The specified groupName '%s' already exists in the " "cgns file or has already been added." % groupName
+            )
+
+        # We can actually allow for nested groups. That is, an entry
+        # in families may already be a group added in a previous call.
+        indices = []
+        for fam in families:
+            if fam not in self.families:
+                raise Error(
+                    "The specified family '%s' for group '%s', does "
+                    "not exist in the cgns file or has "
+                    "not already been added. The current list of "
+                    "families (original and grouped) is: %s" % (fam, groupName, repr(self.families.keys()))
+                )
+
+            indices.extend(self.families[fam])
+
+        # It is very important that the list of families is sorted
+        # becuase in fortran we always use a binary search to check if
+        # a famID is in the list.
+        self.families[groupName] = sorted(np.unique(indices))
+
+    def setMesh(self, mesh):
+        """
+        Set the mesh object to the aero_solver to do geometric deformations
+        Parameters
+        ----------
+        mesh : MBMesh or USMesh object
+            The mesh object for doing the warping
+        """
+
+        # Store a reference to the mesh
+        self.mesh = mesh
+
+        # Setup External Warping with volume indices
+        meshInd = self.getSolverMeshIndices()
+        self.mesh.setExternalMeshIndices(meshInd)
+
+        # Set the surface the user has supplied:
+        conn, faceSizes = self.getSurfaceConnectivity(self.meshFamilyGroup)
+        pts = self.getSurfaceCoordinates(self.meshFamilyGroup)
+        self.mesh.setSurfaceDefinition(pts, conn, faceSizes)
+
+    def getSurfaceConnectivity(self, groupName=None):
+        """
+        Return the connectivity of the coordinates at which the forces (or tractions) are
+        defined. This is the complement of getForces() which returns
+        the forces at the locations returned in this routine.
+
+        Parameters
+        ----------
+        groupName : str
+            Group identifier to get only forces cooresponding to the
+            desired group. The group must be a family or a user-supplied
+            group of families. The default is None which corresponds to
+            all wall-type surfaces.
+        """
+
+        if groupName is None:
+            groupName = self.allWallsGroup
+
+        # loop over the families in this group and populate the connectivity
+        famInd = self.families[groupName]
+        conn = []
+        faceSizes = []
+
+        pointOffset = 0
+        for Ind in famInd:
+            # select the face from the basic families
+            name = self.basicFamilies[Ind]
+
+            # get the size of this
+            bc = self.boundaries[name]
+            nPts = len(bc["indicesRed"])
+
+            # get the number of reduced faces associated with this boundary
+            nFace = len(bc["facesRed"])
+
+            # check that this isn't an empty boundary
+            if nFace > 0:
+                # loop over the faces and add them to the connectivity and faceSizes array
+                for iFace in range(nFace):
+                    face = copy.copy(bc["facesRed"][iFace])
+                    for i in range(len(face)):
+                        face[i] += pointOffset
+                    conn.extend(face)
+                    faceSizes.append(len(face))
+
+                pointOffset += nPts
+
+        return conn, faceSizes
+
+    def getTriangulatedMeshSurface(self, groupName=None, **kwargs):
+        """
+        This function returns a trianguled verision of the surface
+        mesh on all processors. The intent is to use this for doing
+        constraints in DVConstraints.
+        Returns
+        -------
+        surf : list
+           List of points and vectors describing the surface. This may
+           be passed directly to DVConstraint setSurface() function.
+        """
+
+        if groupName is None:
+            groupName = self.allWallsGroup
+
+        # Obtain the points and connectivity for the specified
+        # groupName
+        pts = self.comm.allgather(self.getSurfaceCoordinates(groupName, **kwargs))
+        conn, faceSizes = self.getSurfaceConnectivity(groupName)
+        conn = np.array(conn).flatten()
+        conn = self.comm.allgather(conn)
+        faceSizes = self.comm.allgather(faceSizes)
+
+        # Triangle info...point and two vectors
+        p0 = []
+        v1 = []
+        v2 = []
+
+        # loop over the faces
+        for iProc in range(len(faceSizes)):
+
+            connCounter = 0
+            for iFace in range(len(faceSizes[iProc])):
+                # Get the number of nodes on this face
+                faceSize = faceSizes[iProc][iFace]
+                faceNodes = conn[iProc][connCounter : connCounter + faceSize]
+
+                # Start by getting the centerpoint
+                ptSum = [0, 0, 0]
+                for i in range(faceSize):
+                    # idx = ptCounter+i
+                    idx = faceNodes[i]
+                    ptSum += pts[iProc][idx]
+
+                avgPt = ptSum / faceSize
+
+                # Now go around the face and add a triangle for each adjacent pair
+                # of points. This assumes an ordered connectivity from the
+                # meshwarping
+                for i in range(faceSize):
+                    idx = faceNodes[i]
+                    p0.append(avgPt)
+                    v1.append(pts[iProc][idx] - avgPt)
+                    if i < (faceSize - 1):
+                        idxp1 = faceNodes[i + 1]
+                        v2.append(pts[iProc][idxp1] - avgPt)
+                    else:
+                        # wrap back to the first point for the last element
+                        idx0 = faceNodes[0]
+                        v2.append(pts[iProc][idx0] - avgPt)
+
+                # Now increment the connectivity
+                connCounter += faceSize
+
+        return [p0, v1, v2]
+
+    def printFamilyList(self):
+        """
+        Print a nicely formatted dictionary of the family names
+        """
+        pp(self.families)
+
+    def setDesignVars(self, x):
+        """
+        Set the internal design variables.
+        At the moment we don't have any internal DVs to set.
+        """
+        pass
+
+        return
+
+    def evalFunctions(self, funcs, evalFuncs=None, ignoreMissing=False):
+        """
+        Evaluate the desired functions given in iterable object,
+        'evalFuncs' and add them to the dictionary 'funcs'. The keys
+        in the funcs dictioary will be have an _<ap.name> appended to
+        them. Additionally, information regarding whether or not the
+        last analysis with the aeroProblem was sucessful is
+        included. This information is included as "funcs['fail']". If
+        the 'fail' entry already exits in the dictionary the following
+        operation is performed:
+
+        funcs['fail'] = funcs['fail'] or <did this problem fail>
+
+        In other words, if any one problem fails, the funcs['fail']
+        entry will be False. This information can then be used
+        directly in the pyOptSparse.
+
+        Parameters
+        ----------
+        funcs : dict
+            Dictionary into which the functions are saved.
+
+        evalFuncs : iterable object containing strings
+          If not None, use these functions to evaluate.
+
+        ignoreMissing : bool
+            Flag to supress checking for a valid function. Please use
+            this option with caution.
+
+        Examples
+        --------
+        >>> funcs = {}
+        >>> CFDsolver()
+        >>> CFDsolver.evalFunctions(funcs, ['CD', 'CL'])
+        >>> funcs
+        >>> # Result will look like:
+        >>> # {'CD':0.501, 'CL':0.02750}
+        """
+
+        funcs["CD"] = 0.1
+
+        """
+        res = self._getSolution()
+
+        if self.comm.rank == 0:
+            print('keys', list(res.keys()))
+        if evalFuncs is None:
+            print('evalFuncs not set, exiting...')
+            sys.exit(0)
+
+        # Just call the regular _getSolution() command and extract the
+        # ones we need:
+
+        for f in evalFuncs:
+            fname = self.possibleObjectives[f]
+            if f in list(res.keys()):
+                key = f
+                funcs[key] = res[f]
+            elif fname in list(res.keys()):
+                key = fname
+                funcs[key] = res[fname]
+            else:
+                if not ignoreMissing:
+                    raise Error('Requested function: %s is not known to pyDAFoam.' % f)
+                # end
+            # end
+        # end
+
+        # we need to call checkMeshQuality and the flow convergence before evalFunction
+        # so that we can tell if the flow solver fails
+        if self.meshQualityFailure or self._checkFlowFailure(evalFuncs):
+            funcs['fail'] = True
+        else:
+            funcs['fail'] = False
+        """
 
         return
 
@@ -114,6 +553,10 @@ class PYDAFOAM(object):
             "rootDir": [str, "./"],
             "solverName": [str, "DASimpleFoam"],
             "printAllOptions": [bool, False],
+            # surface definition
+            "meshSurfaceFamily": [str, "None"],
+            "designSurfaceFamily": [str, "None"],
+            "designSurfaces": [list, ["body"]],
         }
 
         return defOpts
@@ -153,7 +596,6 @@ class PYDAFOAM(object):
                     Example: {'iters' : [int, 1]}"
                     % key
                 )
-
             self.setOption(key, self.defaultOptions[key][1])
         for key in options:
             self.setOption(key, options[key])
@@ -281,22 +723,298 @@ class PYDAFOAM(object):
 
         dirName = os.getcwd()
 
-        self.fileNames, self.x0, self.faces, self.boundaries, self.owners, self.neighbours = self._readOFGrid(dirName)
-        self.x = copy.copy(self.x0)
+        self.fileNames, self.xv0, self.faces, self.boundaries, self.owners, self.neighbours = self._readOFGrid(dirName)
+        self.xv = copy.copy(self.xv0)
 
         return
+
+    def setSurfaceCoordinates(self, coordinates, groupName=None):
+        """
+        Set the updated surface coordinates for a particular group.
+        Parameters
+        ----------
+        coordinates : numpy array
+            Numpy array of size Nx3, where N is the number of coordinates on this processor.
+            This array must have the same shape as the array obtained with getSurfaceCoordinates()
+        groupName : str
+            Name of family or group of families for which to return coordinates for.
+        """
+        if self.mesh is None:
+            return
+
+        if groupName is None:
+            groupName = self.allWallsGroup
+
+        self._updateGeomInfo = True
+        if self.mesh is None:
+            raise Error("Cannot set new surface coordinate locations without a mesh" "warping object present.")
+
+        # First get the surface coordinates of the meshFamily in case
+        # the groupName is a subset, those values will remain unchanged.
+
+        meshSurfCoords = self.getSurfaceCoordinates(self.meshFamilyGroup)
+        meshSurfCoords = self.mapVector(coordinates, groupName, self.meshFamilyGroup, meshSurfCoords)
+
+        self.mesh.setSurfaceCoordinates(meshSurfCoords)
+
+    def getSurfaceCoordinates(self, groupName=None):
+        """
+        Return the coordinates for the surfaces defined by groupName.
+
+        Parameters
+        ----------
+        groupName : str
+            Group identifier to get only coordinates cooresponding to
+            the desired group. The group must be a family or a
+            user-supplied group of families. The default is None which
+            corresponds to all wall-type surfaces.
+
+        Output
+        ------
+        xs: numpy array of size nPoints * 3 for surface points
+        """
+
+        if groupName is None:
+            groupName = self.allWallsGroup
+
+        # Get the required size
+        npts, ncell = self._getSurfaceSize(groupName)
+        xs = np.zeros((npts, 3), self.dtype)
+
+        # loop over the families in this group and populate the surface
+        famInd = self.families[groupName]
+        counter = 0
+        for Ind in famInd:
+            name = self.basicFamilies[Ind]
+            bc = self.boundaries[name]
+            for ptInd in bc["indicesRed"]:
+                xs[counter, :] = self.xv[ptInd]
+                counter += 1
+
+        return xs
+
+    def _getSurfaceSize(self, groupName):
+        """
+        Internal routine to return the size of a particular surface. This
+        does *NOT* set the actual family group
+        """
+        if groupName is None:
+            groupName = self.allFamilies
+
+        if groupName not in self.families:
+            raise Error(
+                "'%s' is not a family in the OpenFoam Case or has not been added"
+                " as a combination of families" % groupName
+            )
+
+        # loop over the basic surfaces in the family group and sum up the number of
+        # faces and nodes
+
+        famInd = self.families[groupName]
+        nPts = 0
+        nCells = 0
+        for Ind in famInd:
+            name = self.basicFamilies[Ind]
+            bc = self.boundaries[name]
+            nCells += len(bc["facesRed"])
+            nPts += len(bc["indicesRed"])
+
+        return nPts, nCells
+
+    def _computeBasicFamilyInfo(self):
+        """
+        Loop over the boundary data and compute necessary family
+        information for the basic patches
+
+        """
+        # get the list of basic families
+        self.basicFamilies = sorted(self.boundaries.keys())
+
+        # save and return a list of the wall boundaries
+        self.wallList = []
+        counter = 0
+        # for each boundary, figure out the unique list of volume node indices it uses
+        for name in self.basicFamilies:
+            # setup the basic families dictionary
+            self.families[name] = [counter]
+            counter += 1
+
+            # Create a handle for this boundary
+            bc = self.boundaries[name]
+
+            # get the number of faces associated with this boundary
+            nFace = len(bc["faces"])
+
+            # create the index list
+            indices = []
+
+            # check that this isn't an empty boundary
+            if nFace > 0:
+                for iFace in bc["faces"]:
+                    # get the node information for the current face
+                    face = self.faces[iFace]
+                    indices.extend(face)
+
+            # Get the unique entries
+            indices = np.unique(indices)
+
+            # now create the reverse dictionary to connect the reduced set with the original
+            inverseInd = {}
+            for i in range(len(indices)):
+                inverseInd[indices[i]] = i
+
+            # Now loop back over the faces and store the connectivity in terms of the reduces index set
+            facesRed = []
+            for iFace in bc["faces"]:
+                # get the node information for the current face
+                face = self.faces[iFace]
+                nNodes = len(face)
+                # Generate the reduced connectivity.
+                faceReduced = []
+                for j in range(nNodes):
+                    indOrig = face[j]
+                    indRed = inverseInd[indOrig]
+                    faceReduced.append(indRed)
+                facesRed.append(faceReduced)
+
+            # Check that the length of faces and facesRed are equal
+            if not (len(bc["faces"]) == len(facesRed)):
+                raise Error("Connectivity for faces on reduced index set is not the same length as original.")
+
+            # put the reduced faces and index list in the boundary dict
+            bc["facesRed"] = facesRed
+            bc["indicesRed"] = list(indices)
+
+            # now check for walls
+            if bc["type"] == "wall" or bc["type"] == "slip" or bc["type"] == "cyclic":
+                self.wallList.append(name)
+
+        return
+
+    def getPointSetName(self, apName):
+        """
+        Take the apName and return the mangled point set name.
+        """
+        return "openFoamCoords"
+
+    def getSolverMeshIndices(self):
+        """
+        Get the list of indices to pass to the mesh object for the
+        volume mesh mapping
+        """
+
+        # Setup External Warping
+        nCoords = len(self.xv0.flatten())
+
+        nCoords = self.comm.allgather(nCoords)
+        offset = 0
+        for i in range(self.comm.rank):
+            offset += nCoords[i]
+
+        meshInd = np.arange(nCoords[self.comm.rank]) + offset
+
+        return meshInd
+
+    def mapVector(self, vec1, groupName1, groupName2, vec2=None):
+        """This is the main workhorse routine of everything that deals with
+        families in pyDAFoam. The purpose of this routine is to convert a
+        vector 'vec1' (of size Nx3) that was evaluated with
+        'groupName1' and expand or contract it (and adjust the
+        ordering) to produce 'vec2' evaluated on groupName2.
+
+        A little ascii art might help. Consider the following "mesh"
+        . Family 'fam1' has 9 points, 'fam2' has 10 pts and 'fam3' has
+        5 points.  Consider that we have also also added two
+        additional groups: 'f12' containing 'fam1' and 'fma2' and a
+        group 'f23' that contains families 'fam2' and 'fam3'. The vector
+        we want to map is 'vec1'. It is length 9+10. All the 'x's are
+        significant values.
+
+        The call: mapVector(vec1, 'f12', 'f23')
+
+        will produce the "returned vec" array, containing the
+        significant values from 'fam2', where the two groups overlap,
+        and the new values from 'fam3' set to zero. The values from
+        fam1 are lost. The returned vec has size 15.
+
+            fam1     fam2      fam3
+        |---------+----------+------|
+
+        |xxxxxxxxx xxxxxxxxxx|        <- vec1
+                  |xxxxxxxxxx 000000| <- returned vec (vec2)
+
+        Parameters
+        ----------
+        vec1 : Numpy array
+            Array of size Nx3 that will be mapped to a different family set.
+
+        groupName1 : str
+            The family group where the vector vec1 is currently defined
+
+        groupName2 : str
+            The family group where we want to the vector to mapped into
+
+        vec2 : Numpy array or None
+            Array containing existing values in the output vector we want to keep.
+            If this vector is not given, the values will be filled with zeros.
+
+        Returns
+        -------
+        vec2 : Numpy array
+            The input vector maped to the families defined in groupName2.
+        """
+        if groupName1 not in self.families or groupName2 not in self.families:
+            raise Error(
+                "'%s' or '%s' is not a family in the CGNS file or has not been added"
+                " as a combination of families" % (groupName1, groupName2)
+            )
+
+        # Shortcut:
+        if groupName1 == groupName2:
+            return vec1
+
+        if vec2 is None:
+            npts, ncell = self._getSurfaceSize(groupName2)
+            vec2 = np.zeros((npts, 3), self.dtype)
+
+        famList1 = self.families[groupName1]
+        famList2 = self.families[groupName2]
+
+        """
+        This functionality is predicated on the surfaces being traversed in the
+        same order every time. Loop over the allfamilies list, keeping track of sizes
+        as we go and if the family is in both famLists, copy the values from vec1 to vec2.
+
+        """
+
+        vec1counter = 0
+        vec2counter = 0
+
+        for ind in self.families[self.allFamilies]:
+            npts, ncell = self._getSurfaceSize(self.basicFamilies[ind])
+
+            if ind in famList1 and ind in famList2:
+                vec2[vec2counter : npts + vec2counter] = vec1[vec1counter : npts + vec1counter]
+
+            if ind in famList1:
+                vec1counter += npts
+
+            if ind in famList2:
+                vec2counter += npts
+
+        return vec2
 
     def _initializeMeshPointVec(self):
         """
         Initialize the mesh point vec: xvVec
         """
 
-        xvSize = len(self.x) * 3
+        xvSize = len(self.xv) * 3
         self.xvVec = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
         self.xvVec.setSizes((xvSize, PETSc.DECIDE), bsize=1)
         self.xvVec.setFromOptions()
 
-        self.x2XvVec(self.x, self.xvVec)
+        self.xv2XvVec(self.xv, self.xvVec)
 
         # viewer = PETSc.Viewer().createASCII("xvVec", comm=PETSc.COMM_WORLD)
         # viewer(self.xvVec)
@@ -320,34 +1038,54 @@ class PYDAFOAM(object):
 
         return
 
-    def x2XvVec(self, x, xvVec):
+    def xv2XvVec(self, xv, xvVec):
         """
         Convert a Nx3 mesh point numpy array to a Petsc xvVec
         """
 
-        xSize = len(x)
+        xSize = len(xv)
 
         for i in range(xSize):
             for j in range(3):
                 globalIdx = self.solver.getGlobalXvIndex(i, j)
-                xvVec[globalIdx] = x[i][j]
+                xvVec[globalIdx] = xv[i][j]
 
         xvVec.assemblyBegin()
         xvVec.assemblyEnd()
 
         return
-    
-    def xvVec2X(self, xvVec, x):
+
+    def xvFlatten2XvVec(self, xv, xvVec):
+        """
+        Convert a 3Nx1 mesh point numpy array to a Petsc xvVec
+        """
+
+        xSize = len(xv)
+        xSize = int(xSize // 3)
+
+        counterI = 0
+        for i in range(xSize):
+            for j in range(3):
+                globalIdx = self.solver.getGlobalXvIndex(i, j)
+                xvVec[globalIdx] = xv[counterI]
+                counterI += 1
+
+        xvVec.assemblyBegin()
+        xvVec.assemblyEnd()
+
+        return
+
+    def xvVec2Xv(self, xvVec, xv):
         """
         Convert a Petsc xvVec to a Nx3 mesh point numpy array
         """
 
-        xSize = len(x)
+        xSize = len(xv)
 
         for i in range(xSize):
             for j in range(3):
                 globalIdx = self.solver.getGlobalXvIndex(i, j)
-                x[i][j] = xvVec[globalIdx]
+                xv[i][j] = xvVec[globalIdx]
 
         return
 
@@ -463,7 +1201,8 @@ class PYDAFOAM(object):
         change these. The strings for these options are placed in a set
         """
 
-        return ("meshSurfaceFamily", "designSurfaceFamily")
+        # return ("meshSurfaceFamily", "designSurfaceFamily")
+        return ()
 
 
 class Error(Exception):

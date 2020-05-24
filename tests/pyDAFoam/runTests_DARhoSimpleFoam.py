@@ -17,6 +17,8 @@ aeroOptions = {
     "solverName": "DARhoSimpleFoam",
     "flowCondition": "Compressible",
     "printAllOptions": False,
+    "designSurfaceFamily": 'designSurface',
+    "designSurfaces": ["walls"]
 }
 if comm.rank == 0:
     os.system('rm -rf  0/* processor*')

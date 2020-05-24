@@ -17,6 +17,8 @@ aeroOptions = {
     "solverName": "DASimpleFoam",
     "flowCondition": "Incompressible",
     "printAllOptions": False,
+    "designSurfaceFamily": 'designSurface',
+    "designSurfaces": ["walls"]
 }
 
 if comm.rank == 0:
