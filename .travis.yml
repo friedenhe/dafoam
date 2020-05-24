@@ -48,7 +48,7 @@ jobs:
         # compile and run the tests
         - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/DAFoamIncompressible && make && mpirun -np 4 python runTests.py"
         # run coveralls, the -lp option is for inline functions in C++
-        - docker exec -it -e TRAVIS="$TRAVIS" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/src/adjoint && cp -r ../include ./Make/linux*/DASolver/ && COVERALLS_PARALLEL=true coveralls --gcov-options '\-lp'"
+        - docker exec -it -e TRAVIS="$TRAVIS" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/src/adjoint && cp -r ../include ./Make/linux*/DASolver/ && cp -r ../include ./Make/linux*/ && COVERALLS_PARALLEL=true coveralls --gcov-options '\-lp'"
     - stage: pythonCodeCoverage
       script:
         # install coveralls and coverage
