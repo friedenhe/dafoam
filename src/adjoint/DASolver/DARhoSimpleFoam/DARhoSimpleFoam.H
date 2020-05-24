@@ -32,11 +32,6 @@ class DARhoSimpleFoam
 {
 
 protected:
-    /// runTime pointer
-    autoPtr<Time> runTimePtr_;
-
-    /// fvMesh pointer
-    autoPtr<fvMesh> meshPtr_;
 
     /// simple pointer
     autoPtr<simpleControl> simplePtr_;
@@ -68,24 +63,6 @@ protected:
     /// continuity error
     scalar cumulativeContErr_ = 0.0;
 
-    /// DAUtility pointer
-    autoPtr<DAUtility> daUtilPtr_;
-
-    /// DAOption pointer
-    autoPtr<DAOption> daOptionPtr_;
-
-    /// DATurbulenceModel pointer
-    autoPtr<DATurbulenceModel> daTurbulenceModelPtr_;
-
-    /// DAModel pointer
-    autoPtr<DAModel> daModelPtr_;
-
-    /// DARegState pointer
-    autoPtr<DARegState> daRegStatePtr_;
-
-    /// DAIndex pointer
-    autoPtr<DAIndex> daIndexPtr_;
-
 public:
     TypeName("DARhoSimpleFoam");
     // Constructors
@@ -112,10 +89,6 @@ public:
     /// compute the total derivatives
     virtual void calcTotalDerivs();
 
-    /// basically, we call DAIndex::getGlobalXvIndex
-    virtual label getGlobalXvIndex(
-        const label idxPoint,
-        const label idxCoord) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

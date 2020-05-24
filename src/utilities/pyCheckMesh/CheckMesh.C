@@ -14,6 +14,7 @@ namespace Foam
 
 // Constructors
 CheckMesh::CheckMesh(char* argsAll)
+    : argsPtr_(nullptr)
 {
     argsAll_ = argsAll;
     meshOK_ = 1;

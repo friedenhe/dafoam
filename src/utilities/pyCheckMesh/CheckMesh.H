@@ -48,6 +48,9 @@ private:
     /// all the arguments
     char* argsAll_;
 
+    /// args pointer
+    autoPtr<argList> argsPtr_;
+
     /// mesh checks pass or not
     label meshOK_;
 

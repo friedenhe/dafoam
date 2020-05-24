@@ -20,8 +20,6 @@ DARhoSimpleFoam::DARhoSimpleFoam(
     char* argsAll,
     PyObject* pyOptions)
     : DASolver(argsAll, pyOptions),
-      runTimePtr_(nullptr),
-      meshPtr_(nullptr),
       simplePtr_(nullptr),
       pThermoPtr_(nullptr),
       pPtr_(nullptr),
@@ -30,24 +28,17 @@ DARhoSimpleFoam::DARhoSimpleFoam(
       phiPtr_(nullptr),
       pressureControlPtr_(nullptr),
       turbulencePtr_(nullptr),
-      initialMass_(dimensionedScalar("initialMass", dimensionSet(1, 0, 0, 0, 0, 0, 0), 0.0)),
-      daUtilPtr_(nullptr),
-      daOptionPtr_(nullptr),
-      daTurbulenceModelPtr_(nullptr),
-      daModelPtr_(nullptr),
-      daRegStatePtr_(nullptr),
-      daIndexPtr_(nullptr)
+      initialMass_(dimensionedScalar("initialMass", dimensionSet(1, 0, 0, 0, 0, 0, 0), 0.0))
 {
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 void DARhoSimpleFoam::initSolver()
 {
-    Info << "Initializing solvers" << endl;
-#include "setArgs.H"
-#include "setRootCasePython.H"
-#include "createTimePython.H"
-#include "createMeshPython.H"
+    Info << "Initializing fields for DARhoSimpleFoam" << endl;
+    Time& runTime = runTimePtr_();
+    fvMesh& mesh = meshPtr_();
+    argList& args = argsPtr_();
 #include "createSimpleControlPython.H"
 #include "createFieldsRhoSimple.H"
 #include "createAdjointRhoSimple.H"
@@ -92,14 +83,6 @@ void DARhoSimpleFoam::solveAdjoint()
 }
 void DARhoSimpleFoam::calcTotalDerivs()
 {
-}
-
-/// basically, we call DAIndex::getGlobalXvIndex
-label DARhoSimpleFoam::getGlobalXvIndex(
-    const label idxPoint,
-    const label idxCoord) const
-{
-    return daIndexPtr_->getGlobalXvIndex(idxPoint, idxCoord);
 }
 
 } // End namespace Foam

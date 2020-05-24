@@ -12,4 +12,3 @@ runTimePtr_.reset(
         Time::controlDictName,
         args));
 
-Time& runTime = runTimePtr_();

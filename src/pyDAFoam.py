@@ -72,7 +72,13 @@ class PYDAFOAM(object):
         self._initSolver()
 
         # initialize mesh information and read grids
-        self._initializeMesh()
+        self._readMeshInfo()
+
+        # initialize the mesh point vector xvVec
+        self._initializeMeshPointVec()
+
+        # initialize state variable vector self.wVec
+        self._initializeStateVec()
 
         return
 
@@ -185,18 +191,6 @@ class PYDAFOAM(object):
 
         return
 
-    def readMesh(self):
-        """
-        Read the OpenFOAM mesh information using the pyofm repo
-        """
-
-        from pyofm import PYOFM
-
-        # Initialize pyOFM
-        self.ofm = PYOFM(comm=self.comm)
-
-        return
-
     def runPrimalSolver(self):
         """
         Run primal solver to compute state variables and objectives
@@ -280,36 +274,56 @@ class PYDAFOAM(object):
 
         return
 
-    def _initializeMesh(self):
+    def _readMeshInfo(self):
         """
-        Initialize mesh information and read mesh point
+        Initialize mesh information and read mesh information
         """
-
-        self.fileNames = {}
-        self.x0 = None
-        self.x = None
-        self.faces = None
-        self.boundaries = None
-        self.owners = None
-        self.neighbours = None
 
         dirName = os.getcwd()
 
-        self._readOFGrid(dirName)
+        self.fileNames, self.x0, self.faces, self.boundaries, self.owners, self.neighbours = self._readOFGrid(dirName)
+        self.x = copy.copy(self.x0)
+
+        return
+
+    def _initializeMeshPointVec(self):
+        """
+        Initialize the mesh point vec: xvVec
+        """
 
         xvSize = len(self.x) * 3
         self.xvVec = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
         self.xvVec.setSizes((xvSize, PETSc.DECIDE), bsize=1)
         self.xvVec.setFromOptions()
 
-        self.setXvVec(self.x, self.xvVec)
+        self.x2XvVec(self.x, self.xvVec)
 
-        viewer = PETSc.Viewer().createASCII("xvVec", comm=PETSc.COMM_WORLD)
-        viewer(self.xvVec)
+        # viewer = PETSc.Viewer().createASCII("xvVec", comm=PETSc.COMM_WORLD)
+        # viewer(self.xvVec)
 
         return
 
-    def setXvVec(self, x, xvVec):
+    def _initializeStateVec(self):
+        """
+        Initialize state variable vector
+        """
+
+        wSize = self.solver.getNLocalAdjointStates()
+        self.wVec = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
+        self.wVec.setSizes((wSize, PETSc.DECIDE), bsize=1)
+        self.wVec.setFromOptions()
+
+        self.solver.ofField2StateVec(self.wVec)
+
+        viewer = PETSc.Viewer().createASCII("wVec", comm=PETSc.COMM_WORLD)
+        viewer(self.wVec)
+
+        return
+
+    def x2XvVec(self, x, xvVec):
+        """
+        Convert a Nx3 mesh point numpy array to a Petsc xvVec
+        """
 
         xSize = len(x)
 
@@ -322,11 +336,25 @@ class PYDAFOAM(object):
         xvVec.assemblyEnd()
 
         return
+    
+    def xvVec2X(self, xvVec, x):
+        """
+        Convert a Petsc xvVec to a Nx3 mesh point numpy array
+        """
+
+        xSize = len(x)
+
+        for i in range(xSize):
+            for j in range(3):
+                globalIdx = self.solver.getGlobalXvIndex(i, j)
+                x[i][j] = xvVec[globalIdx]
+
+        return
 
     # base case files
     def _readOFGrid(self, caseDir):
         """
-        Read in the mesh information we need to run the case.
+        Read in the mesh information we need to run the case using pyofm
 
         Parameters
         ----------
@@ -340,23 +368,24 @@ class PYDAFOAM(object):
         from pyofm import PYOFM
 
         # Initialize pyOFM
-        self.ofm = PYOFM(comm=self.comm)
+        ofm = PYOFM(comm=self.comm)
 
         # generate the file names
-        self.fileNames = self.ofm.getFileNames(caseDir, comm=self.comm)
+        fileNames = ofm.getFileNames(caseDir, comm=self.comm)
 
         # Read in the volume points
-        self.x0 = self.ofm.readVolumeMeshPoints()
-        self.x = copy.copy(self.x0)
+        x0 = ofm.readVolumeMeshPoints()
 
         # Read the face info for the mesh
-        self.faces = self.ofm.readFaceInfo()
+        faces = ofm.readFaceInfo()
 
         # Read the boundary info
-        self.boundaries = self.ofm.readBoundaryInfo(self.faces)
+        boundaries = ofm.readBoundaryInfo(faces)
 
         # Read the cell info for the mesh
-        self.owners, self.neighbours = self.ofm.readCellInfo()
+        owners, neighbours = ofm.readCellInfo()
+
+        return fileNames, x0, faces, boundaries, owners, neighbours
 
     def setOption(self, name, value):
         """

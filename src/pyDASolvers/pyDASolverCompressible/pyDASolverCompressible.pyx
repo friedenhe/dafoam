@@ -13,7 +13,7 @@
 """
 
 # for using Petsc
-# from petsc4py.PETSc cimport Vec, PetscVec
+from petsc4py.PETSc cimport Vec, PetscVec
 
 # declear cpp functions
 cdef extern from "DASolverCompressible.H" namespace "Foam":
@@ -24,6 +24,9 @@ cdef extern from "DASolverCompressible.H" namespace "Foam":
         void solveAdjoint()
         void calcTotalDerivs()
         int getGlobalXvIndex(int, int)
+        void ofField2StateVec(PetscVec)
+        void stateVec2OFField(PetscVec)
+        int getNLocalAdjointStates()
 
 # create python wrappers that call cpp functions
 cdef class pyDASolverCompressible:
@@ -78,3 +81,12 @@ cdef class pyDASolverCompressible:
     
     def getGlobalXvIndex(self, pointI, coordI):
         return self._thisptr.getGlobalXvIndex(pointI, coordI)
+    
+    def ofField2StateVec(self, Vec stateVec):
+        self._thisptr.ofField2StateVec(stateVec.vec)
+    
+    def stateVec2OFField(self, Vec stateVec):
+        self._thisptr.stateVec2OFField(stateVec.vec)
+    
+    def getNLocalAdjointStates(self):
+        return self._thisptr.getNLocalAdjointStates()

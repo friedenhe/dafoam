@@ -20,31 +20,21 @@ DASimpleFoam::DASimpleFoam(
     char* argsAll,
     PyObject* pyOptions)
     : DASolver(argsAll, pyOptions),
-      runTimePtr_(nullptr),
-      meshPtr_(nullptr),
       simplePtr_(nullptr),
       pPtr_(nullptr),
       UPtr_(nullptr),
       phiPtr_(nullptr),
       laminarTransportPtr_(nullptr),
-      turbulencePtr_(nullptr),
-      daUtilPtr_(nullptr),
-      daOptionPtr_(nullptr),
-      daTurbulenceModelPtr_(nullptr),
-      daModelPtr_(nullptr),
-      daRegStatePtr_(nullptr),
-      daIndexPtr_(nullptr)
+      turbulencePtr_(nullptr)
 {
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 void DASimpleFoam::initSolver()
 {
-    Info << "Initializing solvers" << endl;
-#include "setArgs.H"
-#include "setRootCasePython.H"
-#include "createTimePython.H"
-#include "createMeshPython.H"
+    Info << "Initializing fields for DASimpleFoam" << endl;
+    Time& runTime = runTimePtr_();
+    fvMesh& mesh = meshPtr_();
 #include "createSimpleControlPython.H"
 #include "createFieldsSimple.H"
 #include "createAdjointSimple.H"
@@ -90,14 +80,6 @@ void DASimpleFoam::solveAdjoint()
 }
 void DASimpleFoam::calcTotalDerivs()
 {
-}
-
-/// basically, we call DAIndex::getGlobalXvIndex
-label DASimpleFoam::getGlobalXvIndex(
-    const label idxPoint,
-    const label idxCoord) const
-{
-    return daIndexPtr_->getGlobalXvIndex(idxPoint, idxCoord);
 }
 
 } // End namespace Foam

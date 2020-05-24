@@ -847,6 +847,190 @@ label DAIndex::getLocalXvIndex(
     return localXvIdx;
 }
 
+void DAIndex::ofField2StateVec(Vec stateVec) const
+{
+    /*
+    Assign values for the state variable vector based on the 
+    latest OpenFOAM field values
+
+    Input:
+    ------
+    OpenFOAM field variables
+
+    Output:
+    ------
+    stateVec: state variable vector
+
+    Example:
+    -------
+    Image we have two state variables (p,T) and five cells, running on two CPU
+    processors, the proc0 owns two cells and the proc1 owns three cells,
+    then calling this function gives the state vector (state-by-state ordering):
+
+    stateVec = [p0, p1, T0, T1 | p0, p1, p2, T0, T1, T2] <- p0 means p for the 0th cell on local processor
+                 0   1   2   3 |  4   5   6   7   8   9  <- global state vec index
+               ---- proc0 -----|--------- proc1 ------- 
+    */
+
+    const objectRegistry& db = mesh_.thisDb();
+    PetscScalar* stateVecArray;
+    VecGetArray(stateVec, &stateVecArray);
+
+    forAll(regStates_["volVectorStates"], idxI)
+    {
+        // lookup state from meshDb
+        makeState(regStates_["volVectorStates"][idxI], volVectorField, db);
+
+        forAll(mesh_.cells(), cellI)
+        {
+            for (label comp = 0; comp < 3; comp++)
+            {
+                label localIdx = this->getLocalAdjointStateIndex(stateName, cellI, comp);
+                stateVecArray[localIdx] = state[cellI][comp];
+            }
+        }
+    }
+
+    forAll(regStates_["volScalarStates"], idxI)
+    {
+        // lookup state from meshDb
+        makeState(regStates_["volScalarStates"][idxI], volScalarField, db);
+
+        forAll(mesh_.cells(), cellI)
+        {
+            label localIdx = this->getLocalAdjointStateIndex(stateName, cellI);
+            stateVecArray[localIdx] = state[cellI];
+        }
+    }
+
+    forAll(regStates_["modelStates"], idxI)
+    {
+        // lookup state from meshDb
+        makeState(regStates_["modelStates"][idxI], volScalarField, db);
+
+        forAll(mesh_.cells(), cellI)
+        {
+            label localIdx = this->getLocalAdjointStateIndex(stateName, cellI);
+            stateVecArray[localIdx] = state[cellI];
+        }
+    }
+
+    forAll(regStates_["surfaceScalarStates"], idxI)
+    {
+        // lookup state from meshDb
+        makeState(regStates_["surfaceScalarStates"][idxI], surfaceScalarField, db);
+
+        forAll(mesh_.faces(), faceI)
+        {
+            label localIdx = this->getLocalAdjointStateIndex(stateName, faceI);
+            if (faceI < nLocalInternalFaces)
+            {
+                stateVecArray[localIdx] = state[faceI];
+            }
+            else
+            {
+                label relIdx = faceI - nLocalInternalFaces;
+                const label& patchIdx = bFacePatchI[relIdx];
+                const label& faceIdx = bFaceFaceI[relIdx];
+                stateVecArray[localIdx] = state.boundaryField()[patchIdx][faceIdx];
+            }
+        }
+    }
+    VecRestoreArray(stateVec, &stateVecArray);
+}
+
+void DAIndex::stateVec2OFField(const Vec stateVec) const
+{
+    /*
+    Assign values OpenFOAM field values based on the state variable vector
+
+    Input:
+    ------
+    stateVec: state variable vector
+
+    Output:
+    ------
+    OpenFoam field variables
+
+    Example:
+    -------
+    Image we have two state variables (p,T) and five cells, running on two CPU
+    processors, the proc0 owns two cells and the proc1 owns three cells,
+    then calling this function will assign the p, and T based on the the state 
+    vector (state-by-state ordering):
+
+    stateVec = [p0, p1, T0, T1 | p0, p1, p2, T0, T1, T2] <- p0 means p for the 0th cell on local processor
+                 0   1   2   3 |  4   5   6   7   8   9  <- global state vec index
+               ---- proc0 -----|--------- proc1 ------- 
+    */
+
+    const objectRegistry& db = mesh_.thisDb();
+    const PetscScalar* stateVecArray;
+    VecGetArrayRead(stateVec, &stateVecArray);
+
+    forAll(regStates_["volVectorStates"], idxI)
+    {
+        // lookup state from meshDb
+        makeState(regStates_["volVectorStates"][idxI], volVectorField, db);
+
+        forAll(mesh_.cells(), cellI)
+        {
+            for (label comp = 0; comp < 3; comp++)
+            {
+                label localIdx = this->getLocalAdjointStateIndex(stateName, cellI, comp);
+                state[cellI][comp] = stateVecArray[localIdx];
+            }
+        }
+    }
+
+    forAll(regStates_["volScalarStates"], idxI)
+    {
+        // lookup state from meshDb
+        makeState(regStates_["volScalarStates"][idxI], volScalarField, db);
+
+        forAll(mesh_.cells(), cellI)
+        {
+            label localIdx = this->getLocalAdjointStateIndex(stateName, cellI);
+            state[cellI] = stateVecArray[localIdx];
+        }
+    }
+
+    forAll(regStates_["modelStates"], idxI)
+    {
+        // lookup state from meshDb
+        makeState(regStates_["modelStates"][idxI], volScalarField, db);
+
+        forAll(mesh_.cells(), cellI)
+        {
+            label localIdx = this->getLocalAdjointStateIndex(stateName, cellI);
+            state[cellI] = stateVecArray[localIdx];
+        }
+    }
+
+    forAll(regStates_["surfaceScalarStates"], idxI)
+    {
+        // lookup state from meshDb
+        makeState(regStates_["surfaceScalarStates"][idxI], surfaceScalarField, db);
+
+        forAll(mesh_.faces(), faceI)
+        {
+            label localIdx = this->getLocalAdjointStateIndex(stateName, faceI);
+            if (faceI < nLocalInternalFaces)
+            {
+                state[faceI] = stateVecArray[localIdx];
+            }
+            else
+            {
+                label relIdx = faceI - nLocalInternalFaces;
+                const label& patchIdx = bFacePatchI[relIdx];
+                const label& faceIdx = bFaceFaceI[relIdx];
+                state.boundaryFieldRef()[patchIdx][faceIdx] = stateVecArray[localIdx];
+            }
+        }
+    }
+    VecRestoreArrayRead(stateVec, &stateVecArray);
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

@@ -5,15 +5,14 @@
 
 \*---------------------------------------------------------------------------*/
 
-Info << "Create mesh for time = " << runTime.timeName() << endl;
+Info << "Create mesh for time = " << runTimePtr_().timeName() << endl;
 
 word regionName = fvMesh::defaultRegion;
 meshPtr_.reset(
     new fvMesh(
         IOobject(
             regionName,
-            runTime.timeName(),
-            runTime,
+            runTimePtr_().timeName(),
+            runTimePtr_(),
             IOobject::MUST_READ)));
 
-fvMesh& mesh = meshPtr_();

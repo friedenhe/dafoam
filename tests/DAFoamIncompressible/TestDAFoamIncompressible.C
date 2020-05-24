@@ -177,6 +177,7 @@ label TestDAFoamIncompressible::validateOFDict(const dictionary& ofDict)
 
 label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 {
+    autoPtr<argList> argsPtr_;
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTime.H"
@@ -465,6 +466,7 @@ label TestDAFoamIncompressible::testDAUtility(PyObject* pyDict)
 
 label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
 {
+    autoPtr<argList> argsPtr_;
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTime.H"
@@ -645,6 +647,7 @@ label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
 
 label TestDAFoamIncompressible::testDARegState(PyObject* pyDict)
 {
+    autoPtr<argList> argsPtr_;
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTime.H"

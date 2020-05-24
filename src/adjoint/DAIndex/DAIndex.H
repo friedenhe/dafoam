@@ -18,6 +18,7 @@
 #include "DARegState.H"
 #include "DAModel.H"
 #include "globalIndex.H"
+#include "macroDAFunctions.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -311,6 +312,12 @@ public:
     label getLocalXvIndex(
         const label idxPoint,
         const label idxCoord) const;
+
+    /// set the state vector based on the latest fields in OpenFOAM
+    void ofField2StateVec(Vec stateVec) const;
+
+    /// assign the fields in OpenFOAM based on the state vector
+    void stateVec2OFField(const Vec stateVec) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

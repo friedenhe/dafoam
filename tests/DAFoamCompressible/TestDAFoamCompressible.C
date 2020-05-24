@@ -23,6 +23,7 @@ TestDAFoamCompressible::~TestDAFoamCompressible()
 
 label TestDAFoamCompressible::testDARegState(PyObject* pyDict)
 {
+    autoPtr<argList> argsPtr_;
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTime.H"

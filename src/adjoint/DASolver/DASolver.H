@@ -49,6 +49,33 @@ protected:
     /// all options in DAFoam
     PyObject* pyOptions_;
 
+    /// args pointer
+    autoPtr<argList> argsPtr_;
+
+    /// runTime pointer
+    autoPtr<Time> runTimePtr_;
+
+    /// fvMesh pointer
+    autoPtr<fvMesh> meshPtr_;
+
+    /// DAUtility pointer
+    autoPtr<DAUtility> daUtilPtr_;
+
+    /// DAOption pointer
+    autoPtr<DAOption> daOptionPtr_;
+
+    /// DATurbulenceModel pointer
+    autoPtr<DATurbulenceModel> daTurbulenceModelPtr_;
+
+    /// DAModel pointer
+    autoPtr<DAModel> daModelPtr_;
+
+    /// DARegState pointer
+    autoPtr<DARegState> daRegStatePtr_;
+
+    /// DAIndex pointer
+    autoPtr<DAIndex> daIndexPtr_;
+
 public:
     /// Runtime type information
     TypeName("DASolver");
@@ -96,13 +123,34 @@ public:
     /// compute the total derivatives
     virtual void calcTotalDerivs() = 0;
 
-    /// basically, we call DAIndex::getGlobalXvIndex
-    virtual label getGlobalXvIndex(
-        const label idxPoint,
-        const label idxCoord) const = 0;
-    
     /// return whether to loop the primal solution, similar to runTime::loop() except we don't do file IO
-    label loop(Time& runTime); 
+    label loop(Time& runTime);
+
+    /// basically, we call DAIndex::getGlobalXvIndex
+    label getGlobalXvIndex(
+        const label idxPoint,
+        const label idxCoord) const
+    {
+        return daIndexPtr_->getGlobalXvIndex(idxPoint, idxCoord);
+    }
+
+    /// set the state vector based on the latest fields in OpenFOAM
+    void ofField2StateVec(Vec stateVec) const
+    {
+        return daIndexPtr_->ofField2StateVec(stateVec);
+    }
+
+    /// assign the fields in OpenFOAM based on the state vector
+    void stateVec2OFField(const Vec stateVec) const
+    {
+        return daIndexPtr_->stateVec2OFField(stateVec);
+    }
+
+    /// return the number of local adjoint states
+    label getNLocalAdjointStates() const
+    {
+        return daIndexPtr_->nLocalAdjointStates;
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

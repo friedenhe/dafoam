@@ -23,8 +23,23 @@ DASolver::DASolver(
     char* argsAll,
     PyObject* pyOptions)
     : argsAll_(argsAll),
-      pyOptions_(pyOptions)
+      pyOptions_(pyOptions),
+      argsPtr_(nullptr),
+      runTimePtr_(nullptr),
+      meshPtr_(nullptr),
+      daUtilPtr_(nullptr),
+      daOptionPtr_(nullptr),
+      daTurbulenceModelPtr_(nullptr),
+      daModelPtr_(nullptr),
+      daRegStatePtr_(nullptr),
+      daIndexPtr_(nullptr)
 {
+// initialize fvMesh and Time object pointer
+#include "setArgs.H"
+#include "setRootCasePython.H"
+#include "createTimePython.H"
+#include "createMeshPython.H"
+    Info << "Initializing mesh and runtime for DASolver" << endl;
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
@@ -85,6 +100,8 @@ label DASolver::loop(Time& runTime)
         return 1;
     }
 }
+
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
