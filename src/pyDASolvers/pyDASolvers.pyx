@@ -1,6 +1,6 @@
 
 # distutils: language = c++
-# distutils: sources = DASolverIncompressible.C
+# distutils: sources = DASolvers.C
 
 """
     DAFoam  : Discrete Adjoint with OpenFOAM
@@ -16,9 +16,9 @@
 from petsc4py.PETSc cimport Vec, PetscVec
 
 # declear cpp functions
-cdef extern from "DASolverIncompressible.H" namespace "Foam":
-    cppclass DASolverIncompressible:
-        DASolverIncompressible(char *, object) except +
+cdef extern from "DASolvers.H" namespace "Foam":
+    cppclass DASolvers:
+        DASolvers(char *, object) except +
         void initSolver()
         void solvePrimal()
         void solveAdjoint()
@@ -29,11 +29,11 @@ cdef extern from "DASolverIncompressible.H" namespace "Foam":
         int getNLocalAdjointStates()
 
 # create python wrappers that call cpp functions
-cdef class pyDASolverIncompressible:
+cdef class pyDASolvers:
 
     # define a class pointer for cpp functions
     cdef:
-        DASolverIncompressible * _thisptr
+        DASolvers * _thisptr
 
     # initialize this class pointer with NULL
     def __cinit__(self):
@@ -62,9 +62,9 @@ cdef class pyDASolverIncompressible:
 
         Examples
         --------
-        solver = pyDASolverIncompressible("DASolverIncompressible -parallel -python", aeroOptions)
+        solver = pyDASolvers("DASolvers -parallel -python", aeroOptions)
         """
-        self._thisptr = new DASolverIncompressible(argsAll, pyOptions)
+        self._thisptr = new DASolvers(argsAll, pyOptions)
 
     # wrap all the other memeber functions in the cpp class
     def initSolver(self):

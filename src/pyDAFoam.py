@@ -657,14 +657,14 @@ class PYDAFOAM(object):
         solverArg = solverName + " -python " + self.parallelFlag
         if self.getOption("flowCondition") == "Incompressible":
 
-            from .pyDASolverIncompressible import pyDASolverIncompressible
+            from .pyDASolverIncompressible import pyDASolvers
 
-            self.solver = pyDASolverIncompressible(solverArg.encode(), self.options)
+            self.solver = pyDASolvers(solverArg.encode(), self.options)
         elif self.getOption("flowCondition") == "Compressible":
 
-            from .pyDASolverCompressible import pyDASolverCompressible
+            from .pyDASolverCompressible import pyDASolvers
 
-            self.solver = pyDASolverCompressible(solverArg.encode(), self.options)
+            self.solver = pyDASolvers(solverArg.encode(), self.options)
         else:
             raise Error("pyDAFoam: flowCondition %s: not valid!" % self.getOption("flowCondition"))
         self.solver.initSolver()

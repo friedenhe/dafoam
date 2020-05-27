@@ -5,6 +5,13 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
+cp Make/files_Incompressible Make/files
+cp Make/options_Incompressible Make/options
+sed -i 's/-std=c++11/-std=c++11 -DFULLDEBUG -g -O0/g' Make/options
+wmake
+
+./Allclean
+
 cp Make/files_Compressible Make/files
 cp Make/options_Compressible Make/options
 sed -i 's/-std=c++11/-std=c++11 -DFULLDEBUG -g -O0/g' Make/options

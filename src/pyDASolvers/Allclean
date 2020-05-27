@@ -5,12 +5,4 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-
-cd pyDASolverIncompressible
-rm -rf build *.so *.cpp
-cd ../
-
-cd pyDASolverCompressible
-rm -rf build *.so *.cpp
-cd ../
-
+rm -rf build *.so *.cpp setup.py

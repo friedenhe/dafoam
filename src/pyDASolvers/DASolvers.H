@@ -4,12 +4,12 @@
     Version : v2
 
     Description:
-        Python wrapper library for DASolverIncompressible
+        Python wrapper library for DASolver
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DASolverIncompressible_H
-#define DASolverIncompressible_H
+#ifndef DASolvers_H
+#define DASolvers_H
 
 #include <petscksp.h>
 #include "Python.h"
@@ -21,18 +21,18 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DASolverIncompressible Declaration
+                       Class DASolvers Declaration
 \*---------------------------------------------------------------------------*/
 
-class DASolverIncompressible
+class DASolvers
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DASolverIncompressible(const DASolverIncompressible&);
+    DASolvers(const DASolvers&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DASolverIncompressible&);
+    void operator=(const DASolvers&);
 
     /// all the arguments
     char* argsAll_;
@@ -47,12 +47,12 @@ public:
     // Constructors
 
     /// Construct from components
-    DASolverIncompressible(
+    DASolvers(
         char* argsAll,
         PyObject* pyOptions);
 
     /// Destructor
-    virtual ~DASolverIncompressible();
+    virtual ~DASolvers();
 
     /// initialize fields and variables
     void initSolver()

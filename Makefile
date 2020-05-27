@@ -5,29 +5,25 @@ default:
 
 opt:
 	@echo "******************Compiling Opt Mode******************"
-# compile src/adjoint with incompressible
-	cd src/adjoint && ./Allmake_Incompressible_Opt
-# compile src/adjoint with compressible
-	cd src/adjoint && ./Allmake_Compressible_Opt
-# compile srs/solvers/incompressible
+# compile src/adjoint 
+	cd src/adjoint && ./Allmake_Opt
+# compile src/pySolvers
 	cd src/pyDASolvers && ./Allmake_Opt
 # compile src/utilities
 	cd src/utilities && ./Allmake
 
 debug:
 	@echo "******************Compiling Debug Mode******************"
-# compile src/adjoint with incompressible
-	cd src/adjoint && ./Allmake_Incompressible_Debug
-# compile src/adjoint with incompressible
-	cd src/adjoint && ./Allmake_Compressible_Debug
-# compile srs/solvers/incompressible
+# compile src/adjoint
+	cd src/adjoint && ./Allmake_Debug
+# compile src/pySolvers
 	cd src/pyDASolvers && ./Allmake_Debug
 
 clean:
 	@echo "********************Cleaning up********************"
-# compile src/adjoint with incompressible
+# clean src/adjoint with incompressible
 	cd src/adjoint && ./Allclean
-# compile srs/solvers/incompressible
+# clean src/pySolvers
 	cd src/pyDASolvers && ./Allclean
 # clean src/utilities
 	cd src/utilities && ./Allclean

@@ -5,12 +5,14 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-cd pyDASolverIncompressible
-python setup.py build_ext --inplace 
-mv *.so ../../
-cd ../
 
-cd pyDASolverCompressible
+cp setup_Incompressible.py setup.py
 python setup.py build_ext --inplace 
-mv *.so ../../
-cd ../
+mv *.so ../
+
+./Allclean
+
+cp setup_Compressible.py setup.py
+python setup.py build_ext --inplace 
+mv *.so ../
+

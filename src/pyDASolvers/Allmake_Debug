@@ -5,16 +5,14 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-cd pyDASolverIncompressible
+cp setup_Incompressible.py setup.py
 sed -i 's/"-std=c++11",/"-std=c++11","-DFULLDEBUG -g -O0",/g' setup.py
 python setup.py build_ext --inplace 
 mv *.so ../../
-sed -i 's/"-std=c++11","-DFULLDEBUG -g -O0",/"-std=c++11",/g' setup.py 
-cd ../
 
-cd pyDASolverCompressible
+./Allclean
+
+cp setup_Compressible.py setup.py
 sed -i 's/"-std=c++11",/"-std=c++11","-DFULLDEBUG -g -O0",/g' setup.py
 python setup.py build_ext --inplace 
 mv *.so ../../
-sed -i 's/"-std=c++11","-DFULLDEBUG -g -O0",/"-std=c++11",/g' setup.py 
-cd ../

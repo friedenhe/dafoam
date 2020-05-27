@@ -26,7 +26,7 @@ ext = [
     Extension(
         libName,
         # All source files, taken from Make/files
-        sources=["pyDASolverIncompressible.pyx", "DASolverIncompressible.C"],
+        sources=["pyDASolvers.pyx", "DASolvers.C"],
         # All include dirs, refer to Make/options in OpenFOAM
         include_dirs=[
             # These are from Make/options:EXE_INC
@@ -45,8 +45,8 @@ ext = [
             os.getenv("PETSC_DIR") + "/include",
             petsc4py.get_include(),
             os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/include",
-            "../../adjoint/lnInclude",
-            "../../include",
+            "../adjoint/lnInclude",
+            "../include",
             "./",
         ],
         # These are from Make/options:EXE_LIBS

@@ -4,7 +4,7 @@
     Version : v2
 
 \*---------------------------------------------------------------------------*/
-#include "DASolverIncompressible.H"
+#include "DASolvers.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -12,7 +12,7 @@ namespace Foam
 {
 
 // Constructors
-DASolverIncompressible::DASolverIncompressible(
+DASolvers::DASolvers(
     char* argsAll,
     PyObject* pyOptions)
     : argsAll_(argsAll),
@@ -22,7 +22,7 @@ DASolverIncompressible::DASolverIncompressible(
     DASolverPtr_.reset(DASolver::New(argsAll, pyOptions));
 }
 
-DASolverIncompressible::~DASolverIncompressible()
+DASolvers::~DASolvers()
 {
 }
 
