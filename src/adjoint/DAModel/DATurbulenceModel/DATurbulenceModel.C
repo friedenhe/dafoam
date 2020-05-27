@@ -53,19 +53,15 @@ DATurbulenceModel::DATurbulenceModel(const fvMesh& mesh)
       phaseRhoPhi_(
           const_cast<surfaceScalarField&>(
               mesh.thisDb().lookupObject<surfaceScalarField>("phi"))),
-#ifdef CompressibleFlow
-      thermo_(
-          const_cast<fluidThermo&>(
-              mesh.thisDb().lookupObject<fluidThermo>("fluidThermoDARegDb"))),
-      rho_(
-          const_cast<volScalarField&>(
-              mesh.thisDb().lookupObject<volScalarField>("rho"))),
-
-#endif
 #ifdef IncompressibleFlow
-      laminarTransport_(
-          const_cast<singlePhaseTransportModel&>(
-              mesh.thisDb().lookupObject<singlePhaseTransportModel>("singlePhaseTransportModelDARegDb"))),
+      daRegDbTransport_(
+          mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
+              "DARegDbSinglePhaseTransportModel")),
+      laminarTransport_(daRegDbTransport_.getObject()),
+      daRegDbTurbIncomp_(
+          mesh.thisDb().lookupObject<DARegDbTurbulenceModelIncompressible>(
+              "DARegDbTurbulenceModelIncompressible")),
+      turbulence_(daRegDbTurbIncomp_.getObject()),
       rho_(
           IOobject(
               "rho",
@@ -77,6 +73,18 @@ DATurbulenceModel::DATurbulenceModel(const fvMesh& mesh)
           mesh,
           dimensionedScalar("rho", dimensionSet(0, 0, 0, 0, 0, 0, 0), 1.0),
           zeroGradientFvPatchScalarField::typeName),
+#endif
+#ifdef CompressibleFlow
+      daRegDbThermo_(
+          mesh.thisDb().lookupObject<DARegDbFluidThermo>("DARegDbFluidThermo")),
+      thermo_(daRegDbThermo_.getObject()),
+      daRegDbTurbComp_(
+          mesh.thisDb().lookupObject<DARegDbTurbulenceModelCompressible>(
+              "DARegDbTurbulenceModelCompressible")),
+      turbulence_(daRegDbTurbComp_.getObject()),
+      rho_(
+          const_cast<volScalarField&>(
+              mesh.thisDb().lookupObject<volScalarField>("rho"))),
 #endif
       turbDict_(
           IOobject(

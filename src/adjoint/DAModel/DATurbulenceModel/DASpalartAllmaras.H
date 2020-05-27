@@ -43,10 +43,6 @@ public:
 
     // Member functions
 
-
-    /// update nut
-    virtual void correctNut();
-
     /// update the turbulence state for DARegState::regStates_
     virtual void correctModelStates(wordList& modelStates) const;
 

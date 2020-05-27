@@ -16,6 +16,8 @@
 #include "singlePhaseTransportModel.H"
 #include "turbulentTransportModel.H"
 #include "simpleControl.H"
+#include "DARegDbSinglePhaseTransportModel.H"
+#include "DARegDbTurbulenceModelIncompressible.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

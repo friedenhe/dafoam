@@ -7,7 +7,7 @@
     Augmented turbulence model for the adjoint method, including residual 
     calculation functions, etc
 
-    NOTE:
+    NOTE 1:
     Instead of inheriting from the OpenFOAM turbulence implementation, in 
     RASModel's children, we re-write all the correspndong functions for each 
     turbulence model. This is to avoid using template classes and template 
@@ -15,6 +15,10 @@
     need to update all the RASModel's children when upgrading to a new version 
     of OpenFOAM. Hopefully, the turbulence model part does not change too much 
     from version to version so the modification will be minimal. 
+
+    NOTE 2:
+    This function will lookup turbulence model object in fvMesh, so make sure
+    you initialize a turbulence model BEFORE initialzing DATurbulenceModel
 
 \*---------------------------------------------------------------------------*/
 
@@ -28,18 +32,24 @@
 #include "surfaceFields.H"
 #include "geometricOneField.H"
 #include "wallDist.H"
-#include "turbulenceModel.H"
 #include "nearWallDist.H"
 #include "zeroGradientFvPatchField.H"
 #include "DAOption.H"
 #include "DARegState.H"
+#include "DARegDbNearWallDist.H"
 
 #ifdef IncompressibleFlow
 #include "singlePhaseTransportModel.H"
+#include "turbulentTransportModel.H"
+#include "DARegDbTurbulenceModelIncompressible.H"
+#include "DARegDbSinglePhaseTransportModel.H"
 #endif
 
 #ifdef CompressibleFlow
 #include "fluidThermo.H"
+#include "turbulentFluidThermoModel.H"
+#include "DARegDbTurbulenceModelCompressible.H"
+#include "DARegDbFluidThermo.H"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -63,7 +73,6 @@ private:
     void operator=(const DATurbulenceModel&);
 
 protected:
-
     /// fvMesh
     const fvMesh& mesh_;
 
@@ -78,20 +87,32 @@ protected:
 
     /// phase field
     volScalarField phase_;
-    
+
     /// phase*phi*density field
     surfaceScalarField& phaseRhoPhi_;
 
 #ifdef IncompressibleFlow
+    /// a DARegDb object for looking up laminarTransport_
+    const DARegDbSinglePhaseTransportModel& daRegDbTransport_;
     /// laminar viscosity for incompressible flow
-    singlePhaseTransportModel& laminarTransport_;
+    const singlePhaseTransportModel& laminarTransport_;
+    /// a DARegDb object for looking up turbulence_
+    const DARegDbTurbulenceModelIncompressible& daRegDbTurbIncomp_;
+    /// turbulence model object
+    const incompressible::turbulenceModel& turbulence_;
     /// density field
     volScalarField rho_;
 #endif
 
 #ifdef CompressibleFlow
+    /// a DARegDb object for looking up thermo_
+    const DARegDbFluidThermo& daRegDbThermo_;
     /// thermo model for compressible flow
-    fluidThermo& thermo_;
+    const fluidThermo& thermo_;
+    /// a DARegDb object for looking up turbulence_
+    const DARegDbTurbulenceModelCompressible& daRegDbTurbComp_;
+    /// turbulence model object
+    const compressible::turbulenceModel& turbulence_;
     /// density field
     volScalarField& rho_;
 #endif
@@ -156,17 +177,17 @@ public:
     virtual void correctModelStates(wordList& modelStates) const = 0;
 
     /// update turbulence variable boundary values
-    virtual void correctTurbBoundaryConditions()=0;
+    virtual void correctTurbBoundaryConditions() = 0;
 
     /// dev terms
     tmp<volSymmTensorField> devRhoReff();
-    
+
     /// divDev terms
     tmp<fvVectorMatrix> divDevRhoReff(volVectorField& U);
-    
+
     /// divDev terms
     tmp<fvVectorMatrix> divDevReff(volVectorField& U);
-    
+
     /// return effective viscosity
     tmp<volScalarField> nuEff();
 
@@ -195,7 +216,7 @@ public:
     {
         return phase_;
     }
-    
+
     /// get mu
     tmp<Foam::volScalarField> getMu() const;
 

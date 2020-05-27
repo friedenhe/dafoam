@@ -18,9 +18,12 @@
 #include "DAOption.H"
 #include "DARegState.H"
 #include "DATurbulenceModel.H"
+#include "simpleControl.H"
 #include "DAModel.H"
 #include "DAIndex.H"
 #include "DAObjFunc.H"
+#include "DARegDbSinglePhaseTransportModel.H"
+#include "DARegDbTurbulenceModelIncompressible.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

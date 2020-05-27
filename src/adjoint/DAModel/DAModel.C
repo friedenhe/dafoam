@@ -57,7 +57,7 @@ void DAModel::correctModelStates(wordList& modelStates) const
 
     if (hasTurbulenceModel_)
     {
-        const DATurbulenceModel& daTurb = 
+        const DATurbulenceModel& daTurb =
             mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel");
         daTurb.correctModelStates(modelStates);
     }

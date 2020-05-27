@@ -10,26 +10,26 @@
 
         To register a turbulence model object to fvMesh:
 
-        autoPtr<incompressible::turbulenceModel> turbulencePtr(
-            incompressible::turbulenceModel::New(U, phi, laminarTransport));
-        incompressible::turbulenceModel& turbulence = turbulencePtr();
-        DARegDbTurbulenceModelIncompressible turb(mesh,turbulence);
+        autoPtr<compressible::turbulenceModel> turbulencePtr(
+            compressible::turbulenceModel::New(rho, U, phi, thermo));
+        compressible::turbulenceModel& turbulence = turbulencePtr();
+        DARegDbTurbulenceModelCompressible turb(mesh,turbulence);
 
         Then, to get the registered turbulence model object from fvMesh:
 
-        const DARegDbTurbulenceModelIncompressible& turbDb= 
-            mesh.thisDb().lookupObject<DARegDbTurbulenceModelIncompressible>(
-                "DARegDbTurbulenceModelIncompressible");
-        const incompressible::turbulenceModel& turb1 = turbDb.getObject();
+        const DARegDbTurbulenceModelCompressible& turbDb= 
+            mesh.thisDb().lookupObject<DARegDbTurbulenceModelCompressible>(
+                "DARegDbTurbulenceModelCompressible");
+        const compressible::turbulenceModel& turb1 = turbDb.getObject();
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DARegDbTurbulenceModelIncompressible_H
-#define DARegDbTurbulenceModelIncompressible_H
+#ifndef DARegDbTurbulenceModelCompressible_H
+#define DARegDbTurbulenceModelCompressible_H
 
 #include "fvOptions.H"
-#include "singlePhaseTransportModel.H"
-#include "turbulentTransportModel.H"
+#include "fluidThermo.H"
+#include "turbulentFluidThermoModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -37,37 +37,37 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DARegDbTurbulenceModelIncompressible Declaration
+                       Class DARegDbTurbulenceModelCompressible Declaration
 \*---------------------------------------------------------------------------*/
 
-class DARegDbTurbulenceModelIncompressible
+class DARegDbTurbulenceModelCompressible
     : public regIOobject
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DARegDbTurbulenceModelIncompressible(const DARegDbTurbulenceModelIncompressible&);
+    DARegDbTurbulenceModelCompressible(const DARegDbTurbulenceModelCompressible&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DARegDbTurbulenceModelIncompressible&);
+    void operator=(const DARegDbTurbulenceModelCompressible&);
 
     /// Foam::fvMesh object
     const fvMesh& mesh_;
 
-    /// fluid thermo
-    const incompressible::turbulenceModel& turbulenceModel_;
+    /// turbulence model object
+    const compressible::turbulenceModel& turbulenceModel_;
 
 public:
     /// Constructors
-    DARegDbTurbulenceModelIncompressible(
+    DARegDbTurbulenceModelCompressible(
         const fvMesh& mesh,
-        const incompressible::turbulenceModel& turbulenceModel);
+        const compressible::turbulenceModel& turbulenceModel);
 
     /// Destructor
-    virtual ~DARegDbTurbulenceModelIncompressible();
+    virtual ~DARegDbTurbulenceModelCompressible();
 
     /// return fluidThermo
-    const incompressible::turbulenceModel& getObject() const
+    const compressible::turbulenceModel& getObject() const
     {
         return turbulenceModel_;
     }

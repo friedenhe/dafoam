@@ -652,6 +652,8 @@ label TestDAFoamIncompressible::testDARegState(PyObject* pyDict)
 #include "setRootCasePython.H"
 #include "createTime.H"
 #include "createMesh.H"
+#include "createSimpleControl.H"
+#include "createFields.H"
 
     label testErrors = 0;
 
@@ -695,6 +697,8 @@ label TestDAFoamIncompressible::testDAObjFunc(PyObject* pyDict)
 #include "setRootCasePython.H"
 #include "createTime.H"
 #include "createMesh.H"
+#include "createSimpleControl.H"
+#include "createFields.H"
 
     label testErrors = 0;
 

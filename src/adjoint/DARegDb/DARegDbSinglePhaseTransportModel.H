@@ -18,7 +18,7 @@
         const DARegDbSinglePhaseTransportModel& sg1= 
             mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
                 "DARegDbSinglePhaseTransportModel");
-        const singlePhaseTransportModel& lt1 = sg1.getSinglePhaseTransportModel();
+        const singlePhaseTransportModel& lt1 = sg1.getObject();
 
 \*---------------------------------------------------------------------------*/
 
@@ -64,7 +64,7 @@ public:
     virtual ~DARegDbSinglePhaseTransportModel();
 
     /// return fluidThermo
-    const singlePhaseTransportModel& getSinglePhaseTransportModel() const
+    const singlePhaseTransportModel& getObject() const
     {
         return singlePhaseTransportModel_;
     }

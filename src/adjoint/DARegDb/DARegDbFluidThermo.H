@@ -18,7 +18,7 @@
 
         const DARegDbFluidThermo& daThermo1 = 
             mesh.thisDb().lookupObject<DARegDbFluidThermo>("DARegDbFluidThermo");
-        const fluidThermo& thermo1 = daThermo1.getFuildThermo();
+        const fluidThermo& thermo1 = daThermo1.getObject();
 
 \*---------------------------------------------------------------------------*/
 
@@ -64,7 +64,7 @@ public:
     virtual ~DARegDbFluidThermo();
 
     /// return fluidThermo
-    const fluidThermo& getFluidThermo() const
+    const fluidThermo& getObject() const
     {
         return fluidThermo_;
     }

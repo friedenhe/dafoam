@@ -17,6 +17,8 @@
 #include "turbulentFluidThermoModel.H"
 #include "simpleControl.H"
 #include "pressureControl.H"
+#include "DARegDbFluidThermo.H"
+#include "DARegDbTurbulenceModelCompressible.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

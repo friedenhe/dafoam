@@ -4,9 +4,31 @@
     Version : v2
 
     Description:
-        DAModel is a general template for handling physical models in 
-        DAFoam. Here we can simultaneously have multiple models for adjoint,
-        e.g., turbulence model + radiation model
+        DAModel is a general template for handling physical models in DAFoam. 
+        The constructor for DAModel does not explicitly contain objects of 
+        physical models. Instead, it will look up any model class, e.g., 
+        DATurbulenceModel, DARaditionModel, that has been registred in fvMesh. 
+        This enables the flexibility such that we  can simultaneously have 
+        multiple models for adjoint, e.g., turbulence model + radiation model.
+        
+        NOTE 1: in adjoint functions, we should call functions in DAModel to handle
+        general model operation, e.g., call daModel.correctBoundaryCondition(), 
+        instead of calling daTurbulenceModel.correctBoundaryCondition(). Because
+        daModel.correctBoundaryCondition() will call the correctBoundaryCondition()
+        in daTurbulenceModel and daRadiationModel, if these two models are used.
+
+        NOTE 2: Because of the above feature, we need to initialize any physical
+        model BEFORE initializing the DAModel, e.g.,
+
+        // initialize DATurbulence and automatically register it to fvMesh
+        autoPtr<DATurbulenceModel> daTurb(DATurbulenceModel::New(mesh));
+        
+        ............ // codes to initialize any other physical models
+
+        // now we can initialize DAModel and lookup DATurbulenceModel in mesh
+        DAModel daModel(mesh);
+
+        Otherwise, the physical models will NOT be picked up by the DAModel
 
 \*---------------------------------------------------------------------------*/
 

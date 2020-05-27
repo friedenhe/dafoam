@@ -28,6 +28,7 @@ label TestDAFoamCompressible::testDARegState(PyObject* pyDict)
 #include "setRootCasePython.H"
 #include "createTime.H"
 #include "createMesh.H"
+#include "createFields.H"
 
     label testErrors = 0;
 

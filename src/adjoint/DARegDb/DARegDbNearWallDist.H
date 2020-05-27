@@ -17,7 +17,7 @@
 
         const DARegDbNearWallDist& daD1=
             mesh.thisDb().lookupObject<DARegDbNearWallDist>("DARegDbNearWallDist");
-        const nearWallDist& d1 = daD1.getNearWallDist();
+        const nearWallDist& d1 = daD1.getObject();
 
 \*---------------------------------------------------------------------------*/
 
@@ -63,7 +63,7 @@ public:
     virtual ~DARegDbNearWallDist();
 
     /// return nearWallDist_
-    const nearWallDist& getNearWallDist() const
+    const nearWallDist& getObject() const
     {
         return nearWallDist_;
     }
