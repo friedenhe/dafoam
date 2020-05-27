@@ -4,7 +4,8 @@
     Version : v2
 
     Description:
-        DAUtility contains basic functions such as matrix file IO
+        DAUtility contains basic functions such as matrix file IO, and
+        it is independent of fvMesh.
 
 \*---------------------------------------------------------------------------*/
 

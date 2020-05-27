@@ -5,8 +5,8 @@ DAOption/DAOption.C
 DARegState/DARegState.C
 DARegState/DARegStateRhoSimpleFoam.C
 
-DARegDb/DAFluidThermo.C
-DARegDb/DANearWallDist.C
+DARegDb/DARegDbFluidThermo.C
+DARegDb/DARegDbNearWallDist.C
 
 DAModel/DAModel.C
 
@@ -17,6 +17,9 @@ DAModel/DARadiationModel/DARadiationModel.C
 DAModel/DARadiationModel/DAP1.C
 
 DAIndex/DAIndex.C
+
+DAObjFunc/DAObjFunc.C
+DAObjFunc/DAObjFuncForce.C
 
 DASolver/DASolver.C
 DASolver/DARhoSimpleFoam/DARhoSimpleFoam.C

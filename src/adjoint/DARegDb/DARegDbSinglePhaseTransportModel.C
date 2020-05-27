@@ -5,7 +5,7 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAFluidThermo.H"
+#include "DARegDbSinglePhaseTransportModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -13,12 +13,12 @@ namespace Foam
 {
 
 // Constructors
-DAFluidThermo::DAFluidThermo(
+DARegDbSinglePhaseTransportModel::DARegDbSinglePhaseTransportModel(
     const fvMesh& mesh,
-    fluidThermo& fluidThermo)
+    const singlePhaseTransportModel& singlePhaseTransportModel)
     : regIOobject(
         IOobject(
-            "DAFluidThermo", // always use DAFluidThermo for the db name
+            "DARegDbSinglePhaseTransportModel", // always use DARegDbSinglePhaseTransportModel for the db name
             mesh.time().timeName(),
             mesh, // register to mesh
             IOobject::NO_READ,
@@ -26,16 +26,16 @@ DAFluidThermo::DAFluidThermo(
             true // always register object
             )),
       mesh_(mesh),
-      fluidThermo_(fluidThermo)
+      singlePhaseTransportModel_(singlePhaseTransportModel)
 {
 }
 
-DAFluidThermo::~DAFluidThermo()
+DARegDbSinglePhaseTransportModel::~DARegDbSinglePhaseTransportModel()
 {
 }
 
 // this is a virtual function for regIOobject
-bool DAFluidThermo::writeData(Ostream& os) const
+bool DARegDbSinglePhaseTransportModel::writeData(Ostream& os) const
 {
     // do nothing
     return true;

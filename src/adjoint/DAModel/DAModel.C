@@ -41,7 +41,7 @@ bool DAModel::writeData(Ostream& os) const
     return true;
 }
 
-void DAModel::correctModelStates(wordList& modelStates)
+void DAModel::correctModelStates(wordList& modelStates) const
 {
     /*
     Update the name in modelStates based on the selected physical model at runtime
@@ -57,8 +57,8 @@ void DAModel::correctModelStates(wordList& modelStates)
 
     if (hasTurbulenceModel_)
     {
-        DATurbulenceModel& daTurb = const_cast<DATurbulenceModel&>(
-            mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel"));
+        const DATurbulenceModel& daTurb = 
+            mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel");
         daTurb.correctModelStates(modelStates);
     }
 

@@ -21,12 +21,7 @@ DASpalartAllmaras::DASpalartAllmaras(const fvMesh& mesh)
 {
 }
 
-void DASpalartAllmaras::correctNut()
-{
-    Info << "In SA correctNut" << endl;
-}
-
-void DASpalartAllmaras::correctModelStates(wordList& modelStates)
+void DASpalartAllmaras::correctModelStates(wordList& modelStates) const
 {
     // replace nut with nuTilda
     forAll(modelStates, idxI)
@@ -37,6 +32,16 @@ void DASpalartAllmaras::correctModelStates(wordList& modelStates)
             modelStates[idxI] = "nuTilda";
         }
     }
+}
+
+/// update nut based on other turbulence variables and update the BCs
+void DASpalartAllmaras::updateNut()
+{
+}
+
+/// update turbulence variable boundary values
+void DASpalartAllmaras::correctTurbBoundaryConditions()
+{
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

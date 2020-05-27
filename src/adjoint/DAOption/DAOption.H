@@ -53,7 +53,7 @@ public:
     virtual ~DAOption();
 
     /// return a reference of allOptions_ dictionary
-    const dictionary& getAllOptions()
+    const dictionary& getAllOptions() const
     {
         return allOptions_;
     }
@@ -113,7 +113,7 @@ classType DAOption::getOption(const word key) const
     */
 
     classType val;
-    allOptions_.readEntry(key, val);
+    allOptions_.readEntry<classType>(key, val);
     return val;
 }
 
@@ -181,7 +181,7 @@ classType DAOption::getSubDictOption(
 
     dictionary subDictF = allOptions_.subDict(subDict);
     classType val;
-    subDictF.readEntry(subDictKey, val);
+    subDictF.readEntry<classType>(subDictKey, val);
     return val;
 }
 

@@ -5,7 +5,7 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DASinglePhaseTransportModel.H"
+#include "DARegDbTurbulenceModelIncompressible.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -13,12 +13,12 @@ namespace Foam
 {
 
 // Constructors
-DASinglePhaseTransportModel::DASinglePhaseTransportModel(
+DARegDbTurbulenceModelIncompressible::DARegDbTurbulenceModelIncompressible(
     const fvMesh& mesh,
-    singlePhaseTransportModel& singlePhaseTransportModel)
+    const incompressible::turbulenceModel& turbulenceModel)
     : regIOobject(
         IOobject(
-            "DASinglePhaseTransportModel", // always use DASinglePhaseTransportModel for the db name
+            "DARegDbTurbulenceModelIncompressible", 
             mesh.time().timeName(),
             mesh, // register to mesh
             IOobject::NO_READ,
@@ -26,16 +26,16 @@ DASinglePhaseTransportModel::DASinglePhaseTransportModel(
             true // always register object
             )),
       mesh_(mesh),
-      singlePhaseTransportModel_(singlePhaseTransportModel)
+      turbulenceModel_(turbulenceModel)
 {
 }
 
-DASinglePhaseTransportModel::~DASinglePhaseTransportModel()
+DARegDbTurbulenceModelIncompressible::~DARegDbTurbulenceModelIncompressible()
 {
 }
 
 // this is a virtual function for regIOobject
-bool DASinglePhaseTransportModel::writeData(Ostream& os) const
+bool DARegDbTurbulenceModelIncompressible::writeData(Ostream& os) const
 {
     // do nothing
     return true;

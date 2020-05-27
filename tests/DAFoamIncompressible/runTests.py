@@ -92,3 +92,45 @@ testDict = {"solverName": [str, "DASimpleFoam"], "turbulenceModel": [str, "Spala
 testErrors = tests.testDARegState(testDict)
 checkErrors("DARegState", testErrors)
 os.chdir("../../DAFoamIncompressible")
+
+# Test2: DARegState
+os.chdir("../input/CurvedCubeHexMesh")
+testDict = {
+    "solverName": [str, "DASimpleFoam"],
+    "turbulenceModel": [str, "SpalartAllmaras"],
+    "adjUseColoring": [bool, True],
+    "adjJacMatOrdering": [str, "state"],
+    "objFunc": [
+        dict,
+        {
+            "func1": {
+                "part1": {
+                    "objFuncName": "force",
+                    "source": "patchToFace",
+                    "patch": ["walls", "wallsbump"],
+                    "scale": 0.5,
+                    "addToAdjoint": False,
+                },
+                "part2": {
+                    "objFuncName": "force",
+                    "source": "patchToFace",
+                    "patch": ["wallsbump", "frontandback"],
+                    "scale": 0.5,
+                    "addToAdjoint": False,
+                },
+            },
+            "func2": {
+                "part1": {
+                    "objFuncName": "force",
+                    "source": "patchToFace",
+                    "patch": ["walls", "wallsbump", "frontandback"],
+                    "scale": 1.0,
+                    "addToAdjoint": False,
+                }
+            },
+        },
+    ],
+}
+testErrors = tests.testDAObjFunc(testDict)
+checkErrors("DAObjFunc", testErrors)
+os.chdir("../../DAFoamIncompressible")

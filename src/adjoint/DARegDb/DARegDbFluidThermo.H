@@ -12,18 +12,18 @@
 
         autoPtr<fluidThermo> fluidThermo = fluidThermo::New(mesh);
         fluidThermo& thermo = fluidThermo();
-        DAFluidThermo daThermo(mesh,thermo);
+        DARegDbFluidThermo daThermo(mesh,thermo);
 
         Then, to get the registered fluidThermo object from fvMesh:
 
-        DAFluidThermo& daThermo1 = const_cast<DAFluidThermo&>(
-            mesh.thisDb().lookupObject<DAFluidThermo>("DAFluidThermo"));
-        fluidThermo& thermo1 = const_cast<fluidThermo&>(daThermo1.getFuildThermo());
+        const DARegDbFluidThermo& daThermo1 = 
+            mesh.thisDb().lookupObject<DARegDbFluidThermo>("DARegDbFluidThermo");
+        const fluidThermo& thermo1 = daThermo1.getFuildThermo();
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAFluidThermo_H
-#define DAFluidThermo_H
+#ifndef DARegDbFluidThermo_H
+#define DARegDbFluidThermo_H
 
 #include "fvOptions.H"
 #include "fluidThermo.H"
@@ -34,37 +34,37 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DAFluidThermo Declaration
+                       Class DARegDbFluidThermo Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAFluidThermo
+class DARegDbFluidThermo
     : public regIOobject
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DAFluidThermo(const DAFluidThermo&);
+    DARegDbFluidThermo(const DARegDbFluidThermo&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DAFluidThermo&);
+    void operator=(const DARegDbFluidThermo&);
 
     /// Foam::fvMesh object
     const fvMesh& mesh_;
 
     /// fluid thermo
-    fluidThermo& fluidThermo_;
+    const fluidThermo& fluidThermo_;
 
 public:
     /// Constructors
-    DAFluidThermo(
+    DARegDbFluidThermo(
         const fvMesh& mesh,
-        fluidThermo& fluidThermo);
+        const fluidThermo& fluidThermo);
 
     /// Destructor
-    virtual ~DAFluidThermo();
+    virtual ~DARegDbFluidThermo();
 
     /// return fluidThermo
-    const fluidThermo& getFluidThermo()
+    const fluidThermo& getFluidThermo() const
     {
         return fluidThermo_;
     }

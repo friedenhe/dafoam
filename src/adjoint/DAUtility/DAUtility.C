@@ -28,7 +28,24 @@ void DAUtility::pyDict2OFDict(
     /*
     Description:
         Parse a Python dictionary to an OpenFOAM dictionary
-        Only support a certain number of types and one nested dictionary
+        Only support a certain number of data types
+
+        We support two types of pyDict, one is to set the key value
+        as a list and have the value type as the first element.
+        This is needed in pyDAFoam.py to reminder users the date type
+        of a key value
+
+        pyDict = {
+            "solverName": [str, "DASimpleFoam"],
+            "patches": [list, [1.0, 2.0]]
+        }
+
+        The second type of pyDict is just like a usual dict:
+
+        pyDict = {
+            "solverName": "DASimpleFoam",
+            "patches": [1.0, 2.0]
+        }
     Input:
         pyDict: Pytion dictionary
     Output:
@@ -53,17 +70,41 @@ void DAUtility::pyDict2OFDict(
         //std::cout << "Key is "<<keyUTF8<<std::endl;
         // the actual value of this key, NOTE: it is a list
         // the 1st one is its type and the 2nd one is its value
+        // this is because we need to make sure users prescribe
+        // the right data type in pyDAFoam.py, so we set the
+        // value like this in pyDAFoam.py:
+        // defOptions = {
+        // "solverName": [str, "DASimpleFOam"] }
+        // however, the above has one exception when using subDict
+        // in this case, we only have one element
         PyObject* value = PyDict_GetItem(pyDict, keyI);
         const char* valueTypeTmp = Py_TYPE(value)->tp_name;
-        if (word(valueTypeTmp) != "list")
+        PyObject* value1;
+        if (word(valueTypeTmp) == "list")
         {
-            FatalErrorIn("pyDict2OFDict") << keyUTF8 << " needs to be in a list format with "
-                                          << "the 1st element being its type and the 2nd element being its value."
-                                          << "Example: " << keyUTF8 << ":[str,\"solverName\"]" << abort(FatalError);
+            // there are two possibilities for this case
+            // for nonSubDict case, we need to have pyDict format
+            // like this: { "solverName": [str, "DASimpleDAFoam"] }
+            // however, for subDicts, we dont specify the type property
+            PyObject* value0 = PyList_GetItem(value, 0);
+            const char* valueTypeTmp0 = Py_TYPE(value0)->tp_name;
+            if (word(valueTypeTmp0) == "type")
+            {
+                // this is nonSubdict case
+                // the second element of value is the actual value
+                value1 = PyList_GetItem(value, 1);
+            }
+            else
+            {
+                // it is for subdicts, so value1=value
+                value1 = value;
+            }
         }
-
-        // the second element of value is the actual value
-        PyObject* value1 = PyList_GetItem(value, 1);
+        else
+        {
+            // if we only have one element, set value1 = value
+            value1 = value;
+        }
 
         //PyObject_Print(value1,stdout,0);Info<<endl;
         // get the type of value1
@@ -134,7 +175,7 @@ void DAUtility::pyDict2OFDict(
                 }
                 else
                 {
-                    FatalErrorIn("pyDict2OFDict") << "Type: " << tmpTypeWord << " for " << keyUTF8
+                    FatalErrorIn("pyDict2OFDict") << "Type: <" << tmpTypeWord << "> for " << keyUTF8
                                                   << " list is not supported! Options are: str, int, bool, and float!"
                                                   << abort(FatalError);
                 }
@@ -160,6 +201,7 @@ void DAUtility::pyDict2OFDict(
         }
         else if (word(valueType) == "dict")
         {
+            // if its a subdict, recursely call this function
             dictionary subDict;
             this->pyDict2OFDict(value1, subDict);
             ofDict.add(keyUTF8, subDict);
@@ -361,6 +403,29 @@ void DAUtility::boundVar(
     const dictionary& allOptions,
     volScalarField& var)
 {
+    /*
+    Description:
+        Bound a field variable according to the bounds defined
+        in the allOptions dict. This is a overload function for volScalarField
+    Input:
+        allOptions: a dictionary that has upper and lower bound values
+        We need to give specific name for the bounds, i.e.,
+        
+        variable name + UpperBound   -> setting upper bound
+
+        variable name + LowerBound   -> setting lower bound
+    
+    Input & Output:
+        var: an OpenFOAM field variable to be bounded
+    Example:
+        dictionary allOptions;
+        allOptions.set("pUpperBound", 120000.0);
+        allOptions.set("pLowerBound", 80000.0);
+        DAUtility daUtil;
+        volScalarField p = .... // initialize p
+        daUtil.boundVar(allOptions, p);
+    */
+
     const scalar vGreat = 1e200;
     label useUpperBound = 0, useLowerBound = 0;
 
@@ -369,8 +434,8 @@ void DAUtility::boundVar(
     word lowerBoundName = var.name() + "LowerBound";
     word upperBoundName = var.name() + "UpperBound";
 
-    scalar varMin = varBoundsDict.lookupOrDefault<scalar>(lowerBoundName,-vGreat);
-    scalar varMax = varBoundsDict.lookupOrDefault<scalar>(upperBoundName,vGreat);
+    scalar varMin = varBoundsDict.lookupOrDefault<scalar>(lowerBoundName, -vGreat);
+    scalar varMax = varBoundsDict.lookupOrDefault<scalar>(upperBoundName, vGreat);
 
     forAll(var, cellI)
     {
@@ -419,6 +484,30 @@ void DAUtility::boundVar(
     const dictionary& allOptions,
     volVectorField& var)
 {
+
+    /*
+    Description:
+        Bound a field variable according to the bounds defined
+        in the allOptions dict. This is a overload function for volVectorField
+    Input:
+        allOptions: a dictionary that has upper and lower bound values
+        We need to give specific name for the bounds, i.e.,
+        
+        variable name + UpperBound   -> setting upper bound
+
+        variable name + LowerBound   -> setting lower bound
+    
+    Input & Output:
+        var: an OpenFOAM field variable to be bounded
+    Example:
+        dictionary allOptions;
+        allOptions.set("pUpperBound", 120000.0);
+        allOptions.set("pLowerBound", 80000.0);
+        DAUtility daUtil;
+        volScalarField p = .... // initialize p
+        daUtil.boundVar(allOptions, p);
+    */
+
     const scalar vGreat = 1e200;
     label useUpperBound = 0, useLowerBound = 0;
 
@@ -427,8 +516,8 @@ void DAUtility::boundVar(
     word lowerBoundName = var.name() + "LowerBound";
     word upperBoundName = var.name() + "UpperBound";
 
-    scalar varMin = varBoundsDict.lookupOrDefault<scalar>(lowerBoundName,-vGreat);
-    scalar varMax = varBoundsDict.lookupOrDefault<scalar>(upperBoundName,vGreat);
+    scalar varMin = varBoundsDict.lookupOrDefault<scalar>(lowerBoundName, -vGreat);
+    scalar varMax = varBoundsDict.lookupOrDefault<scalar>(upperBoundName, vGreat);
 
     forAll(var, cellI)
     {

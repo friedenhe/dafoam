@@ -688,6 +688,50 @@ label TestDAFoamIncompressible::testDARegState(PyObject* pyDict)
     return testErrors;
 }
 
+label TestDAFoamIncompressible::testDAObjFunc(PyObject* pyDict)
+{
+    autoPtr<argList> argsPtr_;
+#include "setArgs.H"
+#include "setRootCasePython.H"
+#include "createTime.H"
+#include "createMesh.H"
+
+    label testErrors = 0;
+
+    DAOption daOption(mesh, pyDict);
+
+    autoPtr<DATurbulenceModel> daTurbmodel(
+        DATurbulenceModel::New(mesh));
+
+    DAModel daModel(mesh);
+
+    autoPtr<DARegState> daRegState(DARegState::New(mesh));
+
+    DAIndex daIndex(mesh);
+
+    dictionary objDict;
+    objDict.set("objFuncName", "force");
+    objDict.set("source", "patchToFace");
+    wordList patches = {"walls", "wallsbump"};
+    objDict.set("patches", patches);
+
+    autoPtr<DAObjFunc> daObjFunc(
+        DAObjFunc::New(mesh, objDict));
+
+    
+    dictionary objDict1;
+    objDict1.set("objFuncName", "force");
+    objDict1.set("source", "boxToCell");
+    scalarList bMin = {0.0,0.0,0.0};
+    scalarList bMax = {0.1,0.1,0.1};
+    objDict1.set("min", bMin);
+    objDict1.set("max", bMax);
+    autoPtr<DAObjFunc> daObjFunc1(
+        DAObjFunc::New(mesh, objDict1));
+
+    return testErrors;
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

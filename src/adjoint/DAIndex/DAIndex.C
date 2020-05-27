@@ -25,10 +25,8 @@ DAIndex::DAIndex(const fvMesh& mesh)
             )),
       mesh_(mesh),
       daOption_(mesh.thisDb().lookupObject<DAOption>("DAOption")),
-      daRegState_(const_cast<DARegState&>(
-          mesh.thisDb().lookupObject<DARegState>("DARegState"))),
-      regStates_(const_cast<HashTable<wordList>&>(
-          daRegState_.getRegStates())),
+      daRegState_(mesh.thisDb().lookupObject<DARegState>("DARegState")),
+      regStates_(daRegState_.getRegStates()),
       pointProcAddressing(
           IOobject(
               "pointProcAddressing",

@@ -93,8 +93,7 @@ bool DARegState::writeData(Ostream& os) const
 
 void DARegState::correctModelStates(wordList& modelStates)
 {
-    DAModel& daModel = const_cast<DAModel&>(
-        mesh_.thisDb().lookupObject<DAModel>("DAModel"));
+    const DAModel& daModel = mesh_.thisDb().lookupObject<DAModel>("DAModel");
     daModel.correctModelStates(modelStates);
     return;
 }

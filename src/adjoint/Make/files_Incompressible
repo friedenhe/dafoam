@@ -5,8 +5,9 @@ DAOption/DAOption.C
 DARegState/DARegState.C
 DARegState/DARegStateSimpleFoam.C
 
-DARegDb/DASinglePhaseTransportModel.C
-DARegDb/DANearWallDist.C
+DARegDb/DARegDbSinglePhaseTransportModel.C
+DARegDb/DARegDbNearWallDist.C
+DARegDb/DARegDbTurbulenceModelIncompressible.C
 
 DAModel/DAModel.C
 
@@ -17,6 +18,9 @@ DAModel/DARadiationModel/DARadiationModel.C
 DAModel/DARadiationModel/DAP1.C
 
 DAIndex/DAIndex.C
+
+DAObjFunc/DAObjFunc.C
+DAObjFunc/DAObjFuncForce.C
 
 DASolver/DASolver.C
 DASolver/DASimpleFoam/DASimpleFoam.C

@@ -11,18 +11,18 @@
         To register a nearWallDist object to fvMesh:
 
         nearWallDist& d = const_cast<nearWallDist&>(turbulence->y());
-        DANearWallDist daD(mesh,d);
+        DARegDbNearWallDist daD(mesh,d);
 
         Then, to get the registered nearWallDist object from fvMesh:
 
-        DANearWallDist& daD1= const_cast<DANearWallDist&>(
-            mesh.thisDb().lookupObject<DANearWallDist>("DANearWallDist"));
-        nearWallDist& d1 = const_cast<nearWallDist&>(daD1.getNearWallDist());
+        const DARegDbNearWallDist& daD1=
+            mesh.thisDb().lookupObject<DARegDbNearWallDist>("DARegDbNearWallDist");
+        const nearWallDist& d1 = daD1.getNearWallDist();
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DANearWallDist_H
-#define DANearWallDist_H
+#ifndef DARegDbNearWallDist_H
+#define DARegDbNearWallDist_H
 
 #include "fvOptions.H"
 #include "nearWallDist.H"
@@ -33,37 +33,37 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DANearWallDist Declaration
+                       Class DARegDbNearWallDist Declaration
 \*---------------------------------------------------------------------------*/
 
-class DANearWallDist
+class DARegDbNearWallDist
     : public regIOobject
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DANearWallDist(const DANearWallDist&);
+    DARegDbNearWallDist(const DARegDbNearWallDist&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DANearWallDist&);
+    void operator=(const DARegDbNearWallDist&);
 
     /// Foam::fvMesh object
     const fvMesh& mesh_;
 
     /// nearWallDist
-    nearWallDist& nearWallDist_;
+    const nearWallDist& nearWallDist_;
 
 public:
     /// Constructors
-    DANearWallDist(
+    DARegDbNearWallDist(
         const fvMesh& mesh,
-        nearWallDist& nearWallDist);
+        const nearWallDist& nearWallDist);
 
     /// Destructor
-    virtual ~DANearWallDist();
+    virtual ~DARegDbNearWallDist();
 
     /// return nearWallDist_
-    const nearWallDist& getNearWallDist()
+    const nearWallDist& getNearWallDist() const
     {
         return nearWallDist_;
     }

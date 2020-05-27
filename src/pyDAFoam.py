@@ -41,6 +41,40 @@ class PYDAFOAM(object):
 
     """
 
+    def _getDefOptions(self):
+        """
+        Setup default options
+
+        Returns
+        -------
+
+        defOpts : dict
+            All the DAFoam options.
+        """
+        defOpts = {
+            # primal options
+            "primalEndTime": [float, 1.0],
+            "primalDeltaT": [float, 1.0],
+            "primalVarBounds": [dict, {}],
+            "flowCondition": [str, "Incompressible"],
+            "turbulenceModel": [str, "SpalartAllmaras"],
+            # adjoint options
+            "adjUseColoring": [bool, True],
+            "adjEpsDerivFFD": [float, 1.0e-6],
+            "adjJacMatOrdering": [str, "state"],
+            # system options
+            "rootDir": [str, "./"],
+            "solverName": [str, "DASimpleFoam"],
+            "printAllOptions": [bool, False],
+            "objFuncs": [dict, {}],
+            # surface definition
+            "meshSurfaceFamily": [str, "None"],
+            "designSurfaceFamily": [str, "None"],
+            "designSurfaces": [list, ["body"]],
+        }
+
+        return defOpts
+
     def __init__(self, comm=None, options=None):
         """
         Initialize class members
@@ -526,40 +560,6 @@ class PYDAFOAM(object):
         """
 
         return
-
-    def _getDefOptions(self):
-        """
-        Setup default options
-
-        Returns
-        -------
-
-        defOpts : dict
-            All the DAFoam options.
-            NOTE: We support only one level of sub dictionary
-        """
-        defOpts = {
-            # primal options
-            "primalEndTime": [float, 1.0],
-            "primalDeltaT": [float, 1.0],
-            "primalVarBounds": [dict, {}],
-            "flowCondition": [str, "Incompressible"],
-            "turbulenceModel": [str, "SpalartAllmaras"],
-            # adjoint options
-            "adjUseColoring": [bool, True],
-            "adjEpsDerivFFD": [float, 1.0e-6],
-            "adjJacMatOrdering": [str, "state"],
-            # system options
-            "rootDir": [str, "./"],
-            "solverName": [str, "DASimpleFoam"],
-            "printAllOptions": [bool, False],
-            # surface definition
-            "meshSurfaceFamily": [str, "None"],
-            "designSurfaceFamily": [str, "None"],
-            "designSurfaces": [list, ["body"]],
-        }
-
-        return defOpts
 
     def _initializeOptions(self, options):
         """

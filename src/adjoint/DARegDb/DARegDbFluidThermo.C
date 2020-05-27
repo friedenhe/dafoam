@@ -5,7 +5,7 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DANearWallDist.H"
+#include "DARegDbFluidThermo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -13,12 +13,12 @@ namespace Foam
 {
 
 // Constructors
-DANearWallDist::DANearWallDist(
+DARegDbFluidThermo::DARegDbFluidThermo(
     const fvMesh& mesh,
-    nearWallDist& nearWallDist)
+    const fluidThermo& fluidThermo)
     : regIOobject(
         IOobject(
-            "DANearWallDist", // always use DANearWallDist for the db name
+            "DARegDbFluidThermo", // always use DARegDbFluidThermo for the db name
             mesh.time().timeName(),
             mesh, // register to mesh
             IOobject::NO_READ,
@@ -26,16 +26,16 @@ DANearWallDist::DANearWallDist(
             true // always register object
             )),
       mesh_(mesh),
-      nearWallDist_(nearWallDist)
+      fluidThermo_(fluidThermo)
 {
 }
 
-DANearWallDist::~DANearWallDist()
+DARegDbFluidThermo::~DARegDbFluidThermo()
 {
 }
 
 // this is a virtual function for regIOobject
-bool DANearWallDist::writeData(Ostream& os) const
+bool DARegDbFluidThermo::writeData(Ostream& os) const
 {
     // do nothing
     return true;

@@ -57,7 +57,7 @@ public:
     bool writeData(Ostream& os) const;
 
     /// update the name in modelStates based on the selected physical model at runtime
-    void correctModelStates(wordList& modelStates);
+    void correctModelStates(wordList& modelStates) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

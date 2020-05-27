@@ -4,14 +4,14 @@
     Version : v2
 
     Description:
-    Child class for the SpalartAllmaras model
+        Child class for drag coefficient CD
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DASpalartAllmaras_H
-#define DASpalartAllmaras_H
+#ifndef DAObjFuncForce_H
+#define DAObjFuncForce_H
 
-#include "DATurbulenceModel.H"
+#include "DAObjFunc.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -20,41 +20,26 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DASpalartAllmaras Declaration
+      Class DAObjFuncForce Declaration
 \*---------------------------------------------------------------------------*/
 
-class DASpalartAllmaras
-    : public DATurbulenceModel
+class DAObjFuncForce
+    : public DAObjFunc
 {
 
-protected:
-
 public:
-    TypeName("SpalartAllmaras");
+    TypeName("force");
     // Constructors
 
     //- Construct from components
-    DASpalartAllmaras(const fvMesh& mesh);
+    DAObjFuncForce(
+        const fvMesh& mesh,
+        const dictionary& objFuncDict);
 
     //- Destructor
-    virtual ~DASpalartAllmaras()
+    virtual ~DAObjFuncForce()
     {
     }
-
-    // Member functions
-
-
-    /// update nut
-    virtual void correctNut();
-
-    /// update the turbulence state for DARegState::regStates_
-    virtual void correctModelStates(wordList& modelStates) const;
-
-    /// update nut based on other turbulence variables and update the BCs
-    virtual void updateNut();
-
-    /// update turbulence variable boundary values
-    virtual void correctTurbBoundaryConditions();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

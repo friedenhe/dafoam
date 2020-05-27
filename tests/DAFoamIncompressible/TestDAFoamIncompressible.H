@@ -19,6 +19,8 @@
 #include "DARegState.H"
 #include "DATurbulenceModel.H"
 #include "DAModel.H"
+#include "DAIndex.H"
+#include "DAObjFunc.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -62,6 +64,9 @@ public:
 
     /// test DARegState
     label testDARegState(PyObject* pyDict);
+
+    /// test DAObjFunc
+    label testDAObjFunc(PyObject* pyDict);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

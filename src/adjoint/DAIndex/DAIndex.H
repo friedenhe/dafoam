@@ -47,10 +47,10 @@ private:
     const DAOption& daOption_;
 
     /// object of DARegState, obtained from fvMesh
-    DARegState& daRegState_;
+    const DARegState& daRegState_;
 
     /// the regState_ list from DARegState object
-    HashTable<wordList>& regStates_;
+    const HashTable<wordList>& regStates_;
 
 public:
     /// Constructors

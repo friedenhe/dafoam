@@ -11,20 +11,19 @@
         To register a singlePhaseTransportModel object to fvMesh:
 
         singlePhaseTransportModel laminarTransport(U, phi);
-        DASinglePhaseTransportModel sg(mesh,laminarTransport);
+        DARegDbSinglePhaseTransportModel sg(mesh,laminarTransport);
 
         Then, to get the registered nearWallDist object from fvMesh:
 
-        DASinglePhaseTransportModel& sg1= const_cast<DASinglePhaseTransportModel&>(
-            mesh.thisDb().lookupObject<DASinglePhaseTransportModel>(
-            "DASinglePhaseTransportModel"));
-        singlePhaseTransportModel& lt1 = const_cast<singlePhaseTransportModel&>(
-            sg1.getSinglePhaseTransportModel());
+        const DARegDbSinglePhaseTransportModel& sg1= 
+            mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
+                "DARegDbSinglePhaseTransportModel");
+        const singlePhaseTransportModel& lt1 = sg1.getSinglePhaseTransportModel();
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DASinglePhaseTransportModel_H
-#define DASinglePhaseTransportModel_H
+#ifndef DARegDbSinglePhaseTransportModel_H
+#define DARegDbSinglePhaseTransportModel_H
 
 #include "fvOptions.H"
 #include "singlePhaseTransportModel.H"
@@ -35,37 +34,37 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DASinglePhaseTransportModel Declaration
+                       Class DARegDbSinglePhaseTransportModel Declaration
 \*---------------------------------------------------------------------------*/
 
-class DASinglePhaseTransportModel
+class DARegDbSinglePhaseTransportModel
     : public regIOobject
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DASinglePhaseTransportModel(const DASinglePhaseTransportModel&);
+    DARegDbSinglePhaseTransportModel(const DARegDbSinglePhaseTransportModel&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DASinglePhaseTransportModel&);
+    void operator=(const DARegDbSinglePhaseTransportModel&);
 
     /// Foam::fvMesh object
     const fvMesh& mesh_;
 
     /// fluid thermo
-    singlePhaseTransportModel& singlePhaseTransportModel_;
+    const singlePhaseTransportModel& singlePhaseTransportModel_;
 
 public:
     /// Constructors
-    DASinglePhaseTransportModel(
+    DARegDbSinglePhaseTransportModel(
         const fvMesh& mesh,
-        singlePhaseTransportModel& singlePhaseTransportModel);
+        const singlePhaseTransportModel& singlePhaseTransportModel);
 
     /// Destructor
-    virtual ~DASinglePhaseTransportModel();
+    virtual ~DARegDbSinglePhaseTransportModel();
 
     /// return fluidThermo
-    const singlePhaseTransportModel& getSinglePhaseTransportModel()
+    const singlePhaseTransportModel& getSinglePhaseTransportModel() const
     {
         return singlePhaseTransportModel_;
     }
