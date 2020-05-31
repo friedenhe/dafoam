@@ -645,6 +645,29 @@ label TestDAFoamIncompressible::testDAOption(PyObject* pyDict)
     return testErrors;
 }
 
+label TestDAFoamIncompressible::testDAModel(PyObject* pyDict)
+{
+    autoPtr<argList> argsPtr_;
+#include "setArgs.H"
+#include "setRootCasePython.H"
+#include "createTime.H"
+#include "createMesh.H"
+#include "createSimpleControl.H"
+#include "createFields.H"
+
+    label testErrors = 0;
+
+    DAOption daOption(mesh, pyDict);
+
+    autoPtr<DATurbulenceModel> daTurbmodel(
+        DATurbulenceModel::New(mesh));
+
+    DAModel daModel(mesh);
+
+
+    return testErrors;
+}
+
 label TestDAFoamIncompressible::testDARegState(PyObject* pyDict)
 {
     autoPtr<argList> argsPtr_;

@@ -86,14 +86,21 @@ testErrors = tests.testDAOption(pyDict)
 checkErrors("DAOption", testErrors)
 os.chdir("../../DAFoamIncompressible")
 
-# Test2: DARegState
+# Test3: DAModel
+os.chdir("../input/CurvedCubeHexMesh")
+testDict = {"solverName": [str, "DASimpleFoam"], "turbulenceModel": [str, "SpalartAllmaras"]}
+testErrors = tests.testDAModel(testDict)
+checkErrors("DAModel", testErrors)
+os.chdir("../../DAFoamIncompressible")
+
+# Test4: DARegState
 os.chdir("../input/CurvedCubeHexMesh")
 testDict = {"solverName": [str, "DASimpleFoam"], "turbulenceModel": [str, "SpalartAllmaras"]}
 testErrors = tests.testDARegState(testDict)
 checkErrors("DARegState", testErrors)
 os.chdir("../../DAFoamIncompressible")
 
-# Test2: DARegState
+# Test5: DAObjFunc
 os.chdir("../input/CurvedCubeHexMesh")
 testDict = {
     "solverName": [str, "DASimpleFoam"],

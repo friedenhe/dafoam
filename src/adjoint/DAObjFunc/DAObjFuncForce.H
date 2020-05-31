@@ -27,6 +27,11 @@ class DAObjFuncForce
     : public DAObjFunc
 {
 
+protected:
+
+    /// the direction of the force
+    vector forceDir_;
+
 public:
     TypeName("force");
     // Constructors
@@ -40,6 +45,14 @@ public:
     virtual ~DAObjFuncForce()
     {
     }
+
+    /// calculate the value of objective function
+    virtual void calcObjFunc(
+        const labelList& objFuncFaceSources,
+        const labelList& objFuncCellSources,
+        scalarList& objFuncFaceValues,
+        scalarList& objFuncCellValues,
+        scalar& objFuncValue);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

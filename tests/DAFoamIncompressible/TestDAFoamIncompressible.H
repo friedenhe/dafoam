@@ -65,6 +65,9 @@ public:
     /// test DAOption
     label testDAOption(PyObject* pyDict);
 
+    /// test DAModel
+    label testDAModel(PyObject* pyDict);
+
     /// test DARegState
     label testDARegState(PyObject* pyDict);
 

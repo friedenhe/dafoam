@@ -180,7 +180,7 @@ public:
     virtual void correctTurbBoundaryConditions() = 0;
 
     /// dev terms
-    tmp<volSymmTensorField> devRhoReff();
+    tmp<volSymmTensorField> devRhoReff() const;
 
     /// divDev terms
     tmp<fvVectorMatrix> divDevRhoReff(volVectorField& U);
@@ -189,7 +189,7 @@ public:
     tmp<fvVectorMatrix> divDevReff(volVectorField& U);
 
     /// return effective viscosity
-    tmp<volScalarField> nuEff();
+    tmp<volScalarField> nuEff() const;
 
     /// get the nut field
     tmp<volScalarField> getNut()

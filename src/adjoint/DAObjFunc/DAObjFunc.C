@@ -33,7 +33,9 @@ DAObjFunc::DAObjFunc(
             )),
       mesh_(mesh),
       objFuncDict_(objFuncDict),
-      daOption_(mesh.thisDb().lookupObject<DAOption>("DAOption"))
+      daOption_(mesh.thisDb().lookupObject<DAOption>("DAOption")),
+      daTurb_(mesh.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel")),
+      daIndex_(mesh.thisDb().lookupObject<DAIndex>("DAIndex"))
 {
     /*
     Description:
@@ -43,7 +45,22 @@ DAObjFunc::DAObjFunc(
         objFuncDict: a dictionary that contains information for this objective
     */
 
+    objFuncDict.readEntry<word>("objFuncName", objFuncName_);
+
     this->calcObjFuncSources(objFuncFaceSources_, objFuncCellSources_);
+
+    // initialize
+    objFuncFaceValues_.setSize(objFuncFaceSources_.size());
+    forAll(objFuncFaceValues_, idxI)
+    {
+        objFuncFaceValues_[idxI] = 0.0;
+    }
+
+    objFuncCellValues_.setSize(objFuncCellSources_.size());
+    forAll(objFuncCellValues_, idxI)
+    {
+        objFuncCellValues_[idxI] = 0.0;
+    }
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
@@ -56,7 +73,7 @@ autoPtr<DAObjFunc> DAObjFunc::New(
 
     // look up the solver name
     word solverName;
-    objFuncDict.readEntry("objFuncName", solverName);
+    objFuncDict.readEntry<word>("objFuncName", solverName);
 
     Info << "Selecting " << solverName << " for DAObjFunc" << endl;
 
@@ -125,7 +142,7 @@ void DAObjFunc::calcObjFuncSources(
         // create the source
         autoPtr<topoSetSource> sourceSet(
             topoSetSource::New(objSource, mesh_, objFuncDict_));
-        
+
         // add the sourceSet to topoSet
         sourceSet().applyToSet(topoSetSource::NEW, currentSet());
         // get the face index from currentSet, we need to use
@@ -144,7 +161,7 @@ void DAObjFunc::calcObjFuncSources(
                 mesh_,
                 "set0",
                 IOobject::NO_READ));
-        // we need to change the min and max because they need to 
+        // we need to change the min and max because they need to
         // be of type point; however, we can't parse point type
         // in pyDict, we need to change them here.
         dictionary objFuncTmp = objFuncDict_;
@@ -155,20 +172,20 @@ void DAObjFunc::calcObjFuncSources(
 
         point boxMin1;
         point boxMax1;
-        boxMin1[0]=boxMin[0];
-        boxMin1[1]=boxMin[1];
-        boxMin1[2]=boxMin[2];
-        boxMax1[0]=boxMax[0];
-        boxMax1[1]=boxMax[1];
-        boxMax1[2]=boxMax[2];
+        boxMin1[0] = boxMin[0];
+        boxMin1[1] = boxMin[1];
+        boxMin1[2] = boxMin[2];
+        boxMax1[0] = boxMax[0];
+        boxMax1[1] = boxMax[1];
+        boxMax1[2] = boxMax[2];
 
-        objFuncTmp.set("min",boxMin1);
-        objFuncTmp.set("max",boxMax1);
+        objFuncTmp.set("min", boxMin1);
+        objFuncTmp.set("max", boxMax1);
 
         // create the source
         autoPtr<topoSetSource> sourceSet(
             topoSetSource::New(objSource, mesh_, objFuncTmp));
-        
+
         // add the sourceSet to topoSet
         sourceSet().applyToSet(topoSetSource::NEW, currentSet());
         // get the face index from currentSet, we need to use
@@ -184,7 +201,6 @@ void DAObjFunc::calcObjFuncSources(
                                            << "Options are: patchToFace, boxToCell!"
                                            << abort(FatalError);
     }
-
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

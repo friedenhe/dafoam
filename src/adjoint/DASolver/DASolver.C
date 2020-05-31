@@ -34,12 +34,12 @@ DASolver::DASolver(
       daRegStatePtr_(nullptr),
       daIndexPtr_(nullptr)
 {
-// initialize fvMesh and Time object pointer
+    // initialize fvMesh and Time object pointer
+    Info << "Initializing mesh and runtime for DASolver" << endl;
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTimePython.H"
 #include "createMeshPython.H"
-    Info << "Initializing mesh and runtime for DASolver" << endl;
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
@@ -101,6 +101,104 @@ label DASolver::loop(Time& runTime)
     }
 }
 
+void DASolver::printAllObjFuncs()
+{
+    /*
+    Calculate the values of all objective functions and print them to screen
+    NOTE: we need to call DASolver::setDAObjFuncList before calling this function!
+    */
+
+    forAll(daObjFuncPtrList_, idxI)
+    {
+        DAObjFunc& daObjFunc = daObjFuncPtrList_[idxI];
+        Info << daObjFunc.getObjFuncName() << ": " << daObjFunc.getObjFuncValue() << endl;
+    }
+}
+
+void DASolver::setDAObjFuncList()
+{
+    /*
+    NOTE: this function needs to be called before calculating any objective functions
+
+    A typical objFunc dictionary looks like this:
+
+    "objFunc": 
+    {
+        "func1": 
+        {
+            "part1": 
+            {
+                "objFuncName": "force",
+                "source": "patchToFace",
+                "patch": ["walls", "wallsbump"],
+                "scale": 0.5,
+                "addToAdjoint": False,
+            },
+            "part2": 
+            {
+                "objFuncName": "force",
+                "source": "patchToFace",
+                "patch": ["wallsbump", "frontandback"],
+                "scale": 0.5,
+                "addToAdjoint": False,
+            },
+        },
+        "func2": 
+        {
+            "part1": 
+            {
+                "objFuncName": "force",
+                "source": "patchToFace",
+                "patch": ["walls", "wallsbump", "frontandback"],
+                "scale": 1.0,
+                "addToAdjoint": False,
+            }
+        },
+    }
+    */
+
+    const dictionary& allOptions = daOptionPtr_->getAllOptions();
+
+    dictionary objFuncDict = allOptions.subDict("objFunc");
+
+    // loop over all objFuncs and parts and calc the number of
+    // DAObjFunc instances we need
+    label nObjFuncInstances = 0;
+    forAll(objFuncDict.toc(), idxI)
+    {
+        word objFunI = objFuncDict.toc()[idxI];
+        dictionary objFuncSubDict = objFuncDict.subDict(objFunI);
+        forAll(objFuncSubDict.toc(), idxJ)
+        {
+            nObjFuncInstances++;
+        }
+    }
+
+    daObjFuncPtrList_.setSize(nObjFuncInstances);
+
+    // we need to repeat the loop to initialize the
+    // DAObjFunc instances
+    label objFuncInstanceI = 0;
+    forAll(objFuncDict.toc(), idxI)
+    {
+        word objFunI = objFuncDict.toc()[idxI];
+        dictionary objFuncSubDict = objFuncDict.subDict(objFunI);
+        forAll(objFuncSubDict.toc(), idxJ)
+        {
+
+            word objPart = objFuncSubDict.toc()[idxJ];
+            dictionary objFuncSubDictPart = objFuncSubDict.subDict(objPart);
+
+            fvMesh& mesh = meshPtr_();
+
+            daObjFuncPtrList_.set(
+                objFuncInstanceI,
+                DAObjFunc::New(mesh, objFuncSubDictPart).ptr());
+
+            objFuncInstanceI++;
+        }
+    }
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

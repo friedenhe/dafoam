@@ -19,6 +19,36 @@ aeroOptions = {
     "printAllOptions": False,
     "designSurfaceFamily": "designSurface",
     "designSurfaces": ["walls"],
+    "objFunc": {
+        "func1": {
+            "part1": {
+                "objFuncName": "force",
+                "source": "patchToFace",
+                "patches": ["walls", "wallsbump"],
+                "direction": [1.0, 0.0, 0.0],
+                "scale": 0.5,
+                "addToAdjoint": False,
+            },
+            "part2": {
+                "objFuncName": "force",
+                "source": "patchToFace",
+                "patches": ["wallsbump", "frontandback"],
+                "direction": [1.0, 0.0, 0.0],
+                "scale": 0.5,
+                "addToAdjoint": False,
+            },
+        },
+        "func2": {
+            "part1": {
+                "objFuncName": "force",
+                "source": "patchToFace",
+                "patches": ["walls", "wallsbump", "frontandback"],
+                "direction": [1.0, 0.0, 0.0],
+                "scale": 1.0,
+                "addToAdjoint": False,
+            }
+        },
+    },
 }
 
 if comm.rank == 0:

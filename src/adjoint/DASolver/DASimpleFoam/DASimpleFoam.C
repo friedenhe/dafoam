@@ -67,6 +67,8 @@ void DASimpleFoam::solvePrimal()
 
         //runTime.write();
 
+        this->printAllObjFuncs();
+
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
              << "  ClockTime = " << runTime.elapsedClockTime() << " s"
              << nl << endl;

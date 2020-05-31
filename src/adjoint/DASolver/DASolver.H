@@ -22,6 +22,7 @@
 #include "DAModel.H"
 #include "DATurbulenceModel.H"
 #include "DAIndex.H"
+#include "DAObjFunc.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,6 +76,9 @@ protected:
 
     /// DAIndex pointer
     autoPtr<DAIndex> daIndexPtr_;
+
+    /// a list of DAObjFunc pointers
+    UPtrList<DAObjFunc> daObjFuncPtrList_;
 
 public:
     /// Runtime type information
@@ -151,6 +155,15 @@ public:
     {
         return daIndexPtr_->nLocalAdjointStates;
     }
+
+    /// initialize DASolver::daObjFuncPtrList_ one needs to call this before calling printAllObjFuncs
+    void setDAObjFuncList();
+
+    /// calculate the values of all objective functions and print them to screen
+    void printAllObjFuncs();
+
+
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

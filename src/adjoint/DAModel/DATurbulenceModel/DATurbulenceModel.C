@@ -186,7 +186,7 @@ bool DATurbulenceModel::writeData(Ostream& os) const
     return true;
 }
 
-tmp<volScalarField> DATurbulenceModel::nuEff()
+tmp<volScalarField> DATurbulenceModel::nuEff() const
 {
 
     return tmp<volScalarField>(
@@ -243,7 +243,7 @@ tmp<Foam::volScalarField> DATurbulenceModel::getMu() const
 #endif
 }
 
-tmp<volSymmTensorField> DATurbulenceModel::devRhoReff()
+tmp<volSymmTensorField> DATurbulenceModel::devRhoReff() const
 {
 
     return tmp<volSymmTensorField>(

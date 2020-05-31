@@ -66,7 +66,7 @@ class PYDAFOAM(object):
             "rootDir": [str, "./"],
             "solverName": [str, "DASimpleFoam"],
             "printAllOptions": [bool, False],
-            "objFuncs": [dict, {}],
+            "objFunc": [dict, {}],
             # surface definition
             "meshSurfaceFamily": [str, "None"],
             "designSurfaceFamily": [str, "None"],

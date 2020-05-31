@@ -14,7 +14,8 @@
 #include "runTimeSelectionTables.H"
 #include "fvOptions.H"
 #include "DAOption.H"
-#include "DAModel.H"
+#include "DATurbulenceModel.H"
+#include "DAIndex.H"
 #include "topoSetSource.H"
 #include "topoSet.H"
 
@@ -48,11 +49,32 @@ protected:
     /// DAOption object
     const DAOption& daOption_;
 
+    /// DATurbuleneModel object
+    const DATurbulenceModel& daTurb_;
+
+    /// DAIndex object
+    const DAIndex& daIndex_;
+
     /// a sorted list of all face sources for the objective function
     labelList objFuncFaceSources_;
 
     /// a sorted list of all cell sources for the objective function
     labelList objFuncCellSources_;
+
+    /// value of the obj function on the discrete faces
+    scalarList objFuncFaceValues_;
+
+    /// value of the obj function in the discrete cells
+    scalarList objFuncCellValues_;
+
+    /// scale of the objective function
+    scalar scale_;
+
+    /// the value of the objective function
+    scalar objFuncValue_;
+
+    /// the name of the objective function
+    word objFuncName_;
 
 public:
     /// Runtime type information
@@ -96,6 +118,35 @@ public:
     void calcObjFuncSources(
         labelList& faceSources,
         labelList& cellSources);
+    
+    /// calculate the value of objective function
+    virtual void calcObjFunc(
+        const labelList& objFuncFaceSources,
+        const labelList& objFuncCellSources,
+        scalarList& objFuncFaceValues,
+        scalarList& objFuncCellValues,
+        scalar& objFuncValue) = 0;
+
+    /// calcluate the value of objective function
+    virtual scalar getObjFuncValue()
+    {
+        // calculate 
+        this->calcObjFunc(
+            objFuncFaceSources_,
+            objFuncCellSources_,
+            objFuncFaceValues_,
+            objFuncCellValues_,
+            objFuncValue_);
+        
+        // return 
+        return objFuncValue_;
+    }
+
+    /// return the name of objective function
+    word getObjFuncName()
+    {
+        return objFuncName_;
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

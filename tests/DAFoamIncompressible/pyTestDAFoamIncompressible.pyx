@@ -21,6 +21,7 @@ cdef extern from "TestDAFoamIncompressible.H" namespace "Foam":
         TestDAFoamIncompressible(char *) except +
         int testDAUtility(object)
         int testDAOption(object)
+        int testDAModel(object)
         int testDARegState(object)
         int testDAObjFunc(object)
 
@@ -51,6 +52,10 @@ cdef class pyTestDAFoamIncompressible:
     
     def testDAOption(self, pyDict):
         testErrors = self._thisptr.testDAOption(pyDict)
+        return testErrors
+
+    def testDAModel(self, pyDict):
+        testErrors = self._thisptr.testDAModel(pyDict)
         return testErrors
     
     def testDARegState(self, pyDict):
