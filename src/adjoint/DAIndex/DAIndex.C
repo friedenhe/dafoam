@@ -1029,6 +1029,94 @@ void DAIndex::stateVec2OFField(const Vec stateVec) const
     VecRestoreArrayRead(stateVec, &stateVecArray);
 }
 
+void DAIndex::pointVec2OFMesh(const Vec xvVec) const
+{
+    /*
+    Assign the points in fvMesh of OpenFOAM based on the point vector
+
+    Input:
+    -----
+    xvVec: a vector that stores the x, y, and z coordinates for all
+    points in the fvMesh mesh
+
+    Output:
+    ------
+    New mesh metrics in fvMesh, effectively by calling mesh.movePoints
+
+    Example:
+    --------
+    Image we have three points in fvMesh, running on two CPU
+    processors, the proc0 owns one point and the proc1 owns two points,
+    then calling this function will assign xvVec based on the the points
+    coordinates in fvMesh
+
+    xvVec = [x0, y0, z0 | x0, y0, z0, x1, y1, z1] <- x0 means x coordinate for the 0th point on local processor
+             0   1   2  |  3   4   5   6   7   8  <- global point vec index
+            --- proc0 --|--------- proc1 ------- 
+    */
+
+    const PetscScalar* xvVecArray;
+    VecGetArrayRead(xvVec, &xvVecArray);
+
+    pointField meshPoints(mesh_.points());
+
+    forAll(mesh_.points(), pointI)
+    {
+        for (label comp = 0; comp < 3; comp++)
+        {
+            label localIdx = this->getLocalXvIndex(pointI, comp);
+            meshPoints[pointI][comp] = xvVecArray[localIdx];
+        }
+    }
+
+    VecRestoreArrayRead(xvVec, &xvVecArray);
+
+    // movePoints update the mesh metrics such as volume, surface area and cell centers
+    fvMesh& mesh = const_cast<fvMesh&>(mesh_);
+    mesh.movePoints(meshPoints);
+}
+
+void DAIndex::ofMesh2PointVec(Vec xvVec) const
+{
+    /*
+    Assign the point vector based on the points in fvMesh of OpenFOAM
+
+    Input:
+    ------
+    Mesh coordinates in fvMesh
+
+    Output:
+    -----
+    xvVec: a vector that stores the x, y, and z coordinates for all
+    points in the fvMesh mesh
+
+    Example:
+    --------
+    Image we have three points in fvMesh, running on two CPU
+    processors, the proc0 owns one point and the proc1 owns two points,
+    then calling this function will assign xvVec based on the the points
+    coordinates in fvMesh
+
+    xvVec = [x0, y0, z0 | x0, y0, z0, x1, y1, z1] <- x0 means x coordinate for the 0th point on local processor
+             0   1   2  |  3   4   5   6   7   8  <- global point vec index
+            --- proc0 --|--------- proc1 ------- 
+    */
+
+    PetscScalar* xvVecArray;
+    VecGetArray(xvVec, &xvVecArray);
+
+    forAll(mesh_.points(), pointI)
+    {
+        for (label comp = 0; comp < 3; comp++)
+        {
+            label localIdx = this->getLocalXvIndex(pointI, comp);
+            xvVecArray[localIdx] = mesh_.points()[pointI][comp];
+        }
+    }
+
+    VecRestoreArray(xvVec, &xvVecArray);
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

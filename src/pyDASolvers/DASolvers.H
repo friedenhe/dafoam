@@ -61,9 +61,11 @@ public:
     }
 
     /// solve the primal equations
-    void solvePrimal()
+    label solvePrimal(
+        const Vec xvVec,
+        Vec wVec)
     {
-        DASolverPtr_->solvePrimal();
+        return DASolverPtr_->solvePrimal(xvVec, wVec);
     }
 
     /// solve the adjoint linear equations
@@ -85,23 +87,35 @@ public:
     {
         return DASolverPtr_->getGlobalXvIndex(idxPoint, idxCoord);
     }
-    
+
     /// basically, we call DASolver::ofField2StateVec
     void ofField2StateVec(Vec stateVec) const
     {
-        return DASolverPtr_->ofField2StateVec(stateVec);
+        DASolverPtr_->ofField2StateVec(stateVec);
     }
 
     /// basically, we call DASolver::stateVec2OFField
     void stateVec2OFField(const Vec stateVec) const
     {
-        return DASolverPtr_->stateVec2OFField(stateVec);
+        DASolverPtr_->stateVec2OFField(stateVec);
+    }
+
+    /// basically, we call DASolver::checkMesh
+    label checkMesh() const
+    {
+        return DASolverPtr_->checkMesh();
     }
 
     /// return the number of local adjoint states
     label getNLocalAdjointStates() const
     {
         return DASolverPtr_->getNLocalAdjointStates();
+    }
+
+    /// return the value of objective
+    scalar getObjFuncValue(const word objFuncName)
+    {
+        return DASolverPtr_->getObjFuncValue(objFuncName);
     }
 };
 

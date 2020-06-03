@@ -32,7 +32,8 @@ DASolver::DASolver(
       daTurbulenceModelPtr_(nullptr),
       daModelPtr_(nullptr),
       daRegStatePtr_(nullptr),
-      daIndexPtr_(nullptr)
+      daIndexPtr_(nullptr),
+      daCheckMeshPtr_(nullptr)
 {
     // initialize fvMesh and Time object pointer
     Info << "Initializing mesh and runtime for DASolver" << endl;
@@ -111,8 +112,40 @@ void DASolver::printAllObjFuncs()
     forAll(daObjFuncPtrList_, idxI)
     {
         DAObjFunc& daObjFunc = daObjFuncPtrList_[idxI];
-        Info << daObjFunc.getObjFuncName() << ": " << daObjFunc.getObjFuncValue() << endl;
+        Info << "Objective. Name: " << daObjFunc.getObjFuncName()
+             << " Part: " << daObjFunc.getObjFuncPart()
+             << " Type: " << daObjFunc.getObjFuncType()
+             << " Value: " << daObjFunc.getObjFuncValue() << endl;
     }
+}
+
+scalar DASolver::getObjFuncValue(const word objFuncName)
+{
+    /*
+    Return the value of the objective function.
+    NOTE: we will sum up all the parts in objFuncName
+
+    Input:
+    ------
+    objFuncName: the name of the objective function
+
+    Output:
+    ------
+    objFuncValue: the value of the objective
+    */
+
+    scalar objFuncValue = 0.0;
+
+    forAll(daObjFuncPtrList_, idxI)
+    {
+        DAObjFunc& daObjFunc = daObjFuncPtrList_[idxI];
+        if (daObjFunc.getObjFuncName() == objFuncName)
+        {
+            objFuncValue += daObjFunc.getObjFuncValue();
+        }
+    }
+
+    return objFuncValue;
 }
 
 void DASolver::setDAObjFuncList()
@@ -193,7 +226,7 @@ void DASolver::setDAObjFuncList()
 
             daObjFuncPtrList_.set(
                 objFuncInstanceI,
-                DAObjFunc::New(mesh, objFuncSubDictPart).ptr());
+                DAObjFunc::New(mesh, objFunI, objPart, objFuncSubDictPart).ptr());
 
             objFuncInstanceI++;
         }

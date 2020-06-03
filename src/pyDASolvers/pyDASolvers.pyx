@@ -20,13 +20,15 @@ cdef extern from "DASolvers.H" namespace "Foam":
     cppclass DASolvers:
         DASolvers(char *, object) except +
         void initSolver()
-        void solvePrimal()
+        int solvePrimal(PetscVec, PetscVec)
         void solveAdjoint()
         void calcTotalDerivs()
         int getGlobalXvIndex(int, int)
         void ofField2StateVec(PetscVec)
         void stateVec2OFField(PetscVec)
         int getNLocalAdjointStates()
+        int checkMesh()
+        double getObjFuncValue(char *)
 
 # create python wrappers that call cpp functions
 cdef class pyDASolvers:
@@ -70,8 +72,8 @@ cdef class pyDASolvers:
     def initSolver(self):
         self._thisptr.initSolver()
 
-    def solvePrimal(self):
-        self._thisptr.solvePrimal()
+    def solvePrimal(self, Vec xvVec, Vec wVec):
+        return self._thisptr.solvePrimal(xvVec.vec, wVec.vec)
     
     def solveAdjoint(self):
         self._thisptr.solveAdjoint()
@@ -90,3 +92,9 @@ cdef class pyDASolvers:
     
     def getNLocalAdjointStates(self):
         return self._thisptr.getNLocalAdjointStates()
+    
+    def checkMesh(self):
+        return self._thisptr.checkMesh()
+    
+    def getObjFuncValue(self, objFuncName):
+        return self._thisptr.getObjFuncValue(objFuncName)

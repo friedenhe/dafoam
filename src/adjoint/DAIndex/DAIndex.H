@@ -318,6 +318,12 @@ public:
 
     /// assign the fields in OpenFOAM based on the state vector
     void stateVec2OFField(const Vec stateVec) const;
+
+    /// assign the points in fvMesh of OpenFOAM based on the point vector
+    void pointVec2OFMesh(const Vec xvVec) const;
+
+    /// assign the point vector based on the points in fvMesh of OpenFOAM
+    void ofMesh2PointVec(Vec xvVec) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

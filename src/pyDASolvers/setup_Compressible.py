@@ -30,14 +30,14 @@ ext = [
         # All include dirs, refer to Make/options in OpenFOAM
         include_dirs=[
             # These are from Make/options:EXE_INC
-            os.getenv("FOAM_SRC")+"/transportModels/compressible/lnInclude",
-            os.getenv("FOAM_SRC")+"/thermophysicalModels/basic/lnInclude",
-            os.getenv("FOAM_SRC")+"/TurbulenceModels/turbulenceModels/lnInclude",
-            os.getenv("FOAM_SRC")+"/TurbulenceModels/compressible/lnInclude",
-            os.getenv("FOAM_SRC")+"/finiteVolume/cfdTools",
-            os.getenv("FOAM_SRC")+"/finiteVolume/lnInclude",
-            os.getenv("FOAM_SRC")+"/meshTools/lnInclude",
-            os.getenv("FOAM_SRC")+"/sampling/lnInclude",
+            os.getenv("FOAM_SRC") + "/transportModels/compressible/lnInclude",
+            os.getenv("FOAM_SRC") + "/thermophysicalModels/basic/lnInclude",
+            os.getenv("FOAM_SRC") + "/TurbulenceModels/turbulenceModels/lnInclude",
+            os.getenv("FOAM_SRC") + "/TurbulenceModels/compressible/lnInclude",
+            os.getenv("FOAM_SRC") + "/finiteVolume/cfdTools",
+            os.getenv("FOAM_SRC") + "/finiteVolume/lnInclude",
+            os.getenv("FOAM_SRC") + "/meshTools/lnInclude",
+            os.getenv("FOAM_SRC") + "/sampling/lnInclude",
             # These are common for all OpenFOAM executives
             os.getenv("FOAM_SRC") + "/OpenFOAM/lnInclude",
             os.getenv("FOAM_SRC") + "/OSspecific/POSIX/lnInclude",
@@ -55,7 +55,7 @@ ext = [
             "compressibleTransportModels",
             "fluidThermophysicalModels",
             "specie",
-            "turbulenceModels", 
+            "turbulenceModels",
             "compressibleTurbulenceModels",
             "finiteVolume",
             "sampling",

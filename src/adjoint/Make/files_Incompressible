@@ -1,5 +1,8 @@
 DAUtility/DAUtility.C
 
+DACheckMesh/DACheckMesh.C
+DACheckMesh/checkGeometry.C
+
 DAOption/DAOption.C
 
 DARegState/DARegState.C

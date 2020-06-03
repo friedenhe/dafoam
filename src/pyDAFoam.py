@@ -203,75 +203,57 @@ class PYDAFOAM(object):
                     print("Writing the updated volume mesh....")
                 xvNew = self.mesh.getSolverGrid()
                 self.xvFlatten2XvVec(xvNew, self.xvVec)
-                # self.ofm.writeVolumeMeshPoints(newGrid)
+                self.solvePrimal(self.xvVec, self.wVec)
 
+        return
+
+    def evalFunctions(self, funcs, evalFuncs=None, ignoreMissing=False):
         """
-        # remove the old post processing results if they exist
-        #self._cleanPostprocessingDir()
+        Evaluate the desired functions given in iterable object,
+        'evalFuncs' and add them to the dictionary 'funcs'. The keys
+        in the funcs dictioary will be have an _<ap.name> appended to
+        them. Additionally, information regarding whether or not the
+        last analysis with the solvePrimal was sucessful is
+        included. This information is included as "funcs['fail']". If
+        the 'fail' entry already exits in the dictionary the following
+        operation is performed:
 
-        if self.printMesh and self.mesh is not None:
-            meshName = os.path.join(os.getcwd(), "caseMesh.dat")
-            self.mesh.writeOFGridTecplot(meshName)
-        # end
+        funcs['fail'] = funcs['fail'] or <did this problem fail>
 
-        # For restart runs, we can directly read checkMeshLog
-        # so no need to run checkMesh until self.skipFlowAndAdjointRuns==False
-        if not self.skipFlowAndAdjointRuns:
-            # check the mesh quality
-            self.runCheckMeshQuality()
-            self._copyLogs(logOpt=3)  # copy for checkMesh
+        In other words, if any one problem fails, the funcs['fail']
+        entry will be False. This information can then be used
+        directly in the pyOptSparse.
 
-        # check if mesh q failed
-        outputDir = self.getOption("outputdirectory")
-        if not self.getOption("multipointopt"):
-            logFileName = os.path.join(outputDir, "checkMeshLog_%3.3d" % self.flowRunsCounter)
-        else:
-            logFileName = os.path.join(
-                outputDir, "checkMeshLog_FC%d_%3.3d" % (self.multiPointFCIndex, self.flowRunsCounter)
-            )
+        Parameters
+        ----------
+        funcs : dict
+            Dictionary into which the functions are saved.
 
-        # self.meshQualityFailure = self.checkMeshLog(logFileName)
+        evalFuncs : iterable object containing strings
+          If not None, use these functions to evaluate.
 
-        if self.meshQualityFailure is True:
-            if self.comm.rank == 0:
-                print("Checking Mesh Quality. Failed!")
-        else:
-            if self.comm.rank == 0:
-                print("Checking Mesh Quality. Passed!")
+        ignoreMissing : bool
+            Flag to supress checking for a valid function. Please use
+            this option with caution.
 
-        if self.comm.rank == 0:
-            print("Calling Flow Solver %03d" % self.flowRunsCounter)
-
-        # For restart runs, we can directly read objFuncs.dat
-        # so no need to run OF solver or write logFiles until self.skipFlowAndAdjointRuns==False
-        if not self.skipFlowAndAdjointRuns:
-
-            logFileName = "flowLog"
-            # we don't need to solve OF if mesh quality fails
-            if self.meshQualityFailure is False:
-                # call the actual openfoam executable
-                self._callOpenFoamSolver(logFileName)
-                # check if we need to calculate the averaged obj funcs
-                if self.getOption("avgobjfuncs"):
-                    self._calcAveragedObjFuncs()
-
-            # copy flow to outputdirectory
-            outputDir = self.getOption("outputdirectory")
-            if self.getOption("writelinesearch"):
-                # figure out the output file options
-                caseName = self.getOption("casename") + "_flow_%3.3d" % self.flowRunsCounter
-                # outputdirectory and casename to get full output path
-                newDir = os.path.join(outputDir, caseName)
-                if not self.getOption("multipointopt"):
-                    origDir = "./"
-                else:
-                    origDir = "../FlowConfig%d/" % self.multiPointFCIndex
-                self._copyResults(origDir, newDir)
-
-            self._copyLogs(logOpt=1)  # copy for flow
-
-        self.flowRunsCounter += 1
+        Examples
+        --------
+        >>> funcs = {}
+        >>> CFDsolver()
+        >>> CFDsolver.evalFunctions(funcs, ['CD', 'CL'])
+        >>> funcs
+        >>> # Result will look like:
+        >>> # {'CD':0.501, 'CL':0.02750}
         """
+
+        for funcName in evalFuncs:
+            objFuncValue = self.solver.getObjFuncValue(funcName.encode())
+            funcs[funcName] = objFuncValue
+
+        if self.primalFail:
+            funcs['fail'] = True
+        else:
+            funcs['fail'] = False
 
         return
 
@@ -483,84 +465,6 @@ class PYDAFOAM(object):
 
         return
 
-    def evalFunctions(self, funcs, evalFuncs=None, ignoreMissing=False):
-        """
-        Evaluate the desired functions given in iterable object,
-        'evalFuncs' and add them to the dictionary 'funcs'. The keys
-        in the funcs dictioary will be have an _<ap.name> appended to
-        them. Additionally, information regarding whether or not the
-        last analysis with the aeroProblem was sucessful is
-        included. This information is included as "funcs['fail']". If
-        the 'fail' entry already exits in the dictionary the following
-        operation is performed:
-
-        funcs['fail'] = funcs['fail'] or <did this problem fail>
-
-        In other words, if any one problem fails, the funcs['fail']
-        entry will be False. This information can then be used
-        directly in the pyOptSparse.
-
-        Parameters
-        ----------
-        funcs : dict
-            Dictionary into which the functions are saved.
-
-        evalFuncs : iterable object containing strings
-          If not None, use these functions to evaluate.
-
-        ignoreMissing : bool
-            Flag to supress checking for a valid function. Please use
-            this option with caution.
-
-        Examples
-        --------
-        >>> funcs = {}
-        >>> CFDsolver()
-        >>> CFDsolver.evalFunctions(funcs, ['CD', 'CL'])
-        >>> funcs
-        >>> # Result will look like:
-        >>> # {'CD':0.501, 'CL':0.02750}
-        """
-
-        funcs["CD"] = 0.1
-
-        """
-        res = self._getSolution()
-
-        if self.comm.rank == 0:
-            print('keys', list(res.keys()))
-        if evalFuncs is None:
-            print('evalFuncs not set, exiting...')
-            sys.exit(0)
-
-        # Just call the regular _getSolution() command and extract the
-        # ones we need:
-
-        for f in evalFuncs:
-            fname = self.possibleObjectives[f]
-            if f in list(res.keys()):
-                key = f
-                funcs[key] = res[f]
-            elif fname in list(res.keys()):
-                key = fname
-                funcs[key] = res[fname]
-            else:
-                if not ignoreMissing:
-                    raise Error('Requested function: %s is not known to pyDAFoam.' % f)
-                # end
-            # end
-        # end
-
-        # we need to call checkMeshQuality and the flow convergence before evalFunction
-        # so that we can tell if the flow solver fails
-        if self.meshQualityFailure or self._checkFlowFailure(evalFuncs):
-            funcs['fail'] = True
-        else:
-            funcs['fail'] = False
-        """
-
-        return
-
     def _initializeOptions(self, options):
         """
         Initialize the options passed into pyDAFoam
@@ -633,9 +537,19 @@ class PYDAFOAM(object):
 
         return
 
-    def runPrimalSolver(self):
+    def solvePrimal(self, xvVec, wVec):
         """
         Run primal solver to compute state variables and objectives
+
+        Input:
+        ------
+        xvVec: vector that contains all the mesh point coordinates
+
+        Output:
+        -------
+        wVec: vector that contains all the state variables
+
+        self.primalFail: if the primal solution fails, assigns 1, otherwise 0
         """
 
         if self.comm.rank == 0:
@@ -644,13 +558,14 @@ class PYDAFOAM(object):
             print("|                        Running Primal Solver                             |")
             print("+--------------------------------------------------------------------------+")
 
-        self.solver.solvePrimal()
+        self.primalFail = 0
+        self.primalFail = self.solver.solvePrimal(xvVec, wVec)
 
         return
 
     def _initSolver(self):
         """
-        Initialize the solvers
+        Initialize the solvers. This needs to be called before calling any runs
         """
 
         solverName = self.getOption("solverName")
@@ -688,13 +603,7 @@ class PYDAFOAM(object):
             print("|                        Checking Mesh Quality                             |")
             print("+--------------------------------------------------------------------------+")
 
-        solverName = "CheckMesh"
-        solverArg = solverName + " -python " + self.parallelFlag
-        from .pyCheckMesh import pyCheckMesh
-
-        checkMesh = pyCheckMesh(solverArg.encode())
-        meshOK = checkMesh.run()
-        checkMesh = None
+        meshOK = self.solver.checkMesh()
 
         return meshOK
 
@@ -1033,8 +942,8 @@ class PYDAFOAM(object):
 
         self.solver.ofField2StateVec(self.wVec)
 
-        viewer = PETSc.Viewer().createASCII("wVec", comm=PETSc.COMM_WORLD)
-        viewer(self.wVec)
+        # viewer = PETSc.Viewer().createASCII("wVec", comm=PETSc.COMM_WORLD)
+        # viewer(self.wVec)
 
         return
 

@@ -21,6 +21,8 @@ defineRunTimeSelectionTable(DAObjFunc, dictionary);
 
 DAObjFunc::DAObjFunc(
     const fvMesh& mesh,
+    const word objFuncName,
+    const word objFuncPart,
     const dictionary& objFuncDict)
     : regIOobject(
         IOobject(
@@ -32,6 +34,8 @@ DAObjFunc::DAObjFunc(
             true // always register object
             )),
       mesh_(mesh),
+      objFuncName_(objFuncName),
+      objFuncPart_(objFuncPart),
       objFuncDict_(objFuncDict),
       daOption_(mesh.thisDb().lookupObject<DAOption>("DAOption")),
       daTurb_(mesh.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel")),
@@ -42,10 +46,12 @@ DAObjFunc::DAObjFunc(
         Construct from Foam::fvMesh
     Input:
         mesh: a fvMesh object
+
+        objFuncName: the name of the objective function prescribed by users
+        NOTE: this is different from the "type" attribute in the objFuncDict_
+
         objFuncDict: a dictionary that contains information for this objective
     */
-
-    objFuncDict.readEntry<word>("objFuncName", objFuncName_);
 
     this->calcObjFuncSources(objFuncFaceSources_, objFuncCellSources_);
 
@@ -67,18 +73,21 @@ DAObjFunc::DAObjFunc(
 
 autoPtr<DAObjFunc> DAObjFunc::New(
     const fvMesh& mesh,
+    const word objFuncName,
+    const word objFuncPart,
     const dictionary& objFuncDict)
 {
     // standard setup for runtime selectable classes
 
     // look up the solver name
-    word solverName;
-    objFuncDict.readEntry<word>("objFuncName", solverName);
+    word modelType;
+    objFuncDict.readEntry<word>("type", modelType);
 
-    Info << "Selecting " << solverName << " for DAObjFunc" << endl;
+    Info << "Selecting type: " << modelType << " for DAObjFunc. Name: " << objFuncName
+         << " part: " << objFuncPart << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(solverName);
+        dictionaryConstructorTablePtr_->find(modelType);
 
     // if the solver name is not found in any child class, print an error
     if (cstrIter == dictionaryConstructorTablePtr_->end())
@@ -86,11 +95,13 @@ autoPtr<DAObjFunc> DAObjFunc::New(
         FatalErrorIn(
             "DAObjFunc::New"
             "("
-            "    const fvMesh&"
+            "    const fvMesh&,"
+            "    const word,"
+            "    const word,"
             "    const dictionary&"
             ")")
             << "Unknown DAObjFunc type "
-            << solverName << nl << nl
+            << modelType << nl << nl
             << "Valid DAObjFunc types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
@@ -98,7 +109,7 @@ autoPtr<DAObjFunc> DAObjFunc::New(
 
     // child class found
     return autoPtr<DAObjFunc>(
-        cstrIter()(mesh, objFuncDict));
+        cstrIter()(mesh, objFuncName, objFuncPart, objFuncDict));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -119,7 +130,7 @@ void DAObjFunc::calcObjFuncSources(
     A typical objFunc dictionary reads:
 
     {
-        "objFuncName": "force",
+        "type": "force",
         "source": "patchToFace",
         "patches": ["walls", "wallsbump"],
         "scale": 0.5,

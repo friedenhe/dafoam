@@ -43,6 +43,15 @@ protected:
     /// fvMesh
     const fvMesh& mesh_;
 
+    /// the name of the objective function
+    word objFuncName_;
+
+    /// the part of the objective function
+    word objFuncPart_;
+
+    /// the type of the objective function
+    word objFuncType_;
+
     /// dictionary containing the information for the objective function
     const dictionary& objFuncDict_;
 
@@ -73,9 +82,6 @@ protected:
     /// the value of the objective function
     scalar objFuncValue_;
 
-    /// the name of the objective function
-    word objFuncName_;
-
 public:
     /// Runtime type information
     TypeName("DAObjFunc");
@@ -87,9 +93,13 @@ public:
         dictionary,
         (
             const fvMesh& mesh,
+            const word objFuncName,
+            const word objFuncPart,
             const dictionary& objFuncDict),
         (
             mesh,
+            objFuncName,
+            objFuncPart,
             objFuncDict));
 
     // Constructors
@@ -97,6 +107,8 @@ public:
     //- Construct from components
     DAObjFunc(
         const fvMesh& mesh,
+        const word objFuncName,
+        const word objFuncPart,
         const dictionary& objFuncDict);
 
     // Selectors
@@ -104,6 +116,8 @@ public:
     //- Return a reference to the selected model
     static autoPtr<DAObjFunc> New(
         const fvMesh& mesh,
+        const word objFuncName,
+        const word objFuncPart,
         const dictionary& objFuncDict);
 
     //- Destructor
@@ -118,7 +132,7 @@ public:
     void calcObjFuncSources(
         labelList& faceSources,
         labelList& cellSources);
-    
+
     /// calculate the value of objective function
     virtual void calcObjFunc(
         const labelList& objFuncFaceSources,
@@ -130,15 +144,15 @@ public:
     /// calcluate the value of objective function
     virtual scalar getObjFuncValue()
     {
-        // calculate 
+        // calculate
         this->calcObjFunc(
             objFuncFaceSources_,
             objFuncCellSources_,
             objFuncFaceValues_,
             objFuncCellValues_,
             objFuncValue_);
-        
-        // return 
+
+        // return
         return objFuncValue_;
     }
 
@@ -146,6 +160,18 @@ public:
     word getObjFuncName()
     {
         return objFuncName_;
+    }
+
+    /// return the part of objective function
+    word getObjFuncPart()
+    {
+        return objFuncPart_;
+    }
+
+    /// return the part of objective function
+    word getObjFuncType()
+    {
+        return objFuncType_;
     }
 };
 

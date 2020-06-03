@@ -23,6 +23,7 @@
 #include "DATurbulenceModel.H"
 #include "DAIndex.H"
 #include "DAObjFunc.H"
+#include "DACheckMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -80,6 +81,9 @@ protected:
     /// a list of DAObjFunc pointers
     UPtrList<DAObjFunc> daObjFuncPtrList_;
 
+    /// DACheckMesh object pointer
+    autoPtr<DACheckMesh> daCheckMeshPtr_;
+
 public:
     /// Runtime type information
     TypeName("DASolver");
@@ -119,7 +123,9 @@ public:
     virtual void initSolver() = 0;
 
     /// solve the primal equations
-    virtual void solvePrimal() = 0;
+    virtual label solvePrimal(
+        const Vec xvVec,
+        Vec wVec) = 0;
 
     /// solve the adjoint linear equations
     virtual void solveAdjoint() = 0;
@@ -150,6 +156,18 @@ public:
         return daIndexPtr_->stateVec2OFField(stateVec);
     }
 
+    /// assign the points in fvMesh of OpenFOAM based on the point vector
+    void pointVec2OFMesh(const Vec xvVec) const
+    {
+        return daIndexPtr_->pointVec2OFMesh(xvVec);
+    }
+
+    /// assign the point vector based on the points in fvMesh of OpenFOAM
+    void ofMesh2PointVec(Vec xvVec) const
+    {
+        return daIndexPtr_->ofMesh2PointVec(xvVec);
+    }
+
     /// return the number of local adjoint states
     label getNLocalAdjointStates() const
     {
@@ -162,8 +180,14 @@ public:
     /// calculate the values of all objective functions and print them to screen
     void printAllObjFuncs();
 
+    /// check the mesh quality and return meshOK
+    label checkMesh() const
+    {
+        return daCheckMeshPtr_->run();
+    }
 
-
+    /// return the value of the objective function
+    scalar getObjFuncValue(const word objFuncName);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

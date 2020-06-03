@@ -42,16 +42,43 @@ void DARhoSimpleFoam::initSolver()
 #include "createSimpleControlPython.H"
 #include "createFieldsRhoSimple.H"
 #include "createAdjointRhoSimple.H"
+    // initialize checkMesh
+    daCheckMeshPtr_.reset(new DACheckMesh(runTime, mesh));
 }
 
-void DARhoSimpleFoam::solvePrimal()
+label DARhoSimpleFoam::solvePrimal(
+    const Vec xvVec,
+    Vec wVec)
 {
+    /*
+    Call the primal solver to get converged state variables
+
+    Input:
+    -----
+    xvVec: a vector that contains all volume mesh coordinates
+
+    Output:
+    ------
+    wVec: state variable vector
+    */
+
 #include "createRefsRhoSimple.H"
 
     turbulencePtr_->validate();
 
     Info << "\nStarting time loop\n"
          << endl;
+
+    // deform the mesh based on the xvVec
+    this->pointVec2OFMesh(xvVec);
+
+    // check mesh quality
+    label meshOK = this->checkMesh();
+
+    if (!meshOK)
+    {
+        return 1;
+    }
 
     //while (simple.loop()) // using simple.loop() will have seg fault in parallel
     while (this->loop(runTime))
@@ -75,8 +102,13 @@ void DARhoSimpleFoam::solvePrimal()
              << nl << endl;
     }
 
+    // primal converged, assign the OpenFoam fields to the state vec wVec
+    this->ofField2StateVec(wVec);
+
     Info << "End\n"
          << endl;
+    
+    return 0;
 }
 void DARhoSimpleFoam::solveAdjoint()
 {

@@ -18,11 +18,18 @@ addToRunTimeSelectionTable(DAObjFunc, DAObjFuncForce, dictionary);
 
 DAObjFuncForce::DAObjFuncForce(
     const fvMesh& mesh,
+    const word objFuncName,
+    const word objFuncPart,
     const dictionary& objFuncDict)
     : DAObjFunc(
         mesh,
+        objFuncName,
+        objFuncPart,
         objFuncDict)
 {
+
+    objFuncDict_.readEntry<word>("type", objFuncType_);
+
     scalarList dir;
     objFuncDict_.readEntry<scalarList>("direction", dir);
     forceDir_[0] = dir[0];
@@ -30,6 +37,7 @@ DAObjFuncForce::DAObjFuncForce(
     forceDir_[2] = dir[2];
 
     objFuncDict_.readEntry<scalar>("scale", scale_);
+    
 }
 
 /// calculate the value of objective function
@@ -62,11 +70,12 @@ void DAObjFuncForce::calcObjFunc(
     objFuncValue: the sum of objective, reduced across all processsors and scaled by "scale"
     */
 
-    // initialize stuff to zero
+    // initialize faceValues to zero
     forAll(objFuncFaceValues, idxI)
     {
         objFuncFaceValues[idxI]=0.0;
     }
+    // initialize objFunValue
     objFuncValue = 0.0;
 
     const objectRegistry& db = mesh_.thisDb();
@@ -89,7 +98,7 @@ void DAObjFuncForce::calcObjFunc(
         vector fN(Sfb[patchI][faceI] * p.boundaryField()[patchI][faceI]);
         // tangential force
         vector fT(Sfb[patchI][faceI] & devRhoReffb[patchI][faceI]);
-
+        // project the force to forceDir
         objFuncFaceValues[idxI] = scale_ * ((fN + fT) & forceDir_);
 
         objFuncValue += objFuncFaceValues[idxI];

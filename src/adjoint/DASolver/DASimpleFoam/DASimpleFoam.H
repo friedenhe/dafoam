@@ -80,7 +80,9 @@ public:
     virtual void initSolver();
 
     /// solve the primal equations
-    virtual void solvePrimal();
+    virtual label solvePrimal(
+        const Vec xvVec,
+        Vec wVec);
 
     /// solve the adjoint linear equations
     virtual void solveAdjoint();

@@ -28,7 +28,6 @@ class DAObjFuncForce
 {
 
 protected:
-
     /// the direction of the force
     vector forceDir_;
 
@@ -39,6 +38,8 @@ public:
     //- Construct from components
     DAObjFuncForce(
         const fvMesh& mesh,
+        const word objFuncName,
+        const word objFuncPart,
         const dictionary& objFuncDict);
 
     //- Destructor
