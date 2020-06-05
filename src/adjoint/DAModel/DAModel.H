@@ -80,6 +80,12 @@ public:
 
     /// update the name in modelStates based on the selected physical model at runtime
     void correctModelStates(wordList& modelStates) const;
+
+    /// update the original variable connectivity for the adjoint state residuals in stateCon
+    void correctAdjStateResidualModelCon(List<List<word>>& stateCon) const;
+
+    /// add the model residual connectivity to stateCon
+    void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

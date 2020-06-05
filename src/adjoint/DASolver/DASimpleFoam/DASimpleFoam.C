@@ -76,10 +76,14 @@ label DASimpleFoam::solvePrimal(
         return 1;
     }
 
+    label nSolverIters = 1;
     //while (simple.loop()) // using simple.loop() will have seg fault in parallel
     while (this->loop(runTime))
     {
-        Info << "Time = " << runTime.timeName() << nl << endl;
+        if (nSolverIters % 100 == 0 || nSolverIters == 1)
+        {
+            Info << "Time = " << runTime.timeName() << nl << endl;
+        }
 
         p.storePrevIter();
 
@@ -92,13 +96,16 @@ label DASimpleFoam::solvePrimal(
         laminarTransport.correct();
         turbulencePtr_->correct();
 
-        //runTime.write();
+        if (nSolverIters % 100 == 0 || nSolverIters == 1)
+        {
+            this->printAllObjFuncs();
 
-        this->printAllObjFuncs();
+            Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+                 << "  ClockTime = " << runTime.elapsedClockTime() << " s"
+                 << nl << endl;
+        }
 
-        Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-             << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-             << nl << endl;
+        nSolverIters++;
     }
 
     // primal converged, assign the OpenFoam fields to the state vec wVec

@@ -34,6 +34,7 @@
 #include "wallDist.H"
 #include "nearWallDist.H"
 #include "zeroGradientFvPatchField.H"
+#include "DAUtility.H"
 #include "DAOption.H"
 #include "DARegState.H"
 #include "DARegDbNearWallDist.H"
@@ -178,6 +179,12 @@ public:
 
     /// update turbulence variable boundary values
     virtual void correctTurbBoundaryConditions() = 0;
+
+    /// update the original variable connectivity for the adjoint state residuals in stateCon
+    virtual void correctAdjStateResidualModelCon(List<List<word>>& stateCon) const = 0;
+
+    /// add the model residual connectivity to stateCon
+    virtual void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const = 0;
 
     /// dev terms
     tmp<volSymmTensorField> devRhoReff() const;

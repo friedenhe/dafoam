@@ -117,6 +117,12 @@ public:
     {
         return DASolverPtr_->getObjFuncValue(objFuncName);
     }
+
+    /// call DASolver::printAllOptions
+    void printAllOptions()
+    {
+        DASolverPtr_->printAllOptions();
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

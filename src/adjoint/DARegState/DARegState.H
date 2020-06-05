@@ -82,6 +82,9 @@ public:
 
     /// this is a virtual function for regIOobject
     bool writeData(Ostream& os) const;
+
+    /// return the name of pressure field, it can be either p or p_rgh
+    word getPName() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

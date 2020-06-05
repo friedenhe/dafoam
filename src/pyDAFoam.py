@@ -67,6 +67,7 @@ class PYDAFOAM(object):
             "solverName": [str, "DASimpleFoam"],
             "printAllOptions": [bool, False],
             "objFunc": [dict, {}],
+            "debug": [bool, False],
             # surface definition
             "meshSurfaceFamily": [str, "None"],
             "designSurfaceFamily": [str, "None"],
@@ -152,6 +153,10 @@ class PYDAFOAM(object):
         self.mesh = None
         self.DVGeo = None
 
+        # initialize the number of primal and adjoint calls
+        self.nSolvePrimals = 0
+        self.nSolveAdjoint = 0
+
         if self.comm.rank == 0:
             print("Done Init.")
 
@@ -168,7 +173,7 @@ class PYDAFOAM(object):
         Solve the primal
         """
 
-        # update the CFD Coordinates
+        # update the mesh coordinates if DVGeo is set
         # add point set and update the mesh based on the DV values
         self.ptSetName = self.getPointSetName("dummy")
         ptSetName = self.ptSetName
@@ -193,17 +198,29 @@ class PYDAFOAM(object):
                 if self.comm.rank == 0:
                     print("DVGeo PointSet UpToDate: " + str(self.DVGeo.pointSetUpToDate(ptSetName)))
 
-                # warp the mesh
+                # warp the mesh to get the new volume coordinates
                 if self.comm.rank == 0:
                     print("Warping the volume mesh....")
                 self.mesh.warpMesh()
 
-                # write the new volume coords to a file
-                if self.comm.rank == 0:
-                    print("Writing the updated volume mesh....")
                 xvNew = self.mesh.getSolverGrid()
                 self.xvFlatten2XvVec(xvNew, self.xvVec)
-                self.solvePrimal(self.xvVec, self.wVec)
+
+        # solve the primal to get new state variables
+        if self.comm.rank == 0:
+            print("Solving the primal....")
+        self.solvePrimal(self.xvVec, self.wVec)
+
+        # save the point vector and state vector to disk
+        if self.comm.rank == 0:
+            print("Saving the xvVec and wVec vectors to disk....")
+        self.comm.Barrier()
+        viewerXv = PETSc.Viewer().createBinary("xvVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
+        viewerXv(self.xvVec)
+        viewerW = PETSc.Viewer().createBinary("wVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
+        viewerW(self.wVec)
+
+        self.nSolvePrimals += 1
 
         return
 
@@ -251,9 +268,9 @@ class PYDAFOAM(object):
             funcs[funcName] = objFuncValue
 
         if self.primalFail:
-            funcs['fail'] = True
+            funcs["fail"] = True
         else:
-            funcs['fail'] = False
+            funcs["fail"] = False
 
         return
 
@@ -582,7 +599,10 @@ class PYDAFOAM(object):
             self.solver = pyDASolvers(solverArg.encode(), self.options)
         else:
             raise Error("pyDAFoam: flowCondition %s: not valid!" % self.getOption("flowCondition"))
+
         self.solver.initSolver()
+
+        self.solver.printAllOptions()
 
         return
 
@@ -606,6 +626,35 @@ class PYDAFOAM(object):
         meshOK = self.solver.checkMesh()
 
         return meshOK
+
+    def runColoring(self):
+        """
+        Run coloring solver
+        """
+
+        if self.comm.rank == 0:
+            print("\n")
+            print("+--------------------------------------------------------------------------+")
+            print("|                       Running Coloring Solver                            |")
+            print("+--------------------------------------------------------------------------+")
+
+        if self.getOption("flowCondition") == "Incompressible":
+
+            from .pyColoringIncompressible import pyColoringIncompressible
+
+            solverArg = "ColoringIncompressible -python " + self.parallelFlag
+            solver = pyColoringIncompressible(solverArg.encode(), self.options)
+        elif self.getOption("flowCondition") == "Compressible":
+
+            from .pyColoringCompressible import pyColoringCompressible
+
+            solverArg = "ColoringCompressible -python " + self.parallelFlag
+            solver = pyColoringCompressible(solverArg.encode(), self.options)
+        else:
+            raise Error("pyDAFoam: flowCondition %s: not valid!" % self.getOption("flowCondition"))
+        solver.run()
+
+        return
 
     def runDecomposePar(self):
         """
@@ -997,6 +1046,29 @@ class PYDAFOAM(object):
                 xv[i][j] = xvVec[globalIdx]
 
         return
+
+    def _coloringComputationRequired(self):
+        """
+        check whether any of the required colorings are missing, if so
+        recompute.
+        """
+        missingColorings = False
+
+        if self.getOption("adjUseColoring"):
+            # We need colorings, check if they exist
+            requiredColorings = []
+
+            requiredColorings.append("dRdWColoring_%d.bin" % self.nProcs)
+            for objFunc in self.getOption("objFunc"):
+                requiredColorings.append("dFdWColoring_%s_%d.bin" % (objFunc, self.nProcs))
+
+            # now check for the require coloring
+            for coloring in requiredColorings:
+                if not os.path.exists(coloring):
+                    missingColorings = True
+                    break
+
+        return missingColorings
 
     # base case files
     def _readOFGrid(self, caseDir):

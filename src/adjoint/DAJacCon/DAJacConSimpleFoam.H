@@ -4,14 +4,14 @@
     Version : v2
 
     Description:
-    Child class for the P1 radiation model
+        Child class for DASimpleFoam
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAP1_H
-#define DAP1_H
+#ifndef DAJacConSimpleFoam_H
+#define DAJacConSimpleFoam_H
 
-#include "DARadiationModel.H"
+#include "DAJacCon.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -20,29 +20,25 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DAP1 Declaration
+      Class DAJacConSimpleFoam Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAP1
-    : public DARadiationModel
+class DAJacConSimpleFoam
+    : public DAJacCon
 {
 
-protected:
-
 public:
-    TypeName("SpalartAllmaras");
+    TypeName("DASimpleFoam");
     // Constructors
 
     //- Construct from components
-    DAP1(const fvMesh& mesh);
+    DAJacConSimpleFoam(
+        const fvMesh& mesh);
 
     //- Destructor
-    virtual ~DAP1()
+    virtual ~DAJacConSimpleFoam()
     {
     }
-
-    // Member functions
-    virtual void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -17,13 +17,14 @@
 #include "fvCFD.H"
 #include "runTimeSelectionTables.H"
 #include "DAUtility.H"
+#include "DACheckMesh.H"
 #include "DAOption.H"
 #include "DARegState.H"
 #include "DAModel.H"
 #include "DATurbulenceModel.H"
 #include "DAIndex.H"
 #include "DAObjFunc.H"
-#include "DACheckMesh.H"
+#include "DAJacCon.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -83,6 +84,9 @@ protected:
 
     /// DACheckMesh object pointer
     autoPtr<DACheckMesh> daCheckMeshPtr_;
+
+    /// DAJacCon pointer
+    autoPtr<DAJacCon> daJacConPtr_;
 
 public:
     /// Runtime type information
@@ -188,6 +192,13 @@ public:
 
     /// return the value of the objective function
     scalar getObjFuncValue(const word objFuncName);
+
+    /// print all DAOption
+    void printAllOptions()
+    {
+        Info<<"All DAFoam Options:"<<endl;
+        Info<<daOptionPtr_->getAllOptions()<<endl;
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

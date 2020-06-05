@@ -1117,6 +1117,106 @@ void DAIndex::ofMesh2PointVec(Vec xvVec) const
     VecRestoreArray(xvVec, &xvVecArray);
 }
 
+
+void DAIndex::calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) const
+{ 
+    /*
+    Compute adjStateID4GlobalAdjIdx
+
+    Output:
+    -------
+    adjStateID4GlobalAdjIdx: labelList that stores the adjStateID for given a global adj index
+    NOTE: adjStateID4GlobalAdjIdx contains all the global adj indices, so its memory usage 
+    is high. We should avoid having any sequential list; however, to make the connectivity
+    calculation easier, we keep it for now. 
+    *******delete this list after used!************
+    */
+    
+    if (adjStateID4GlobalAdjIdx.size()!=nGlobalAdjointStates)
+    {
+        FatalErrorIn("")<<"adjStateID4GlobalAdjIdx.size()!=nGlobalAdjointStates"<<abort(FatalError);
+    }
+
+    Vec stateIVec;
+    VecCreate(PETSC_COMM_WORLD,&stateIVec);
+    VecSetSizes(stateIVec,nLocalAdjointStates,PETSC_DECIDE);
+    VecSetFromOptions(stateIVec);
+    VecSet(stateIVec,0); // default value
+    
+    forAll(regStates_["volVectorStates"],idx)
+    {
+        word stateName = regStates_["volVectorStates"][idx];
+        PetscScalar valIn=adjStateID[stateName]+1;  // we need to use 1-based indexing here for scattering
+        forAll(mesh_.cells(),cellI)
+        {
+            for(label i=0;i<3;i++)
+            {
+                label globalIdx = this->getGlobalAdjointStateIndex(stateName,cellI,i);
+                VecSetValues(stateIVec,1,&globalIdx,&valIn,INSERT_VALUES);
+            }
+            
+        }
+    }
+    
+    forAll(regStates_["volScalarStates"],idx)
+    {
+        word stateName = regStates_["volScalarStates"][idx];
+        PetscScalar valIn=adjStateID[stateName]+1;  // we need to use 1-based indexing here for scattering
+        forAll(mesh_.cells(),cellI)
+        {
+            label globalIdx = this->getGlobalAdjointStateIndex(stateName,cellI);
+            VecSetValues(stateIVec,1,&globalIdx,&valIn,INSERT_VALUES);
+        }
+    }
+    
+    forAll(regStates_["modelStates"],idx)
+    {
+        word stateName = regStates_["modelStates"][idx];
+        PetscScalar valIn=adjStateID[stateName]+1;  // we need to use 1-based indexing here for scattering
+        forAll(mesh_.cells(),cellI)
+        {
+            label globalIdx = this->getGlobalAdjointStateIndex(stateName,cellI);
+            VecSetValues(stateIVec,1,&globalIdx,&valIn,INSERT_VALUES);
+        }
+    }
+    
+    forAll(regStates_["surfaceScalarStates"],idx)
+    {
+        word stateName = regStates_["surfaceScalarStates"][idx];
+        PetscScalar valIn=adjStateID[stateName]+1;  // we need to use 1-based indexing here for scattering
+        forAll(mesh_.faces(),faceI)
+        {
+            label globalIdx = this->getGlobalAdjointStateIndex(stateName,faceI);
+            VecSetValues(stateIVec,1,&globalIdx,&valIn,INSERT_VALUES);
+        }
+    }
+    
+
+    VecAssemblyBegin(stateIVec);
+    VecAssemblyEnd(stateIVec);
+    
+    // scatter to local array for all procs
+    Vec vout;
+    VecScatter ctx;
+    VecScatterCreateToAll(stateIVec,&ctx,&vout);
+    VecScatterBegin(ctx,stateIVec,vout,INSERT_VALUES,SCATTER_FORWARD);
+    VecScatterEnd(ctx,stateIVec,vout,INSERT_VALUES,SCATTER_FORWARD);
+    
+    PetscScalar* stateIVecArray;
+    VecGetArray(vout,&stateIVecArray);
+
+    for(label i=0;i<nGlobalAdjointStates;i++)
+    {
+        adjStateID4GlobalAdjIdx[i]=static_cast<label>(stateIVecArray[i])-1; // subtract 1 and return to 0-based indexing
+    }
+
+    VecRestoreArray(vout,&stateIVecArray);
+    VecScatterDestroy(&ctx);
+    VecDestroy(&vout);
+    
+    return;
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

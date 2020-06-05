@@ -14,8 +14,9 @@ from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
 import os
+import petsc4py
 
-libName = "pyCheckMesh"
+libName = "pyColoringIncompressible"
 
 os.environ["CC"] = "mpicc"
 os.environ["CXX"] = "mpicxx"
@@ -23,40 +24,58 @@ os.environ["CXX"] = "mpicxx"
 # These setup should reproduce calling wmake to compile OpenFOAM libraries and solvers
 ext = [
     Extension(
-        "pyCheckMesh",
+        "pyColoringIncompressible",
         # All source files, taken from Make/files
         sources=[
-            "pyCheckMesh.pyx",
-            "writeFields.C",
-            "checkTools.C",
-            "checkTopology.C",
-            "checkGeometry.C",
-            "checkMeshQuality.C",
-            "CheckMesh.C",
+            "pyColoringIncompressible.pyx",
+            "ColoringIncompressible.C",
         ],
         # All include dirs, refer to Make/options in OpenFOAM
         include_dirs=[
             # These are from Make/options:EXE_INC
-            os.getenv("FOAM_SRC") + "/meshTools/lnInclude",
-            os.getenv("FOAM_SRC") + "/fileFormats/lnInclude",
+            os.getenv("FOAM_SRC") + "/TurbulenceModels/turbulenceModels/lnInclude",
+            os.getenv("FOAM_SRC") + "/TurbulenceModels/incompressible/lnInclude",
+            os.getenv("FOAM_SRC") + "/transportModels",
+            os.getenv("FOAM_SRC") + "/transportModels/incompressible/singlePhaseTransportModel",
             os.getenv("FOAM_SRC") + "/finiteVolume/lnInclude",
+            os.getenv("FOAM_SRC") + "/meshTools/lnInclude",
             os.getenv("FOAM_SRC") + "/sampling/lnInclude",
-            os.getenv("FOAM_SRC") + "/surfMesh/lnInclude",
-            os.getenv("FOAM_SRC") + "/dynamicMesh/lnInclude",
             # These are common for all OpenFOAM executives
             os.getenv("FOAM_SRC") + "/OpenFOAM/lnInclude",
             os.getenv("FOAM_SRC") + "/OSspecific/POSIX/lnInclude",
             os.getenv("FOAM_LIBBIN"),
             # DAFoam include
+            # DAFoam include
+            os.getenv("PETSC_DIR") + "/include",
+            petsc4py.get_include(),
+            os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/include",
+            "../../adjoint/lnInclude",
             "../../include",
         ],
         # These are from Make/options:EXE_LIBS
-        libraries=["meshTools", "sampling", "dynamicMesh"],
+        libraries=[
+            "turbulenceModels", 
+            "incompressibleTurbulenceModels",
+            "incompressibleTransportModels",
+            "finiteVolume",
+            "meshTools",
+            "fvOptions",
+            "sampling",
+            "petsc",
+            "DAFoamIncompressible",
+            ],
         # These are pathes of linked libraries
-        library_dirs=[os.getenv("FOAM_LIBBIN")],
+        library_dirs=[
+            os.getenv("FOAM_LIBBIN"),
+            os.getenv("FOAM_USER_LIBBIN"),
+            os.getenv("PETSC_DIR") + "/lib",
+            petsc4py.get_include(),
+            os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/lib",
+        ],
         # All other flags for OpenFOAM, users don't need to touch this
         extra_compile_args=[
             "-std=c++11",
+            "-DIncompressibleFlow",
             "-m64",
             "-DOPENFOAM_PLUS=1812",
             "-Dlinux64",

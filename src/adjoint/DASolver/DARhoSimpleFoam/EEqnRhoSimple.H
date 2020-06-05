@@ -10,7 +10,15 @@
 
     EEqn.relax();
 
-    EEqn.solve();
+    // get the solver performance info such as initial
+    // and final residuals
+    SolverPerformance<scalar> solverE = EEqn.solve();
+
+    if (nSolverIters % 100 == 0 || nSolverIters == 1)
+    {
+        Info << "E Initial residual: " << solverE.initialResidual() << endl
+             << "    Final residual: " << solverE.finalResidual() << endl;
+    }
 
     // bound he
     daUtilPtr_->boundVar(allOptions, he);

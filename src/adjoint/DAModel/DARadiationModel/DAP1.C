@@ -21,6 +21,12 @@ DAP1::DAP1(const fvMesh& mesh)
 {
 }
 
+
+/// add the model residual connectivity to stateCon
+void DAP1::addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const
+{
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

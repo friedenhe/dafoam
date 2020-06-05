@@ -51,6 +51,12 @@ public:
 
     /// update turbulence variable boundary values
     virtual void correctTurbBoundaryConditions();
+
+    /// update the original variable connectivity for the adjoint state residuals in stateCon
+    virtual void correctAdjStateResidualModelCon(List<List<word>>& stateCon) const;
+
+    /// add the model residual connectivity to stateCon
+    virtual void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

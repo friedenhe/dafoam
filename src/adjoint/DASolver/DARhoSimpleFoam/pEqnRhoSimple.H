@@ -35,7 +35,15 @@ if (simple.transonic())
             pressureControl.refCell(),
             pressureControl.refValue());
 
-        pEqn.solve();
+        // get the solver performance info such as initial
+        // and final residuals
+        SolverPerformance<scalar> solverP = pEqn.solve();
+
+        if (nSolverIters % 100 == 0 || nSolverIters == 1)
+        {
+            Info << "p Initial residual: " << solverP.initialResidual() << endl
+                 << "    Final residual: " << solverP.finalResidual() << endl;
+        }
 
         if (simple.finalNonOrthogonalIter())
         {
@@ -66,7 +74,10 @@ else
     }
 }
 
+if (nSolverIters % 100 == 0 || nSolverIters == 1)
+{
 #include "incompressible/continuityErrs.H"
+}
 
 // Explicitly relax pressure for momentum corrector
 p.relax();

@@ -104,6 +104,22 @@ public:
     void boundVar(
         const dictionary& allOptions,
         volVectorField& var);
+
+    /// check whether a value is close to a reference value by a tolerance
+    inline label isValueCloseToRef(
+        const scalar val,
+        const scalar refVal,
+        const scalar tol = 1.0e-6) const
+    {
+        if (fabs(val - refVal) < tol)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
 };
 
 template<class classType>

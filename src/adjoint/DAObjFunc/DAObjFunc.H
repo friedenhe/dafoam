@@ -173,6 +173,18 @@ public:
     {
         return objFuncType_;
     }
+
+    /// return DAObjFunc::objFuncFaceSources_
+    const labelList& getObjFuncFaceSources() const
+    {
+        return objFuncFaceSources_;
+    }
+
+    /// return DAObjFunc::objFuncCellSources_
+    const labelList& getObjFuncCellSources() const
+    {
+        return objFuncCellSources_;
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -4,27 +4,27 @@
     Version : v2
 
     Description:
-        Python wrapper library for checkMesh
+        Python wrapper library for computing coloring
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef CheckMesh_H
-#define CheckMesh_H
+#ifndef ColoringIncompressible_H
+#define ColoringIncompressible_H
 
+#include <petscksp.h>
+#include "Python.h"
+#include "singlePhaseTransportModel.H"
+#include "turbulentTransportModel.H"
 #include "argList.H"
-#include "timeSelector.H"
-#include "Time.H"
-#include "fvMesh.H"
-#include "globalMeshData.H"
-#include "surfaceWriter.H"
-#include "vtkSetWriter.H"
-#include "IOdictionary.H"
-
-#include "checkTools.H"
-#include "checkTopology.H"
-#include "checkGeometry.H"
-#include "checkMeshQuality.H"
-#include "writeFields.H"
+#include "DAUtility.H"
+#include "DACheckMesh.H"
+#include "DAOption.H"
+#include "DARegState.H"
+#include "DAModel.H"
+#include "DATurbulenceModel.H"
+#include "DAIndex.H"
+#include "DAObjFunc.H"
+#include "DAJacCon.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -32,39 +32,47 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class CheckMesh Declaration
+                       Class ColoringIncompressible Declaration
 \*---------------------------------------------------------------------------*/
 
-class CheckMesh
+class ColoringIncompressible
 {
 
 private:
     /// Disallow default bitwise copy construct
-    CheckMesh(const CheckMesh&);
+    ColoringIncompressible(const ColoringIncompressible&);
 
     /// Disallow default bitwise assignment
-    void operator=(const CheckMesh&);
+    void operator=(const ColoringIncompressible&);
 
     /// all the arguments
     char* argsAll_;
 
+    /// all options in DAFoam
+    PyObject* pyOptions_;
+
     /// args pointer
     autoPtr<argList> argsPtr_;
 
-    /// mesh checks pass or not
-    label meshOK_;
+    /// runTime pointer
+    autoPtr<Time> runTimePtr_;
+
+    /// fvMesh pointer
+    autoPtr<fvMesh> meshPtr_;
 
 public:
     // Constructors
 
     /// Construct from components
-    CheckMesh(char* argsAll);
+    ColoringIncompressible(
+        char* argsAll,
+        PyObject* pyOptions);
 
     /// Destructor
-    virtual ~CheckMesh();
+    virtual ~ColoringIncompressible();
 
-    /// run meshCheck and return meshOK
-    label run();
+    /// run
+    void run();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

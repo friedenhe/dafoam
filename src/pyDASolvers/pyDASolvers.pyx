@@ -29,6 +29,7 @@ cdef extern from "DASolvers.H" namespace "Foam":
         int getNLocalAdjointStates()
         int checkMesh()
         double getObjFuncValue(char *)
+        void printAllOptions()
 
 # create python wrappers that call cpp functions
 cdef class pyDASolvers:
@@ -98,3 +99,6 @@ cdef class pyDASolvers:
     
     def getObjFuncValue(self, objFuncName):
         return self._thisptr.getObjFuncValue(objFuncName)
+
+    def printAllOptions(self):
+        self._thisptr.printAllOptions()

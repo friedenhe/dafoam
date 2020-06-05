@@ -16,3 +16,5 @@ daModelPtr_.reset(new DAModel(mesh));
 daRegStatePtr_.reset(DARegState::New(mesh));
 
 daIndexPtr_.reset(new DAIndex(mesh));
+
+daJacConPtr_.reset(DAJacCon::New(mesh));

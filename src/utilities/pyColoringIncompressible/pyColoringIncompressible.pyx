@@ -1,6 +1,6 @@
 
 # distutils: language = c++
-# distutils: sources = writeFields.C checkTools.C checkTopology.C checkGeometry.C checkMeshQuality.C CheckMesh.C
+# distutils: sources = ColoringIncompressible.C
 
 '''
     DAFoam  : Discrete Adjoint with OpenFOAM
@@ -13,17 +13,17 @@
 '''
 
 # declear cpp functions
-cdef extern from "CheckMesh.H" namespace "Foam":
-    cppclass CheckMesh:
-        CheckMesh(char *) except +
-        int run()
+cdef extern from "ColoringIncompressible.H" namespace "Foam":
+    cppclass ColoringIncompressible:
+        ColoringIncompressible(char *, object) except +
+        void run()
 
 # create python wrappers that call cpp functions
-cdef class pyCheckMesh:
+cdef class pyColoringIncompressible:
 
     # define a class pointer for cpp functions
     cdef:
-        CheckMesh * _thisptr
+        ColoringIncompressible * _thisptr
 
     # initialize this class pointer with NULL
     def __cinit__(self):
@@ -36,7 +36,7 @@ cdef class pyCheckMesh:
             del self._thisptr
 
     # point the class pointer to the cpp class constructor
-    def __init__(self, argsAll):
+    def __init__(self, argsAll, pyOptions):
         '''
         argsAll: string that contains all the arguments
         for running OpenFOAM solvers, including
@@ -50,8 +50,8 @@ cdef class pyCheckMesh:
 
         SimpleFoam("SimpleFoam -parallel")
         '''
-        self._thisptr = new CheckMesh(argsAll)
+        self._thisptr = new ColoringIncompressible(argsAll, pyOptions)
 
     # wrap all the other memeber functions in the cpp class
     def run(self):
-        return self._thisptr.run()
+        self._thisptr.run()

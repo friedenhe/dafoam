@@ -25,6 +25,9 @@ DAIndex/DAIndex.C
 DAObjFunc/DAObjFunc.C
 DAObjFunc/DAObjFuncForce.C
 
+DAJacCon/DAJacCon.C
+DAJacCon/DAJacConRhoSimpleFoam.C
+
 DASolver/DASolver.C
 DASolver/DARhoSimpleFoam/DARhoSimpleFoam.C
 

@@ -97,6 +97,25 @@ void DARegState::correctModelStates(wordList& modelStates)
     daModel.correctModelStates(modelStates);
     return;
 }
+
+/// return the name of pressure field, it can be either p or p_rgh
+word DARegState::getPName() const
+{
+    word pName = "p";
+    forAll(regStates_.toc(), idxI)
+    {
+        word key  = regStates_.toc()[idxI];
+        forAll(regStates_[key], idxJ)
+        {
+            word stateName = regStates_[key][idxJ];
+            if(stateName == "p_rgh")
+            {
+                pName = "p_rgh";
+            }
+        }
+    }
+    return pName;
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

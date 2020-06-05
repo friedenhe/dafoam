@@ -220,9 +220,6 @@ public:
     /// get the number of objective function geometry elements, this could be the total number of discrete surfaces for all the design surfaces, or total cells for all the user-defined volumes. 
     label getNLocalObjFuncGeoElements(const word objFunc);
     
-    /// compute global list adjStateID4GlobalAdjIdx that stores the stateID for a given globalAdjIndx
-    void calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx);
-
     void calcCellIFaceI4GlobalAdjIdx(scalarList& cellIFaceI4GlobalAdjIdx);
     
     /// given a boundary patchI and faceI, return its local boundary face index
@@ -324,6 +321,9 @@ public:
 
     /// assign the point vector based on the points in fvMesh of OpenFOAM
     void ofMesh2PointVec(Vec xvVec) const;
+
+    /// compute global list adjStateID4GlobalAdjIdx that stores the stateID for a given globalAdjIndx
+    void calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
