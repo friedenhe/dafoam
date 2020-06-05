@@ -455,7 +455,7 @@ Foam::label Foam::checkGeometry(const polyMesh& mesh)
 {
     label noFailedChecks = 0;
 
-    Info << "\nChecking geometry..." << endl;
+    //Info << "\nChecking geometry..." << endl;
 
     // Get a small relative length from the bounding box
     const boundBox& globalBb = mesh.bounds();

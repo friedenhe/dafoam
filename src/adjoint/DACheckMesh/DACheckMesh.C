@@ -33,7 +33,7 @@ label DACheckMesh::run() const
 
     label meshOK=1;
 
-    Info << "Checking mesh quality for time = " << runTime.timeName() << nl << endl;
+    Info << "Checking mesh quality for time = " << runTime.timeName() << endl;
 
     label nFailedChecks = checkGeometry(mesh);
 

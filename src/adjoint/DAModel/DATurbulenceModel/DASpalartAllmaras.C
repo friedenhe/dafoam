@@ -16,8 +16,10 @@ defineTypeNameAndDebug(DASpalartAllmaras, 0);
 addToRunTimeSelectionTable(DATurbulenceModel, DASpalartAllmaras, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DASpalartAllmaras::DASpalartAllmaras(const fvMesh& mesh)
-    : DATurbulenceModel(mesh)
+DASpalartAllmaras::DASpalartAllmaras(
+    const fvMesh& mesh,
+    const DAOption& daOption)
+    : DATurbulenceModel(mesh, daOption)
 {
 }
 
@@ -44,7 +46,6 @@ void DASpalartAllmaras::correctTurbBoundaryConditions()
 {
 }
 
-
 void DASpalartAllmaras::correctAdjStateResidualModelCon(List<List<word>>& stateCon) const
 {
     // update the original variable connectivity for the adjoint state residuals in stateCon
@@ -62,14 +63,27 @@ void DASpalartAllmaras::correctAdjStateResidualModelCon(List<List<word>>& stateC
     }
 }
 
-
 void DASpalartAllmaras::addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const
 {
     // add the SA model residual connectivity to stateCon
 
-    const DARegState& daRegState = mesh_.thisDb().lookupObject<DARegState>("DARegState");
+    word pName;
 
-    word pName = daRegState.getPName();
+    if (mesh_.thisDb().foundObject<volScalarField>("p"))
+    {
+        pName = "p";
+    }
+    else if (mesh_.thisDb().foundObject<volScalarField>("p_rgh"))
+    {
+        pName = "p_rgh";
+    }
+    else
+    {
+        FatalErrorIn(
+            "Neither p nor p_rgh was found in mesh.thisDb()!"
+            "addAdjModelResidualCon failed to setup turbulence residuals!")
+            << exit(FatalError);
+    }
 
 #ifdef IncompressibleFlow
     allCon.set(

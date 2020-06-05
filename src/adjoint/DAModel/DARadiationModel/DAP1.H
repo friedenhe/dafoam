@@ -28,13 +28,14 @@ class DAP1
 {
 
 protected:
-
 public:
-    TypeName("SpalartAllmaras");
+    TypeName("P1");
     // Constructors
 
     //- Construct from components
-    DAP1(const fvMesh& mesh);
+    DAP1(
+        const fvMesh& mesh,
+        const DAOption& daOption);
 
     //- Destructor
     virtual ~DAP1()

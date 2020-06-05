@@ -33,7 +33,9 @@ public:
 
     //- Construct from components
     DARegStateRhoSimpleFoam(
-        const fvMesh& mesh);
+        const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel);
 
     //- Destructor
     virtual ~DARegStateRhoSimpleFoam()

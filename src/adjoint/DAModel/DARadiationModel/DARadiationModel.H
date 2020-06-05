@@ -14,7 +14,6 @@
 
 #include "runTimeSelectionTables.H"
 #include "DAOption.H"
-#include "DARegState.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -39,6 +38,8 @@ private:
 protected:
     const fvMesh& mesh_;
 
+    const DAOption& daOption_;
+
 public:
     //- Runtime type information
     TypeName("DARadiationModel");
@@ -48,18 +49,22 @@ public:
         autoPtr,
         DARadiationModel,
         dictionary,
-        (const fvMesh& mesh),
-        (mesh));
+        (const fvMesh& mesh, const DAOption& daOption),
+        (mesh, daOption));
 
     // Constructors
 
     //- Construct from components
-    DARadiationModel(const fvMesh& mesh);
+    DARadiationModel(
+        const fvMesh& mesh,
+        const DAOption& daOption);
 
     // Selectors
 
     //- Return a reference to the selected model
-    static autoPtr<DARadiationModel> New(const fvMesh& mesh);
+    static autoPtr<DARadiationModel> New(
+        const fvMesh& mesh,
+        const DAOption& daOption);
 
     //- Destructor
     virtual ~DARadiationModel()

@@ -16,11 +16,12 @@ defineTypeNameAndDebug(DAP1, 0);
 addToRunTimeSelectionTable(DARadiationModel, DAP1, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAP1::DAP1(const fvMesh& mesh)
-    : DARadiationModel(mesh)
+DAP1::DAP1(
+    const fvMesh& mesh,
+    const DAOption& daOption)
+    : DARadiationModel(mesh, daOption)
 {
 }
-
 
 /// add the model residual connectivity to stateCon
 void DAP1::addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const

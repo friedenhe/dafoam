@@ -4,7 +4,8 @@
     Version : v2
 
     Description:
-        Register state variables for the adjoint
+        Register the names of state variables and how do they connect
+        with their residuals
 
 \*---------------------------------------------------------------------------*/
 
@@ -27,7 +28,6 @@ namespace Foam
 \*---------------------------------------------------------------------------*/
 
 class DARegState
-    : public regIOobject
 {
 
 private:
@@ -38,12 +38,21 @@ private:
     void operator=(const DARegState&);
 
 protected:
-
     /// fvMesh
     const fvMesh& mesh_;
-    
+
+    const DAOption& daOption_;
+
+    const DAModel& daModel_;
+
     /// registered states 1st hash: solverName, 2nd hash: fieldType, 3nd list, stateNames
     HashTable<wordList> regStates_;
+
+    /// table to specify how the states are connected to the residuals for a given solver
+    HashTable<List<List<word>>> adjStateResidualConInfo_;
+
+    /// a backup for DAJacCon::adjStateResidualConInfo_ when reducing the connectivity levels
+    HashTable<List<List<word>>> adjStateResidualConInfoBK_;
 
 public:
     /// Runtime type information
@@ -54,37 +63,42 @@ public:
         autoPtr,
         DARegState,
         dictionary,
-        (const fvMesh& mesh),
-        (mesh));
+        (const fvMesh& mesh, const DAOption& daOption, const DAModel& daModel),
+        (mesh, daOption, daModel));
 
     // Constructors
 
     //- Construct from components
-    DARegState(const fvMesh& mesh);
+    DARegState(
+        const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel);
 
     // Selectors
 
     //- Return a reference to the selected model
-    static autoPtr<DARegState> New(const fvMesh& mesh);
+    static autoPtr<DARegState> New(
+        const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel);
 
     //- Destructor
     virtual ~DARegState()
     {
     }
 
-    /// return the reference of regStates
+    /// return the reference of regStates_
     const HashTable<wordList>& getRegStates() const
     {
         return regStates_;
     }
 
-    void correctModelStates(wordList& modelStates);
+    /// return the reference of adjStateResidualConInfo_
+    const HashTable<List<List<word>>>& getAdjStateResidualConInfo() const
+    {
+        return adjStateResidualConInfo_;
+    }
 
-    /// this is a virtual function for regIOobject
-    bool writeData(Ostream& os) const;
-
-    /// return the name of pressure field, it can be either p or p_rgh
-    word getPName() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

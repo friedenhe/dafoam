@@ -19,7 +19,9 @@ defineRunTimeSelectionTable(DARadiationModel, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DARadiationModel::DARadiationModel(const fvMesh& mesh)
+DARadiationModel::DARadiationModel(
+    const fvMesh& mesh,
+    const DAOption& daOption)
     : regIOobject(
         IOobject(
             "DARadiationModel",
@@ -29,39 +31,42 @@ DARadiationModel::DARadiationModel(const fvMesh& mesh)
             IOobject::NO_WRITE,
             true // always register object
             )),
-      mesh_(mesh)
+      mesh_(mesh),
+      daOption_(daOption)
 {
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
-autoPtr<DARadiationModel> DARadiationModel::New(const fvMesh& mesh)
+autoPtr<DARadiationModel> DARadiationModel::New(
+    const fvMesh& mesh,
+    const DAOption& daOption)
 {
-    // look up the solver name 
-    const DAOption& daOption = mesh.thisDb().lookupObject<DAOption>("DAOption");
-    word solverName = daOption.getOption<word>("radiationModel");
+    // look up the solver name
+    word modelType = daOption.getOption<word>("radiationModel");
 
-    Info << "Selecting " << solverName << " for DARadiationModel" << endl;
+    Info << "Selecting " << modelType << " for DARadiationModel" << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(solverName);
+        dictionaryConstructorTablePtr_->find(modelType);
 
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorIn(
             "DARadiationModel::New"
             "("
-            "    const fvMesh&"
+            "    const fvMesh&,"
+            "    const DAOption&"
             ")")
             << "Unknown DARadiationModel type "
-            << solverName << nl << nl
+            << modelType << nl << nl
             << "Valid DARadiationModel types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }
 
     return autoPtr<DARadiationModel>(
-        cstrIter()(mesh));
+        cstrIter()(mesh, daOption));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

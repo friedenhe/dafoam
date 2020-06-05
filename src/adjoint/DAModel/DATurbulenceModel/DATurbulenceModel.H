@@ -36,7 +36,6 @@
 #include "zeroGradientFvPatchField.H"
 #include "DAUtility.H"
 #include "DAOption.H"
-#include "DARegState.H"
 #include "DARegDbNearWallDist.H"
 
 #ifdef IncompressibleFlow
@@ -77,6 +76,9 @@ protected:
     /// fvMesh
     const fvMesh& mesh_;
 
+    /// DAOption object
+    const DAOption& daOption_;
+
     /// turbulence viscosity
     volScalarField& nut_;
 
@@ -93,28 +95,20 @@ protected:
     surfaceScalarField& phaseRhoPhi_;
 
 #ifdef IncompressibleFlow
-    /// a DARegDb object for looking up laminarTransport_
-    const DARegDbSinglePhaseTransportModel& daRegDbTransport_;
     /// laminar viscosity for incompressible flow
-    const singlePhaseTransportModel& laminarTransport_;
-    /// a DARegDb object for looking up turbulence_
-    const DARegDbTurbulenceModelIncompressible& daRegDbTurbIncomp_;
+    autoPtr<singlePhaseTransportModel> laminarTransportPtr_;
     /// turbulence model object
-    const incompressible::turbulenceModel& turbulence_;
-    /// density field
+    autoPtr<incompressible::turbulenceModel> turbulencePtr_;
+    /// density field, initialize with ones
     volScalarField rho_;
 #endif
 
 #ifdef CompressibleFlow
-    /// a DARegDb object for looking up thermo_
-    const DARegDbFluidThermo& daRegDbThermo_;
     /// thermo model for compressible flow
-    const fluidThermo& thermo_;
-    /// a DARegDb object for looking up turbulence_
-    const DARegDbTurbulenceModelCompressible& daRegDbTurbComp_;
+    autoPtr<fluidThermo> thermoPtr_;
     /// turbulence model object
-    const compressible::turbulenceModel& turbulence_;
-    /// density field
+    autoPtr<compressible::turbulenceModel> turbulencePtr_;
+    /// density field, lookup from fvMesh
     volScalarField& rho_;
 #endif
 
@@ -148,18 +142,22 @@ public:
         autoPtr,
         DATurbulenceModel,
         dictionary,
-        (const fvMesh& mesh),
-        (mesh));
+        (const fvMesh& mesh, const DAOption& daOption),
+        (mesh, daOption));
 
     // Constructors
 
     //- Construct from components
-    DATurbulenceModel(const fvMesh& mesh);
+    DATurbulenceModel(
+        const fvMesh& mesh,
+        const DAOption& daOption);
 
     // Selectors
 
     //- Return a reference to the selected model
-    static autoPtr<DATurbulenceModel> New(const fvMesh& mesh);
+    static autoPtr<DATurbulenceModel> New(
+        const fvMesh& mesh,
+        const DAOption& daOption);
 
     //- Destructor
     virtual ~DATurbulenceModel()

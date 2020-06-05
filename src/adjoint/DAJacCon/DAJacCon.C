@@ -2921,6 +2921,8 @@ void DAJacCon::parallelD2Coloring(
     conMat: a Petsc matrix that have the connectivity pattern (value one for 
     all nonzero elements)
 
+    Output:
+    -------
     colors: the coloring vector to store the coloring indices, starting with 0
     
     nColors: the number of colors

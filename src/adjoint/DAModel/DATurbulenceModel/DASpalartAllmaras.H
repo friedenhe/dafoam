@@ -28,13 +28,14 @@ class DASpalartAllmaras
 {
 
 protected:
-
 public:
     TypeName("SpalartAllmaras");
     // Constructors
 
     //- Construct from components
-    DASpalartAllmaras(const fvMesh& mesh);
+    DASpalartAllmaras(
+        const fvMesh& mesh,
+        const DAOption& daOption);
 
     //- Destructor
     virtual ~DASpalartAllmaras()

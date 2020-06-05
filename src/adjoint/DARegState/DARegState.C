@@ -19,23 +19,21 @@ defineRunTimeSelectionTable(DARegState, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DARegState::DARegState(const fvMesh& mesh)
-    : regIOobject(
-        IOobject(
-            "DARegState",
-            mesh.time().timeName(),
-            mesh, // register to mesh
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            true // always register object
-            )),
-      mesh_(mesh)
+DARegState::DARegState(
+    const fvMesh& mesh,
+    const DAOption& daOption,
+    const DAModel& daModel)
+    : mesh_(mesh),
+      daOption_(daOption),
+      daModel_(daModel)
 {
     /*
     Description:
         Construct from Foam::fvMesh
     Input:
         mesh: a fvMesh object
+        daOption: DAOption object
+        daModel: DAModel object
     */
 
     // initialize regStates
@@ -49,18 +47,20 @@ DARegState::DARegState(const fvMesh& mesh)
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
-autoPtr<DARegState> DARegState::New(const fvMesh& mesh)
+autoPtr<DARegState> DARegState::New(
+    const fvMesh& mesh,
+    const DAOption& daOption,
+    const DAModel& daModel)
 {
     // standard setup for runtime selectable classes
 
     // look up the solver name defined in system/DADict
-    const DAOption& daOption = mesh.thisDb().lookupObject<DAOption>("DAOption");
-    word solverName = daOption.getOption<word>("solverName");
+    word modelType = daOption.getOption<word>("modelType");
 
-    Info << "Selecting " << solverName << " for DARegState" << endl;
+    Info << "Selecting " << modelType << " for DARegState" << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(solverName);
+        dictionaryConstructorTablePtr_->find(modelType);
 
     // if the solver name is not found in any child class, print an error
     if (cstrIter == dictionaryConstructorTablePtr_->end())
@@ -68,10 +68,12 @@ autoPtr<DARegState> DARegState::New(const fvMesh& mesh)
         FatalErrorIn(
             "DARegState::New"
             "("
-            "    const fvMesh&"
+            "    const fvMesh&,"
+            "    const DAOption&,"
+            "    const DAModel&"
             ")")
             << "Unknown DARegState type "
-            << solverName << nl << nl
+            << modelType << nl << nl
             << "Valid DARegState types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
@@ -79,43 +81,12 @@ autoPtr<DARegState> DARegState::New(const fvMesh& mesh)
 
     // child class found
     return autoPtr<DARegState>(
-        cstrIter()(mesh));
+        cstrIter()(mesh, daOption, daModel));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-// this is a virtual function for regIOobject
-bool DARegState::writeData(Ostream& os) const
-{
-    // do nothing
-    return true;
-}
 
-void DARegState::correctModelStates(wordList& modelStates)
-{
-    const DAModel& daModel = mesh_.thisDb().lookupObject<DAModel>("DAModel");
-    daModel.correctModelStates(modelStates);
-    return;
-}
-
-/// return the name of pressure field, it can be either p or p_rgh
-word DARegState::getPName() const
-{
-    word pName = "p";
-    forAll(regStates_.toc(), idxI)
-    {
-        word key  = regStates_.toc()[idxI];
-        forAll(regStates_[key], idxJ)
-        {
-            word stateName = regStates_[key][idxJ];
-            if(stateName == "p_rgh")
-            {
-                pName = "p_rgh";
-            }
-        }
-    }
-    return pName;
-}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
