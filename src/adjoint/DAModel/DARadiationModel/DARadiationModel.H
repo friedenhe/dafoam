@@ -76,7 +76,7 @@ public:
     /// this is a virtual function for regIOobject
     bool writeData(Ostream& os) const;
 
-    virtual void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const = 0;
+    virtual void addModelResidualCon(HashTable<List<List<word>>>& allCon) const = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

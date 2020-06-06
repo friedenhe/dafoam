@@ -78,7 +78,7 @@ void DAModel::correctModelStates(wordList& modelStates) const
     }
 }
 
-void DAModel::correctAdjStateResidualModelCon(List<List<word>>& stateCon) const
+void DAModel::correctStateResidualModelCon(List<List<word>>& stateCon) const
 {
     /*
     Update the original variable connectivity for the adjoint state 
@@ -121,7 +121,7 @@ void DAModel::correctAdjStateResidualModelCon(List<List<word>>& stateCon) const
     {
         const DATurbulenceModel& daTurb =
             mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel");
-        daTurb.correctAdjStateResidualModelCon(stateCon);
+        daTurb.correctStateResidualModelCon(stateCon);
     }
 
     // correct radiation model states
@@ -132,7 +132,7 @@ void DAModel::correctAdjStateResidualModelCon(List<List<word>>& stateCon) const
 }
 
 /// add the model residual connectivity to stateCon
-void DAModel::addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const
+void DAModel::addModelResidualCon(HashTable<List<List<word>>>& allCon) const
 {
     /*
     Add the connectivity levels for all physical model residuals to allCon
@@ -177,7 +177,7 @@ void DAModel::addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const
     {
         const DATurbulenceModel& daTurb =
             mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel");
-        daTurb.addAdjModelResidualCon(allCon);
+        daTurb.addModelResidualCon(allCon);
     }
 
     // add radiation model state residuals
@@ -185,7 +185,7 @@ void DAModel::addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const
     {
         const DARadiationModel& daRadiation =
             mesh_.thisDb().lookupObject<DARadiationModel>("DARadiationModel");
-        daRadiation.addAdjModelResidualCon(allCon);
+        daRadiation.addModelResidualCon(allCon);
     }
 
 }

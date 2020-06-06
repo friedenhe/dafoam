@@ -9,8 +9,8 @@
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DARegState_H
-#define DARegState_H
+#ifndef DAStateInfo_H
+#define DAStateInfo_H
 
 #include "runTimeSelectionTables.H"
 #include "fvOptions.H"
@@ -24,18 +24,18 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class DARegState Declaration
+                    Class DAStateInfo Declaration
 \*---------------------------------------------------------------------------*/
 
-class DARegState
+class DAStateInfo
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DARegState(const DARegState&);
+    DAStateInfo(const DAStateInfo&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DARegState&);
+    void operator=(const DAStateInfo&);
 
 protected:
     /// fvMesh
@@ -46,22 +46,22 @@ protected:
     const DAModel& daModel_;
 
     /// registered states 1st hash: solverName, 2nd hash: fieldType, 3nd list, stateNames
-    HashTable<wordList> regStates_;
+    HashTable<wordList> stateInfo_;
 
     /// table to specify how the states are connected to the residuals for a given solver
-    HashTable<List<List<word>>> adjStateResidualConInfo_;
+    HashTable<List<List<word>>> stateResConInfo_;
 
-    /// a backup for DAJacCon::adjStateResidualConInfo_ when reducing the connectivity levels
-    HashTable<List<List<word>>> adjStateResidualConInfoBK_;
+    /// a backup for stateResConInfo_ when reducing the connectivity levels
+    HashTable<List<List<word>>> stateResConInfoBK_;
 
 public:
     /// Runtime type information
-    TypeName("DARegState");
+    TypeName("DAStateInfo");
 
     // Declare run-time constructor selection table
     declareRunTimeSelectionTable(
         autoPtr,
-        DARegState,
+        DAStateInfo,
         dictionary,
         (const fvMesh& mesh, const DAOption& daOption, const DAModel& daModel),
         (mesh, daOption, daModel));
@@ -69,7 +69,7 @@ public:
     // Constructors
 
     //- Construct from components
-    DARegState(
+    DAStateInfo(
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel);
@@ -77,26 +77,26 @@ public:
     // Selectors
 
     //- Return a reference to the selected model
-    static autoPtr<DARegState> New(
+    static autoPtr<DAStateInfo> New(
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel);
 
     //- Destructor
-    virtual ~DARegState()
+    virtual ~DAStateInfo()
     {
     }
 
     /// return the reference of regStates_
-    const HashTable<wordList>& getRegStates() const
+    const HashTable<wordList>& getStateInfo() const
     {
-        return regStates_;
+        return stateInfo_;
     }
 
     /// return the reference of adjStateResidualConInfo_
-    const HashTable<List<List<word>>>& getAdjStateResidualConInfo() const
+    const HashTable<List<List<word>>>& getStateResConInfo() const
     {
-        return adjStateResidualConInfo_;
+        return stateResConInfo_;
     }
 
 };

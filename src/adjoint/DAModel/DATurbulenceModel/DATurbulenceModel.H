@@ -179,10 +179,10 @@ public:
     virtual void correctTurbBoundaryConditions() = 0;
 
     /// update the original variable connectivity for the adjoint state residuals in stateCon
-    virtual void correctAdjStateResidualModelCon(List<List<word>>& stateCon) const = 0;
+    virtual void correctStateResidualModelCon(List<List<word>>& stateCon) const = 0;
 
     /// add the model residual connectivity to stateCon
-    virtual void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const = 0;
+    virtual void addModelResidualCon(HashTable<List<List<word>>>& allCon) const = 0;
 
     /// dev terms
     tmp<volSymmTensorField> devRhoReff() const;

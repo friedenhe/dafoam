@@ -54,10 +54,10 @@ public:
     virtual void correctTurbBoundaryConditions();
 
     /// update the original variable connectivity for the adjoint state residuals in stateCon
-    virtual void correctAdjStateResidualModelCon(List<List<word>>& stateCon) const;
+    virtual void correctStateResidualModelCon(List<List<word>>& stateCon) const;
 
     /// add the model residual connectivity to stateCon
-    virtual void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const;
+    virtual void addModelResidualCon(HashTable<List<List<word>>>& allCon) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

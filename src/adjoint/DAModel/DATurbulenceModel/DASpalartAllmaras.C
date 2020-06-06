@@ -46,7 +46,7 @@ void DASpalartAllmaras::correctTurbBoundaryConditions()
 {
 }
 
-void DASpalartAllmaras::correctAdjStateResidualModelCon(List<List<word>>& stateCon) const
+void DASpalartAllmaras::correctStateResidualModelCon(List<List<word>>& stateCon) const
 {
     // update the original variable connectivity for the adjoint state residuals in stateCon
     // For SA model just replace nut with nuTilda
@@ -63,7 +63,7 @@ void DASpalartAllmaras::correctAdjStateResidualModelCon(List<List<word>>& stateC
     }
 }
 
-void DASpalartAllmaras::addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const
+void DASpalartAllmaras::addModelResidualCon(HashTable<List<List<word>>>& allCon) const
 {
     // add the SA model residual connectivity to stateCon
 
@@ -81,7 +81,7 @@ void DASpalartAllmaras::addAdjModelResidualCon(HashTable<List<List<word>>>& allC
     {
         FatalErrorIn(
             "Neither p nor p_rgh was found in mesh.thisDb()!"
-            "addAdjModelResidualCon failed to setup turbulence residuals!")
+            "addModelResidualCon failed to setup turbulence residuals!")
             << exit(FatalError);
     }
 

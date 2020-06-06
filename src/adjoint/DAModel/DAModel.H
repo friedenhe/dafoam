@@ -82,10 +82,10 @@ public:
     void correctModelStates(wordList& modelStates) const;
 
     /// update the original variable connectivity for the adjoint state residuals in stateCon
-    void correctAdjStateResidualModelCon(List<List<word>>& stateCon) const;
+    void correctStateResidualModelCon(List<List<word>>& stateCon) const;
 
     /// add the model residual connectivity to stateCon
-    void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const;
+    void addModelResidualCon(HashTable<List<List<word>>>& allCon) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

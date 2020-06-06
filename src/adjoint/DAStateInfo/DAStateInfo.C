@@ -5,7 +5,7 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DARegState.H"
+#include "DAStateInfo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -14,12 +14,12 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(DARegState, 0);
-defineRunTimeSelectionTable(DARegState, dictionary);
+defineTypeNameAndDebug(DAStateInfo, 0);
+defineRunTimeSelectionTable(DAStateInfo, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DARegState::DARegState(
+DAStateInfo::DAStateInfo(
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel)
@@ -37,17 +37,17 @@ DARegState::DARegState(
     */
 
     // initialize regStates
-    regStates_.set("volScalarStates", {});
-    regStates_.set("volVectorStates", {});
-    regStates_.set("surfaceScalarStates", {});
-    regStates_.set("modelStates", {});
+    stateInfo_.set("volScalarStates", {});
+    stateInfo_.set("volVectorStates", {});
+    stateInfo_.set("surfaceScalarStates", {});
+    stateInfo_.set("modelStates", {});
 
     //Info<<regStates<<endl;
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
-autoPtr<DARegState> DARegState::New(
+autoPtr<DAStateInfo> DAStateInfo::New(
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel)
@@ -57,7 +57,7 @@ autoPtr<DARegState> DARegState::New(
     // look up the solver name defined in system/DADict
     word modelType = daOption.getOption<word>("modelType");
 
-    Info << "Selecting " << modelType << " for DARegState" << endl;
+    Info << "Selecting " << modelType << " for DAStateInfo" << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);
@@ -66,21 +66,21 @@ autoPtr<DARegState> DARegState::New(
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorIn(
-            "DARegState::New"
+            "DAStateInfo::New"
             "("
             "    const fvMesh&,"
             "    const DAOption&,"
             "    const DAModel&"
             ")")
-            << "Unknown DARegState type "
+            << "Unknown DAStateInfo type "
             << modelType << nl << nl
-            << "Valid DARegState types:" << endl
+            << "Valid DAStateInfo types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }
 
     // child class found
-    return autoPtr<DARegState>(
+    return autoPtr<DAStateInfo>(
         cstrIter()(mesh, daOption, daModel));
 }
 

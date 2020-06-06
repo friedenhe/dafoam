@@ -1,18 +1,9 @@
 DAUtility/DAUtility.C
 
-DACheckMesh/DACheckMesh.C
-DACheckMesh/checkGeometry.C
-
 DAOption/DAOption.C
 
-DARegState/DARegState.C
-DARegState/DARegStateRhoSimpleFoam.C
-
 DARegDb/DARegDbFluidThermo.C
-DARegDb/DARegDbNearWallDist.C
 DARegDb/DARegDbTurbulenceModelCompressible.C
-
-DAModel/DAModel.C
 
 DAModel/DATurbulenceModel/DATurbulenceModel.C
 DAModel/DATurbulenceModel/DASpalartAllmaras.C
@@ -20,15 +11,9 @@ DAModel/DATurbulenceModel/DASpalartAllmaras.C
 DAModel/DARadiationModel/DARadiationModel.C
 DAModel/DARadiationModel/DAP1.C
 
-DAIndex/DAIndex.C
+DAModel/DAModel.C
 
-DAObjFunc/DAObjFunc.C
-DAObjFunc/DAObjFuncForce.C
-
-DAJacCon/DAJacCon.C
-DAJacCon/DAJacConRhoSimpleFoam.C
-
-DASolver/DASolver.C
-DASolver/DARhoSimpleFoam/DARhoSimpleFoam.C
+DAStateInfo/DAStateInfo.C
+DAStateInfo/DAStateInfoRhoSimpleFoam.C
 
 LIB = $(FOAM_USER_LIBBIN)/libDAFoamCompressible

@@ -43,7 +43,7 @@ public:
     }
 
     // Member functions
-    virtual void addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const;
+    virtual void addModelResidualCon(HashTable<List<List<word>>>& allCon) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

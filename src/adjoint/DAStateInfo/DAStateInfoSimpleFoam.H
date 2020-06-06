@@ -8,10 +8,10 @@
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DARegStateRhoSimpleFoam_H
-#define DARegStateRhoSimpleFoam_H
+#ifndef DAStateInfoSimpleFoam_H
+#define DAStateInfoSimpleFoam_H
 
-#include "DARegState.H"
+#include "DAStateInfo.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -20,25 +20,25 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DARegStateRhoSimpleFoam Declaration
+      Class DAStateInfoSimpleFoam Declaration
 \*---------------------------------------------------------------------------*/
 
-class DARegStateRhoSimpleFoam
-    : public DARegState
+class DAStateInfoSimpleFoam
+    : public DAStateInfo
 {
 
 public:
-    TypeName("DARhoSimpleFoam");
+    TypeName("DASimpleFoam");
     // Constructors
 
     //- Construct from components
-    DARegStateRhoSimpleFoam(
+    DAStateInfoSimpleFoam(
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel);
 
     //- Destructor
-    virtual ~DARegStateRhoSimpleFoam()
+    virtual ~DAStateInfoSimpleFoam()
     {
     }
 };

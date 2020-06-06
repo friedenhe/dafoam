@@ -24,7 +24,7 @@ DAP1::DAP1(
 }
 
 /// add the model residual connectivity to stateCon
-void DAP1::addAdjModelResidualCon(HashTable<List<List<word>>>& allCon) const
+void DAP1::addModelResidualCon(HashTable<List<List<word>>>& allCon) const
 {
 }
 
