@@ -1,5 +1,8 @@
 DAUtility/DAUtility.C
 
+DACheckMesh/DACheckMesh.C
+DACheckMesh/checkGeometry.C
+
 DAOption/DAOption.C
 
 DARegDb/DARegDbSinglePhaseTransportModel.C
@@ -15,5 +18,21 @@ DAModel/DAModel.C
 
 DAStateInfo/DAStateInfo.C
 DAStateInfo/DAStateInfoSimpleFoam.C
+
+DAIndex/DAIndex.C
+
+DAObjFunc/DAObjFunc.C
+DAObjFunc/DAObjFuncForce.C
+
+DAResidual/DAResidual.C
+DAResidual/DAResidualSimpleFoam.C
+
+DAColoring/DAColoring.C
+
+DAJacCon/DAJacCon.C
+DAJacCon/DAJacCondRdW.C
+
+DASolver/DASolver.C
+DASolver/DASimpleFoam/DASimpleFoam.C
 
 LIB = $(FOAM_USER_LIBBIN)/libDAFoamIncompressible

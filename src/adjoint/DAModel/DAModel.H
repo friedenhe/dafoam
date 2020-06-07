@@ -4,11 +4,11 @@
     Version : v2
 
     Description:
-        DAModel is a general template for handling physical models in DAFoam. 
+        DAModel is a general class for handling physical models in DAFoam. 
         The constructor for DAModel does not explicitly contain objects of 
         physical models. Instead, it will look up any model class, e.g., 
         DATurbulenceModel, DARaditionModel, that has been registred in fvMesh. 
-        This enables the flexibility such that we  can simultaneously have 
+        This enables the flexibility such that we can simultaneously have 
         multiple models for adjoint, e.g., turbulence model + radiation model.
         
         NOTE 1: in adjoint functions, we should call functions in DAModel to handle
@@ -49,7 +49,6 @@ namespace Foam
 \*---------------------------------------------------------------------------*/
 
 class DAModel
-    : public regIOobject
 {
 
 private:
@@ -62,6 +61,8 @@ private:
     /// Foam::fvMesh object
     const fvMesh& mesh_;
 
+    const DAOption& daOption_;
+
     /// have turbulence models for the flow and adjoint?
     label hasTurbulenceModel_ = 0;
 
@@ -70,13 +71,12 @@ private:
 
 public:
     /// Constructors
-    DAModel(const fvMesh& mesh);
+    DAModel(
+        const fvMesh& mesh,
+        const DAOption& daOption);
 
     /// Destructor
     virtual ~DAModel();
-
-    /// this is a virtual function for regIOobject
-    bool writeData(Ostream& os) const;
 
     /// update the name in modelStates based on the selected physical model at runtime
     void correctModelStates(wordList& modelStates) const;
@@ -86,6 +86,10 @@ public:
 
     /// add the model residual connectivity to stateCon
     void addModelResidualCon(HashTable<List<List<word>>>& allCon) const;
+
+    /// get a reference to DATurbulenceModel
+    const DATurbulenceModel& getDATurbulenceModel() const;
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

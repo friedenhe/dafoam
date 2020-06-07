@@ -4,16 +4,18 @@
     Version : v2
 
     Description:
-    Augmented radiation model for the adjoint method, including residual 
-    calculation functions, etc
+        Compute the residual for a given solver
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DARadiationModel_H
-#define DARadiationModel_H
+#ifndef DAResidual_H
+#define DAResidual_H
 
 #include "runTimeSelectionTables.H"
+#include "fvOptions.H"
+#include "surfaceFields.H"
 #include "DAOption.H"
+#include "DAModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -21,66 +23,67 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class DARadiationModel Declaration
+                    Class DAResidual Declaration
 \*---------------------------------------------------------------------------*/
 
-class DARadiationModel
-    : public regIOobject
+class DAResidual
 {
 
 private:
-    //- Disallow default bitwise copy construct
-    DARadiationModel(const DARadiationModel&);
+    /// Disallow default bitwise copy construct
+    DAResidual(const DAResidual&);
 
-    //- Disallow default bitwise assignment
-    void operator=(const DARadiationModel&);
+    /// Disallow default bitwise assignment
+    void operator=(const DAResidual&);
 
 protected:
+    /// fvMesh
     const fvMesh& mesh_;
 
+    /// DAOption object
     const DAOption& daOption_;
 
+    /// DAModel object
+    const DAModel& daModel_;
+
 public:
-    //- Runtime type information
-    TypeName("DARadiationModel");
+    /// Runtime type information
+    TypeName("DAResidual");
 
     // Declare run-time constructor selection table
     declareRunTimeSelectionTable(
         autoPtr,
-        DARadiationModel,
+        DAResidual,
         dictionary,
-        (const word modelType, 
-         const fvMesh& mesh, 
-         const DAOption& daOption),
-        (modelType, mesh, daOption));
+        (const word modelType,
+         const fvMesh& mesh,
+         const DAOption& daOption,
+         const DAModel& daModel),
+        (modelType, mesh, daOption, daModel));
 
     // Constructors
 
     //- Construct from components
-    DARadiationModel(
+    DAResidual(
         const word modelType,
         const fvMesh& mesh,
-        const DAOption& daOption);
+        const DAOption& daOption,
+        const DAModel& daModel);
 
     // Selectors
 
     //- Return a reference to the selected model
-    static autoPtr<DARadiationModel> New(
+    static autoPtr<DAResidual> New(
         const word modelType,
         const fvMesh& mesh,
-        const DAOption& daOption);
+        const DAOption& daOption,
+        const DAModel& daModel);
 
     //- Destructor
-    virtual ~DARadiationModel()
+    virtual ~DAResidual()
     {
     }
 
-    // Members
-
-    /// this is a virtual function for regIOobject
-    bool writeData(Ostream& os) const;
-
-    virtual void addModelResidualCon(HashTable<List<List<word>>>& allCon) const = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

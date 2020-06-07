@@ -5,30 +5,26 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAP1.H"
+#include "DAResidualRhoSimpleFoam.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAP1, 0);
-addToRunTimeSelectionTable(DARadiationModel, DAP1, dictionary);
+defineTypeNameAndDebug(DAResidualRhoSimpleFoam, 0);
+addToRunTimeSelectionTable(DAResidual, DAResidualRhoSimpleFoam, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAP1::DAP1(
+DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
     const word modelType,
     const fvMesh& mesh,
-    const DAOption& daOption)
-    : DARadiationModel(modelType, mesh, daOption)
+    const DAOption& daOption,
+    const DAModel& daModel)
+    : DAResidual(modelType, mesh, daOption, daModel)
 {
+    
 }
-
-/// add the model residual connectivity to stateCon
-void DAP1::addModelResidualCon(HashTable<List<List<word>>>& allCon) const
-{
-}
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

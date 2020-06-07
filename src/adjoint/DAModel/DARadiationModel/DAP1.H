@@ -34,6 +34,7 @@ public:
 
     //- Construct from components
     DAP1(
+        const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption);
 

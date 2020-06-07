@@ -12,21 +12,15 @@
 namespace Foam
 {
 
-// Constructors
-DAIndex::DAIndex(const fvMesh& mesh)
-    : regIOobject(
-        IOobject(
-            "DAIndex", // always use DAIndex for the db name
-            mesh.time().timeName(),
-            mesh, // register to mesh
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            true // always register object
-            )),
-      mesh_(mesh),
-      daOption_(mesh.thisDb().lookupObject<DAOption>("DAOption")),
-      daRegState_(mesh.thisDb().lookupObject<DARegState>("DARegState")),
-      regStates_(daRegState_.getRegStates()),
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+
+DAIndex::DAIndex(
+    const fvMesh& mesh,
+    const DAOption& daOption,
+    const DAModel& daModel)
+    : mesh_(mesh),
+      daOption_(daOption),
+      daModel_(daModel),
       pointProcAddressing(
           IOobject(
               "pointProcAddressing",
@@ -41,30 +35,32 @@ DAIndex::DAIndex(const fvMesh& mesh)
     // local denotes the current MPI process
     // global denotes all the MPI processes
 
-    // Setup the adjoint state name and type lists.
-    forAll(regStates_["volVectorStates"], idxI)
-    {
-        adjStateNames.append(regStates_["volVectorStates"][idxI]);
-        adjStateType.set(regStates_["volVectorStates"][idxI], "volVectorState");
-    }
-    forAll(regStates_["volScalarStates"], idxI)
-    {
-        adjStateNames.append(regStates_["volScalarStates"][idxI]);
-        adjStateType.set(regStates_["volScalarStates"][idxI], "volScalarState");
-    }
-    forAll(regStates_["modelStates"], idxI)
-    {
-        adjStateNames.append(regStates_["modelStates"][idxI]);
-        adjStateType.set(regStates_["modelStates"][idxI], "modelState");
-    }
-    forAll(regStates_["surfaceScalarStates"], idxI)
-    {
-        adjStateNames.append(regStates_["surfaceScalarStates"][idxI]);
-        adjStateType.set(regStates_["surfaceScalarStates"][idxI], "surfaceScalarState");
-    }
+    // initialize stateInfo_
+    word solverName = daOption.getOption<word>("solverName");
+    autoPtr<DAStateInfo> daStateInfo(DAStateInfo::New(solverName, mesh, daOption, daModel));
+    stateInfo_ = daStateInfo->getStateInfo();
 
-    //Info<<"adjStateNames"<<adjStateNames<<endl;
-    Info << "Adjoint States: " << adjStateType << endl;
+    // Setup the adjoint state name and type lists.
+    forAll(stateInfo_["volVectorStates"], idxI)
+    {
+        adjStateNames.append(stateInfo_["volVectorStates"][idxI]);
+        adjStateType.set(stateInfo_["volVectorStates"][idxI], "volVectorState");
+    }
+    forAll(stateInfo_["volScalarStates"], idxI)
+    {
+        adjStateNames.append(stateInfo_["volScalarStates"][idxI]);
+        adjStateType.set(stateInfo_["volScalarStates"][idxI], "volScalarState");
+    }
+    forAll(stateInfo_["modelStates"], idxI)
+    {
+        adjStateNames.append(stateInfo_["modelStates"][idxI]);
+        adjStateType.set(stateInfo_["modelStates"][idxI], "modelState");
+    }
+    forAll(stateInfo_["surfaceScalarStates"], idxI)
+    {
+        adjStateNames.append(stateInfo_["surfaceScalarStates"][idxI]);
+        adjStateType.set(stateInfo_["surfaceScalarStates"][idxI], "surfaceScalarState");
+    }
 
     // Local mesh related sizes
     nLocalCells = mesh.nCells();
@@ -101,10 +97,10 @@ DAIndex::DAIndex(const fvMesh& mesh)
     // Local adjoint state sizes
     // first get how many state variables are registered.
     // Note turbStates are treated separatedly
-    nVolScalarStates = regStates_["volScalarStates"].size();
-    nVolVectorStates = regStates_["volVectorStates"].size();
-    nSurfaceScalarStates = regStates_["surfaceScalarStates"].size();
-    nModelStates = regStates_["modelStates"].size();
+    nVolScalarStates = stateInfo_["volScalarStates"].size();
+    nVolVectorStates = stateInfo_["volVectorStates"].size();
+    nSurfaceScalarStates = stateInfo_["surfaceScalarStates"].size();
+    nModelStates = stateInfo_["modelStates"].size();
 
     // we can now calculate adjoint state size
     label nLocalCellStates = (nVolVectorStates * 3 + nVolScalarStates + nModelStates) * nLocalCells;
@@ -147,13 +143,6 @@ DAIndex::DAIndex(const fvMesh& mesh)
         nUndecomposedPoints = pointMaxIdx + 1;
     }
 
-    // Print relevant sizes to screen
-    Info << "Global Cells: " << nGlobalCells << endl;
-    Info << "Global Faces: " << nGlobalFaces << endl;
-    Info << "Global Xv: " << nGlobalXv << endl;
-    Info << "Undecomposed points: " << nUndecomposedPoints << endl;
-    Info << "Global Adjoint States: " << nGlobalAdjointStates << endl;
-
     // initialize stuff for coloring
     label useColoring = daOption_.getOption<label>("adjUseColoring");
     if (useColoring)
@@ -183,55 +172,11 @@ DAIndex::DAIndex(const fvMesh& mesh)
 
         globalCoupledBFaceNumbering = this->genGlobalIndex(nLocalCoupledBFaces);
         nGlobalCoupledBFaces = globalCoupledBFaceNumbering.size();
-
-        // calculate nLocalCyclicAMIFaces and isCyclicAMIFace
-        isCyclicAMIFace.setSize(nLocalFaces);
-        for (label i = 0; i < nLocalFaces; i++)
-        {
-            isCyclicAMIFace[i] = 0;
-        }
-
-        nLocalCyclicAMIFaces = 0;
-        faceIdx = nLocalInternalFaces;
-        forAll(mesh_.boundaryMesh(), patchI)
-        {
-            forAll(mesh_.boundaryMesh()[patchI], faceI)
-            {
-                if (mesh_.boundaryMesh()[patchI].type() == "cyclicAMI")
-                {
-                    // this is a cyclicAMI patch
-                    isCyclicAMIFace[faceIdx] = 1;
-                    nLocalCyclicAMIFaces++;
-                }
-                faceIdx++;
-            }
-        }
     }
 
     this->calcLocalIdxLists(adjStateName4LocalAdjIdx, cellIFaceI4LocalAdjIdx);
-    /*
-    // check if we have user-defined patches or volumes, if yes, calculate their face and cell indices
-    if (adjIO_.userDefinedPatchInfo.size() != 0)
-    {
-        this->calcFaceIndx4UserDefinedPatches();
-    }
-    if (adjIO_.userDefinedVolumeInfo.size() != 0)
-    {
-        this->calcCellIndx4UserDefinedVolumes();
-    }
-*/
 }
 
-DAIndex::~DAIndex()
-{
-}
-
-// this is a virtual function for regIOobject
-bool DAIndex::writeData(Ostream& os) const
-{
-    // do nothing
-    return true;
-}
 
 void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
 {
@@ -267,40 +212,40 @@ void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
 
             label counter = 0;
 
-            forAll(regStates_["volVectorStates"], idx)
+            forAll(stateInfo_["volVectorStates"], idx)
             {
-                if (regStates_["volVectorStates"][idx] == stateName)
+                if (stateInfo_["volVectorStates"][idx] == stateName)
                 {
                     offset.set(stateName, counter * nLocalCells);
                 }
                 counter += 3;
             }
 
-            forAll(regStates_["volScalarStates"], idx)
+            forAll(stateInfo_["volScalarStates"], idx)
             {
-                if (regStates_["volScalarStates"][idx] == stateName)
+                if (stateInfo_["volScalarStates"][idx] == stateName)
                 {
                     offset.set(stateName, counter * nLocalCells);
                 }
                 counter++;
             }
 
-            forAll(regStates_["modelStates"], idx)
+            forAll(stateInfo_["modelStates"], idx)
             {
-                if (regStates_["modelStates"][idx] == stateName)
+                if (stateInfo_["modelStates"][idx] == stateName)
                 {
                     offset.set(stateName, counter * nLocalCells);
                 }
                 counter++;
             }
 
-            forAll(regStates_["surfaceScalarStates"], idx)
+            forAll(stateInfo_["surfaceScalarStates"], idx)
             {
-                if (regStates_["surfaceScalarStates"][idx] == stateName && idx == 0)
+                if (stateInfo_["surfaceScalarStates"][idx] == stateName && idx == 0)
                 {
                     offset.set(stateName, counter * nLocalCells);
                 }
-                if (regStates_["surfaceScalarStates"][idx] == stateName && idx > 0)
+                if (stateInfo_["surfaceScalarStates"][idx] == stateName && idx > 0)
                 {
                     offset.set(stateName, counter * nLocalFaces);
                 }
@@ -317,36 +262,36 @@ void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
 
             label counter = 0;
 
-            forAll(regStates_["volVectorStates"], idx)
+            forAll(stateInfo_["volVectorStates"], idx)
             {
-                if (regStates_["volVectorStates"][idx] == stateName)
+                if (stateInfo_["volVectorStates"][idx] == stateName)
                 {
                     offset.set(stateName, counter);
                 }
                 counter += 3;
             }
 
-            forAll(regStates_["volScalarStates"], idx)
+            forAll(stateInfo_["volScalarStates"], idx)
             {
-                if (regStates_["volScalarStates"][idx] == stateName)
+                if (stateInfo_["volScalarStates"][idx] == stateName)
                 {
                     offset.set(stateName, counter);
                 }
                 counter++;
             }
 
-            forAll(regStates_["modelStates"], idx)
+            forAll(stateInfo_["modelStates"], idx)
             {
-                if (regStates_["modelStates"][idx] == stateName)
+                if (stateInfo_["modelStates"][idx] == stateName)
                 {
                     offset.set(stateName, counter);
                 }
                 counter++;
             }
 
-            forAll(regStates_["surfaceScalarStates"], idx)
+            forAll(stateInfo_["surfaceScalarStates"], idx)
             {
-                if (regStates_["surfaceScalarStates"][idx] == stateName)
+                if (stateInfo_["surfaceScalarStates"][idx] == stateName)
                 {
                     offset.set(stateName, counter);
                 }
@@ -440,30 +385,30 @@ void DAIndex::calcAdjStateID(HashTable<label>& adjStateID)
     */
 
     label id = 0;
-    forAll(regStates_["volVectorStates"], idx)
+    forAll(stateInfo_["volVectorStates"], idx)
     {
-        word stateName = regStates_["volVectorStates"][idx];
+        word stateName = stateInfo_["volVectorStates"][idx];
         adjStateID.set(stateName, id);
         id++;
     }
 
-    forAll(regStates_["volScalarStates"], idx)
+    forAll(stateInfo_["volScalarStates"], idx)
     {
-        word stateName = regStates_["volScalarStates"][idx];
+        word stateName = stateInfo_["volScalarStates"][idx];
         adjStateID.set(stateName, id);
         id++;
     }
 
-    forAll(regStates_["modelStates"], idx)
+    forAll(stateInfo_["modelStates"], idx)
     {
-        word stateName = regStates_["modelStates"][idx];
+        word stateName = stateInfo_["modelStates"][idx];
         adjStateID.set(stateName, id);
         id++;
     }
 
-    forAll(regStates_["surfaceScalarStates"], idx)
+    forAll(stateInfo_["surfaceScalarStates"], idx)
     {
-        word stateName = regStates_["surfaceScalarStates"][idx];
+        word stateName = stateInfo_["surfaceScalarStates"][idx];
         adjStateID.set(stateName, id);
         id++;
     }
@@ -543,9 +488,9 @@ void DAIndex::calcLocalIdxLists(
     cellIFaceI4LocalIdx.setSize(nLocalAdjointStates);
     stateName4LocalAdjIdx.setSize(nLocalAdjointStates);
 
-    forAll(regStates_["volVectorStates"], idx)
+    forAll(stateInfo_["volVectorStates"], idx)
     {
-        word stateName = regStates_["volVectorStates"][idx];
+        word stateName = stateInfo_["volVectorStates"][idx];
         forAll(mesh_.cells(), cellI)
         {
             for (label i = 0; i < 3; i++)
@@ -558,9 +503,9 @@ void DAIndex::calcLocalIdxLists(
         }
     }
 
-    forAll(regStates_["volScalarStates"], idx)
+    forAll(stateInfo_["volScalarStates"], idx)
     {
-        word stateName = regStates_["volScalarStates"][idx];
+        word stateName = stateInfo_["volScalarStates"][idx];
         forAll(mesh_.cells(), cellI)
         {
             label localIdx = this->getLocalAdjointStateIndex(stateName, cellI);
@@ -570,9 +515,9 @@ void DAIndex::calcLocalIdxLists(
         }
     }
 
-    forAll(regStates_["modelStates"], idx)
+    forAll(stateInfo_["modelStates"], idx)
     {
-        word stateName = regStates_["modelStates"][idx];
+        word stateName = stateInfo_["modelStates"][idx];
         forAll(mesh_.cells(), cellI)
         {
             label localIdx = this->getLocalAdjointStateIndex(stateName, cellI);
@@ -582,9 +527,9 @@ void DAIndex::calcLocalIdxLists(
         }
     }
 
-    forAll(regStates_["surfaceScalarStates"], idx)
+    forAll(stateInfo_["surfaceScalarStates"], idx)
     {
-        word stateName = regStates_["surfaceScalarStates"][idx];
+        word stateName = stateInfo_["surfaceScalarStates"][idx];
         forAll(mesh_.faces(), faceI)
         {
             label localIdx = this->getLocalAdjointStateIndex(stateName, faceI);
@@ -874,10 +819,10 @@ void DAIndex::ofField2StateVec(Vec stateVec) const
     PetscScalar* stateVecArray;
     VecGetArray(stateVec, &stateVecArray);
 
-    forAll(regStates_["volVectorStates"], idxI)
+    forAll(stateInfo_["volVectorStates"], idxI)
     {
         // lookup state from meshDb
-        makeState(regStates_["volVectorStates"][idxI], volVectorField, db);
+        makeState(stateInfo_["volVectorStates"][idxI], volVectorField, db);
 
         forAll(mesh_.cells(), cellI)
         {
@@ -889,10 +834,10 @@ void DAIndex::ofField2StateVec(Vec stateVec) const
         }
     }
 
-    forAll(regStates_["volScalarStates"], idxI)
+    forAll(stateInfo_["volScalarStates"], idxI)
     {
         // lookup state from meshDb
-        makeState(regStates_["volScalarStates"][idxI], volScalarField, db);
+        makeState(stateInfo_["volScalarStates"][idxI], volScalarField, db);
 
         forAll(mesh_.cells(), cellI)
         {
@@ -901,10 +846,10 @@ void DAIndex::ofField2StateVec(Vec stateVec) const
         }
     }
 
-    forAll(regStates_["modelStates"], idxI)
+    forAll(stateInfo_["modelStates"], idxI)
     {
         // lookup state from meshDb
-        makeState(regStates_["modelStates"][idxI], volScalarField, db);
+        makeState(stateInfo_["modelStates"][idxI], volScalarField, db);
 
         forAll(mesh_.cells(), cellI)
         {
@@ -913,10 +858,10 @@ void DAIndex::ofField2StateVec(Vec stateVec) const
         }
     }
 
-    forAll(regStates_["surfaceScalarStates"], idxI)
+    forAll(stateInfo_["surfaceScalarStates"], idxI)
     {
         // lookup state from meshDb
-        makeState(regStates_["surfaceScalarStates"][idxI], surfaceScalarField, db);
+        makeState(stateInfo_["surfaceScalarStates"][idxI], surfaceScalarField, db);
 
         forAll(mesh_.faces(), faceI)
         {
@@ -966,10 +911,10 @@ void DAIndex::stateVec2OFField(const Vec stateVec) const
     const PetscScalar* stateVecArray;
     VecGetArrayRead(stateVec, &stateVecArray);
 
-    forAll(regStates_["volVectorStates"], idxI)
+    forAll(stateInfo_["volVectorStates"], idxI)
     {
         // lookup state from meshDb
-        makeState(regStates_["volVectorStates"][idxI], volVectorField, db);
+        makeState(stateInfo_["volVectorStates"][idxI], volVectorField, db);
 
         forAll(mesh_.cells(), cellI)
         {
@@ -981,10 +926,10 @@ void DAIndex::stateVec2OFField(const Vec stateVec) const
         }
     }
 
-    forAll(regStates_["volScalarStates"], idxI)
+    forAll(stateInfo_["volScalarStates"], idxI)
     {
         // lookup state from meshDb
-        makeState(regStates_["volScalarStates"][idxI], volScalarField, db);
+        makeState(stateInfo_["volScalarStates"][idxI], volScalarField, db);
 
         forAll(mesh_.cells(), cellI)
         {
@@ -993,10 +938,10 @@ void DAIndex::stateVec2OFField(const Vec stateVec) const
         }
     }
 
-    forAll(regStates_["modelStates"], idxI)
+    forAll(stateInfo_["modelStates"], idxI)
     {
         // lookup state from meshDb
-        makeState(regStates_["modelStates"][idxI], volScalarField, db);
+        makeState(stateInfo_["modelStates"][idxI], volScalarField, db);
 
         forAll(mesh_.cells(), cellI)
         {
@@ -1005,10 +950,10 @@ void DAIndex::stateVec2OFField(const Vec stateVec) const
         }
     }
 
-    forAll(regStates_["surfaceScalarStates"], idxI)
+    forAll(stateInfo_["surfaceScalarStates"], idxI)
     {
         // lookup state from meshDb
-        makeState(regStates_["surfaceScalarStates"][idxI], surfaceScalarField, db);
+        makeState(stateInfo_["surfaceScalarStates"][idxI], surfaceScalarField, db);
 
         forAll(mesh_.faces(), faceI)
         {
@@ -1117,9 +1062,8 @@ void DAIndex::ofMesh2PointVec(Vec xvVec) const
     VecRestoreArray(xvVec, &xvVecArray);
 }
 
-
 void DAIndex::calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) const
-{ 
+{
     /*
     Compute adjStateID4GlobalAdjIdx
 
@@ -1131,89 +1075,87 @@ void DAIndex::calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) co
     calculation easier, we keep it for now. 
     *******delete this list after used!************
     */
-    
-    if (adjStateID4GlobalAdjIdx.size()!=nGlobalAdjointStates)
+
+    if (adjStateID4GlobalAdjIdx.size() != nGlobalAdjointStates)
     {
-        FatalErrorIn("")<<"adjStateID4GlobalAdjIdx.size()!=nGlobalAdjointStates"<<abort(FatalError);
+        FatalErrorIn("") << "adjStateID4GlobalAdjIdx.size()!=nGlobalAdjointStates" << abort(FatalError);
     }
 
     Vec stateIVec;
-    VecCreate(PETSC_COMM_WORLD,&stateIVec);
-    VecSetSizes(stateIVec,nLocalAdjointStates,PETSC_DECIDE);
+    VecCreate(PETSC_COMM_WORLD, &stateIVec);
+    VecSetSizes(stateIVec, nLocalAdjointStates, PETSC_DECIDE);
     VecSetFromOptions(stateIVec);
-    VecSet(stateIVec,0); // default value
-    
-    forAll(regStates_["volVectorStates"],idx)
+    VecSet(stateIVec, 0); // default value
+
+    forAll(stateInfo_["volVectorStates"], idx)
     {
-        word stateName = regStates_["volVectorStates"][idx];
-        PetscScalar valIn=adjStateID[stateName]+1;  // we need to use 1-based indexing here for scattering
-        forAll(mesh_.cells(),cellI)
+        word stateName = stateInfo_["volVectorStates"][idx];
+        PetscScalar valIn = adjStateID[stateName] + 1; // we need to use 1-based indexing here for scattering
+        forAll(mesh_.cells(), cellI)
         {
-            for(label i=0;i<3;i++)
+            for (label i = 0; i < 3; i++)
             {
-                label globalIdx = this->getGlobalAdjointStateIndex(stateName,cellI,i);
-                VecSetValues(stateIVec,1,&globalIdx,&valIn,INSERT_VALUES);
+                label globalIdx = this->getGlobalAdjointStateIndex(stateName, cellI, i);
+                VecSetValues(stateIVec, 1, &globalIdx, &valIn, INSERT_VALUES);
             }
-            
         }
     }
-    
-    forAll(regStates_["volScalarStates"],idx)
+
+    forAll(stateInfo_["volScalarStates"], idx)
     {
-        word stateName = regStates_["volScalarStates"][idx];
-        PetscScalar valIn=adjStateID[stateName]+1;  // we need to use 1-based indexing here for scattering
-        forAll(mesh_.cells(),cellI)
+        word stateName = stateInfo_["volScalarStates"][idx];
+        PetscScalar valIn = adjStateID[stateName] + 1; // we need to use 1-based indexing here for scattering
+        forAll(mesh_.cells(), cellI)
         {
-            label globalIdx = this->getGlobalAdjointStateIndex(stateName,cellI);
-            VecSetValues(stateIVec,1,&globalIdx,&valIn,INSERT_VALUES);
+            label globalIdx = this->getGlobalAdjointStateIndex(stateName, cellI);
+            VecSetValues(stateIVec, 1, &globalIdx, &valIn, INSERT_VALUES);
         }
     }
-    
-    forAll(regStates_["modelStates"],idx)
+
+    forAll(stateInfo_["modelStates"], idx)
     {
-        word stateName = regStates_["modelStates"][idx];
-        PetscScalar valIn=adjStateID[stateName]+1;  // we need to use 1-based indexing here for scattering
-        forAll(mesh_.cells(),cellI)
+        word stateName = stateInfo_["modelStates"][idx];
+        PetscScalar valIn = adjStateID[stateName] + 1; // we need to use 1-based indexing here for scattering
+        forAll(mesh_.cells(), cellI)
         {
-            label globalIdx = this->getGlobalAdjointStateIndex(stateName,cellI);
-            VecSetValues(stateIVec,1,&globalIdx,&valIn,INSERT_VALUES);
+            label globalIdx = this->getGlobalAdjointStateIndex(stateName, cellI);
+            VecSetValues(stateIVec, 1, &globalIdx, &valIn, INSERT_VALUES);
         }
     }
-    
-    forAll(regStates_["surfaceScalarStates"],idx)
+
+    forAll(stateInfo_["surfaceScalarStates"], idx)
     {
-        word stateName = regStates_["surfaceScalarStates"][idx];
-        PetscScalar valIn=adjStateID[stateName]+1;  // we need to use 1-based indexing here for scattering
-        forAll(mesh_.faces(),faceI)
+        word stateName = stateInfo_["surfaceScalarStates"][idx];
+        PetscScalar valIn = adjStateID[stateName] + 1; // we need to use 1-based indexing here for scattering
+        forAll(mesh_.faces(), faceI)
         {
-            label globalIdx = this->getGlobalAdjointStateIndex(stateName,faceI);
-            VecSetValues(stateIVec,1,&globalIdx,&valIn,INSERT_VALUES);
+            label globalIdx = this->getGlobalAdjointStateIndex(stateName, faceI);
+            VecSetValues(stateIVec, 1, &globalIdx, &valIn, INSERT_VALUES);
         }
     }
-    
 
     VecAssemblyBegin(stateIVec);
     VecAssemblyEnd(stateIVec);
-    
+
     // scatter to local array for all procs
     Vec vout;
     VecScatter ctx;
-    VecScatterCreateToAll(stateIVec,&ctx,&vout);
-    VecScatterBegin(ctx,stateIVec,vout,INSERT_VALUES,SCATTER_FORWARD);
-    VecScatterEnd(ctx,stateIVec,vout,INSERT_VALUES,SCATTER_FORWARD);
-    
-    PetscScalar* stateIVecArray;
-    VecGetArray(vout,&stateIVecArray);
+    VecScatterCreateToAll(stateIVec, &ctx, &vout);
+    VecScatterBegin(ctx, stateIVec, vout, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterEnd(ctx, stateIVec, vout, INSERT_VALUES, SCATTER_FORWARD);
 
-    for(label i=0;i<nGlobalAdjointStates;i++)
+    PetscScalar* stateIVecArray;
+    VecGetArray(vout, &stateIVecArray);
+
+    for (label i = 0; i < nGlobalAdjointStates; i++)
     {
-        adjStateID4GlobalAdjIdx[i]=static_cast<label>(stateIVecArray[i])-1; // subtract 1 and return to 0-based indexing
+        adjStateID4GlobalAdjIdx[i] = static_cast<label>(stateIVecArray[i]) - 1; // subtract 1 and return to 0-based indexing
     }
 
-    VecRestoreArray(vout,&stateIVecArray);
+    VecRestoreArray(vout, &stateIVecArray);
     VecScatterDestroy(&ctx);
     VecDestroy(&vout);
-    
+
     return;
 }
 

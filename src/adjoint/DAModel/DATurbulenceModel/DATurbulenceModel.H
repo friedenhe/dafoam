@@ -95,19 +95,27 @@ protected:
     surfaceScalarField& phaseRhoPhi_;
 
 #ifdef IncompressibleFlow
+    /// DARegDbSinglePhaseTransportModel reference
+    const DARegDbSinglePhaseTransportModel& daRegDbTransport_;
     /// laminar viscosity for incompressible flow
-    autoPtr<singlePhaseTransportModel> laminarTransportPtr_;
+    const singlePhaseTransportModel& laminarTransport_;
+    /// DARegDbTurbulenceModelIncompressible reference
+    const DARegDbTurbulenceModelIncompressible& daRegDbTurbIncomp_;
     /// turbulence model object
-    autoPtr<incompressible::turbulenceModel> turbulencePtr_;
+    const incompressible::turbulenceModel& turbulence_;
     /// density field, initialize with ones
     volScalarField rho_;
 #endif
 
 #ifdef CompressibleFlow
+    /// DARegDbFluidThermo reference
+    const DARegDbFluidThermo& daRegDbThermo_;
     /// thermo model for compressible flow
-    autoPtr<fluidThermo> thermoPtr_;
+    const fluidThermo& thermo_;
+    /// DARegDbTurbulenceModelCompressible reference
+    const DARegDbTurbulenceModelCompressible& daRegDbTurbComp_;
     /// turbulence model object
-    autoPtr<compressible::turbulenceModel> turbulencePtr_;
+    const compressible::turbulenceModel& turbulence_;
     /// density field, lookup from fvMesh
     volScalarField& rho_;
 #endif
@@ -142,13 +150,16 @@ public:
         autoPtr,
         DATurbulenceModel,
         dictionary,
-        (const fvMesh& mesh, const DAOption& daOption),
-        (mesh, daOption));
+        (const word modelType,
+         const fvMesh& mesh, 
+         const DAOption& daOption),
+        (modelType, mesh, daOption));
 
     // Constructors
 
     //- Construct from components
     DATurbulenceModel(
+        const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption);
 
@@ -156,6 +167,7 @@ public:
 
     //- Return a reference to the selected model
     static autoPtr<DATurbulenceModel> New(
+        const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption);
 
@@ -172,7 +184,7 @@ public:
     /// update nut based on other turbulence variables and update the BCs
     virtual void updateNut() = 0;
 
-    /// update the turbulence state for DARegState::regStates_
+    /// update the turbulence state for DAStateInfo::regStates_
     virtual void correctModelStates(wordList& modelStates) const = 0;
 
     /// update turbulence variable boundary values

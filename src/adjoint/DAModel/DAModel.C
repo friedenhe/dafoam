@@ -13,17 +13,11 @@ namespace Foam
 {
 
 // Constructors
-DAModel::DAModel(const fvMesh& mesh)
-    : regIOobject(
-        IOobject(
-            "DAModel", // always use DAModel for the db name
-            mesh.time().timeName(),
-            mesh, // register to mesh
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            true // always register object
-            )),
-      mesh_(mesh)
+DAModel::DAModel(
+    const fvMesh& mesh,
+    const DAOption& daOption)
+    : mesh_(mesh),
+      daOption_(daOption)
 {
     // check whether we have register any physical models
     hasTurbulenceModel_ = mesh.thisDb().foundObject<DATurbulenceModel>("DATurbulenceModel");
@@ -34,13 +28,6 @@ DAModel::~DAModel()
 {
 }
 
-// this is a virtual function for regIOobject
-bool DAModel::writeData(Ostream& os) const
-{
-    // do nothing
-    return true;
-}
-
 void DAModel::correctModelStates(wordList& modelStates) const
 {
     /*
@@ -48,7 +35,7 @@ void DAModel::correctModelStates(wordList& modelStates) const
 
     Example:
     -------
-    In DARegState, if the modelStates reads:
+    In DAStateInfo, if the modelStates reads:
     
     modelStates = {"nut"}
     
@@ -187,7 +174,16 @@ void DAModel::addModelResidualCon(HashTable<List<List<word>>>& allCon) const
             mesh_.thisDb().lookupObject<DARadiationModel>("DARadiationModel");
         daRadiation.addModelResidualCon(allCon);
     }
+}
 
+const DATurbulenceModel& DAModel::getDATurbulenceModel() const
+{
+    if (!hasTurbulenceModel_)
+    {
+        FatalErrorIn("getDATurbulenceModel") << "DATurbulenceModel not found in mesh.thisDb()! "
+                                             << abort(FatalError);
+    }
+    return mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel");
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

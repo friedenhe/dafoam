@@ -21,25 +21,17 @@ defineRunTimeSelectionTable(DAObjFunc, dictionary);
 
 DAObjFunc::DAObjFunc(
     const fvMesh& mesh,
+    const DAOption& daOption,
+    const DAModel& daModel,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
-    : regIOobject(
-        IOobject(
-            "DAObjFunc",
-            mesh.time().timeName(),
-            mesh, // register to mesh
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            true // always register object
-            )),
-      mesh_(mesh),
+    : mesh_(mesh),
+      daOption_(daOption),
+      daModel_(daModel),
       objFuncName_(objFuncName),
       objFuncPart_(objFuncPart),
-      objFuncDict_(objFuncDict),
-      daOption_(mesh.thisDb().lookupObject<DAOption>("DAOption")),
-      daTurb_(mesh.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel")),
-      daIndex_(mesh.thisDb().lookupObject<DAIndex>("DAIndex"))
+      objFuncDict_(objFuncDict)
 {
     /*
     Description:
@@ -73,6 +65,8 @@ DAObjFunc::DAObjFunc(
 
 autoPtr<DAObjFunc> DAObjFunc::New(
     const fvMesh& mesh,
+    const DAOption& daOption,
+    const DAModel& daModel,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
@@ -96,6 +90,8 @@ autoPtr<DAObjFunc> DAObjFunc::New(
             "DAObjFunc::New"
             "("
             "    const fvMesh&,"
+            "    const DAOption&,"
+            "    const DAModel&,"
             "    const word,"
             "    const word,"
             "    const dictionary&"
@@ -109,17 +105,10 @@ autoPtr<DAObjFunc> DAObjFunc::New(
 
     // child class found
     return autoPtr<DAObjFunc>(
-        cstrIter()(mesh, objFuncName, objFuncPart, objFuncDict));
+        cstrIter()(mesh, daOption, daModel, objFuncName, objFuncPart, objFuncDict));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
-// this is a virtual function for regIOobject
-bool DAObjFunc::writeData(Ostream& os) const
-{
-    // do nothing
-    return true;
-}
 
 void DAObjFunc::calcObjFuncSources(
     labelList& faceSources,

@@ -15,7 +15,7 @@
 #include "surfaceFields.H"
 #include "DAOption.H"
 #include "DAUtility.H"
-#include "DARegState.H"
+#include "DAStateInfo.H"
 #include "DAModel.H"
 #include "globalIndex.H"
 #include "macroDAFunctions.H"
@@ -30,7 +30,6 @@ namespace Foam
 \*---------------------------------------------------------------------------*/
 
 class DAIndex
-    : public regIOobject
 {
 
 private:
@@ -40,27 +39,30 @@ private:
     /// Disallow default bitwise assignment
     void operator=(const DAIndex&);
 
+protected:
     /// Foam::fvMesh object
     const fvMesh& mesh_;
 
     /// Foam::DAOption object
     const DAOption& daOption_;
 
-    /// object of DARegState, obtained from fvMesh
-    const DARegState& daRegState_;
+    /// DAModel object
+    const DAModel& daModel_;
 
-    /// the regState_ list from DARegState object
-    const HashTable<wordList>& regStates_;
+    /// the StateInfo_ list from DAStateInfo object
+    HashTable<wordList> stateInfo_;
 
 public:
     /// Constructors
-    DAIndex(const fvMesh& mesh);
+    DAIndex(
+        const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel);
 
     /// Destructor
-    virtual ~DAIndex();
-
-    /// this is a virtual function for regIOobject
-    bool writeData(Ostream& os) const;
+    virtual ~DAIndex()
+    {
+    }
 
     // Members
 
@@ -97,9 +99,6 @@ public:
 
     /// local coupled boundary patch size
     label nLocalCoupledBFaces;
-
-    /// local cyclicAMI patch size
-    label nLocalCyclicAMIFaces;
 
     /** given a local boundary face index (starting with zero for the first boundary face, 
         and ends with the last boundary faces), return its boundary patchI, 
@@ -176,9 +175,6 @@ public:
 
     /// for a given face index, return whether this face is a coupled boundary face
     labelList isCoupledFace;
-
-    /// for a given face index, return whether this face is a cyclicAMI boundary face
-    labelList isCyclicAMIFace;
 
     /// given a local adjoint state index, return its state name
     wordList adjStateName4LocalAdjIdx;
@@ -324,6 +320,20 @@ public:
 
     /// compute global list adjStateID4GlobalAdjIdx that stores the stateID for a given globalAdjIndx
     void calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) const;
+
+    /// print all the sizes and indices
+    void printIndices() const
+    {
+        //Info<<"adjStateNames"<<adjStateNames<<endl;
+        Info << "Adjoint States: " << adjStateType << endl;
+
+        // Print relevant sizes to screen
+        Info << "Global Cells: " << nGlobalCells << endl;
+        Info << "Global Faces: " << nGlobalFaces << endl;
+        Info << "Global Xv: " << nGlobalXv << endl;
+        Info << "Undecomposed points: " << nUndecomposedPoints << endl;
+        Info << "Global Adjoint States: " << nGlobalAdjointStates << endl;
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

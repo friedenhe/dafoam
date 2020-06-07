@@ -31,6 +31,10 @@ protected:
     /// the direction of the force
     vector forceDir_;
 
+    const DATurbulenceModel& daTurb_;
+
+    autoPtr<DAIndex> daIndexPtr_;
+
 public:
     TypeName("force");
     // Constructors
@@ -38,6 +42,8 @@ public:
     //- Construct from components
     DAObjFuncForce(
         const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);

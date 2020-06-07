@@ -8,10 +8,10 @@
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAJacConRhoSimpleFoam_H
-#define DAJacConRhoSimpleFoam_H
+#ifndef DAResidualSimpleFoam_H
+#define DAResidualSimpleFoam_H
 
-#include "DAJacCon.H"
+#include "DAResidual.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -20,23 +20,26 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAJacConRhoSimpleFoam Declaration
+      Class DAResidualSimpleFoam Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAJacConRhoSimpleFoam
-    : public DAJacCon
+class DAResidualSimpleFoam
+    : public DAResidual
 {
 
 public:
-    TypeName("DARhoSimpleFoam");
+    TypeName("DASimpleFoam");
     // Constructors
 
     //- Construct from components
-    DAJacConRhoSimpleFoam(
-        const fvMesh& mesh);
+    DAResidualSimpleFoam(
+        const word modelType,
+        const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel);
 
     //- Destructor
-    virtual ~DAJacConRhoSimpleFoam()
+    virtual ~DAResidualSimpleFoam()
     {
     }
 };

@@ -19,7 +19,7 @@
 #include "DAUtility.H"
 #include "DACheckMesh.H"
 #include "DAOption.H"
-#include "DARegState.H"
+#include "DAStateInfo.H"
 #include "DAModel.H"
 #include "DATurbulenceModel.H"
 #include "DAIndex.H"

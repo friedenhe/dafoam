@@ -65,7 +65,7 @@ class PYDAFOAM(object):
             # system options
             "rootDir": [str, "./"],
             "solverName": [str, "DASimpleFoam"],
-            "printAllOptions": [bool, False],
+            "printAllOptions": [bool, True],
             "objFunc": [dict, {}],
             "debug": [bool, False],
             # surface definition
@@ -207,8 +207,6 @@ class PYDAFOAM(object):
                 self.xvFlatten2XvVec(xvNew, self.xvVec)
 
         # solve the primal to get new state variables
-        if self.comm.rank == 0:
-            print("Solving the primal....")
         self.solvePrimal(self.xvVec, self.wVec)
 
         # save the point vector and state vector to disk
@@ -570,10 +568,7 @@ class PYDAFOAM(object):
         """
 
         if self.comm.rank == 0:
-            print("\n")
-            print("+--------------------------------------------------------------------------+")
-            print("|                        Running Primal Solver                             |")
-            print("+--------------------------------------------------------------------------+")
+            print("Running Primal Solver %03d" % self.nSolvePrimals)
 
         self.primalFail = 0
         self.primalFail = self.solver.solvePrimal(xvVec, wVec)
@@ -653,6 +648,8 @@ class PYDAFOAM(object):
         else:
             raise Error("pyDAFoam: flowCondition %s: not valid!" % self.getOption("flowCondition"))
         solver.run()
+
+        solver = None
 
         return
 

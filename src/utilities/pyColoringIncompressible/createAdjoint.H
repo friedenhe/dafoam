@@ -1,3 +1,5 @@
+// adjoint
+
 DAUtility daUtil;
 
 DAOption daOption(mesh, pyOptions_);
@@ -6,12 +8,11 @@ DAOption daOption(mesh, pyOptions_);
 DARegDbSinglePhaseTransportModel regDbTransport(mesh, laminarTransport);
 DARegDbTurbulenceModelIncompressible regDbTurbulence(mesh, turbulence());
 
-autoPtr<DATurbulenceModel> daTurbulenceModel(DATurbulenceModel::New(mesh));
+word turbModelName = daOption.getOption<word>("turbulenceModel");
+autoPtr<DATurbulenceModel> daTurbulenceModel(DATurbulenceModel::New(turbModelName, mesh, daOption));
 
-DAModel daModel(mesh);
+DAModel daModel(mesh, daOption);
 
-autoPtr<DARegState> daRegState(DARegState::New(mesh));
+DAIndex daIndex(mesh, daOption, daModel);
 
-DAIndex daIndex(mesh);
-
-autoPtr<DAJacCon> daJacCon(DAJacCon::New(mesh));
+autoPtr<DAJacCon> daJacCon(DAJacCon::New("DAJacCondRdW", mesh, daOption, daModel));

@@ -20,6 +20,7 @@ defineRunTimeSelectionTable(DATurbulenceModel, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 DATurbulenceModel::DATurbulenceModel(
+    const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption)
     : regIOobject(
@@ -53,8 +54,14 @@ DATurbulenceModel::DATurbulenceModel(
       phaseRhoPhi_(const_cast<surfaceScalarField&>(
           mesh.thisDb().lookupObject<surfaceScalarField>("phi"))),
 #ifdef IncompressibleFlow
-      laminarTransportPtr_(nullptr),
-      turbulencePtr_(nullptr),
+      daRegDbTransport_(
+            mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
+                "DARegDbSinglePhaseTransportModel")),
+      laminarTransport_(daRegDbTransport_.getObject()),
+      daRegDbTurbIncomp_(
+            mesh.thisDb().lookupObject<DARegDbTurbulenceModelIncompressible>(
+                "DARegDbTurbulenceModelIncompressible")),
+      turbulence_(daRegDbTurbIncomp_.getObject()),
       // for incompressible, we use uniform one field for rho
       rho_(
           IOobject(
@@ -69,8 +76,14 @@ DATurbulenceModel::DATurbulenceModel(
           zeroGradientFvPatchScalarField::typeName),
 #endif
 #ifdef CompressibleFlow
-      thermoPtr_(nullptr),
-      turbulencePtr_(nullptr),
+      daRegDbThermo_(
+            mesh.thisDb().lookupObject<DARegDbFluidThermo>(
+                "DARegDbFluidThermo")),
+      thermo_(daRegDbThermo_.getObject()),
+      daRegDbTurbComp_(
+            mesh.thisDb().lookupObject<DARegDbTurbulenceModelCompressible>(
+                "DARegDbTurbulenceModelCompressible")),
+      turbulence_(daRegDbTurbComp_.getObject()),
       // for compressible flow, we lookup rho in fvMesh
       rho_(const_cast<volScalarField&>(
           mesh.thisDb().lookupObject<volScalarField>("rho"))),
@@ -123,50 +136,6 @@ DATurbulenceModel::DATurbulenceModel(
             false));
     Pr_ = readScalar(transportProperties.lookup("Pr"));
 
-    // initialize laminarTransportPtr_
-    // first check if DARegDbSinglePhaseTransportModel has been registered
-    // to fvMesh, if not, print an error
-    if (mesh.thisDb().foundObject<DARegDbSinglePhaseTransportModel>(
-            "DARegDbSinglePhaseTransportModel"))
-    {
-        const DARegDbSinglePhaseTransportModel& regDb =
-            mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
-                "DARegDbSinglePhaseTransportModel");
-        singlePhaseTransportModel& regDbObj =
-            const_cast<singlePhaseTransportModel&>(regDb.getObject());
-        laminarTransportPtr_.reset(&regDbObj);
-    }
-    else
-    {
-        FatalErrorIn(
-            "DARegDbSinglePhaseTransportModel not found in mesh.thisDb()!"
-            "Please use DARegDb to register it before initializing DATurbulenceModel!"
-            "Check src/adjoint/DARegDb/DARegDbSinglePhaseTransportModel.H")
-            << exit(FatalError);
-    }
-
-    // initialize turbulencePtr_
-    // first check if DARegDbTurbulenceModelIncompressible has been registered
-    // to fvMesh, if not, print an error
-    if (mesh.thisDb().foundObject<DARegDbTurbulenceModelIncompressible>(
-            "DARegDbTurbulenceModelIncompressible"))
-    {
-        const DARegDbTurbulenceModelIncompressible& regDb =
-            mesh.thisDb().lookupObject<DARegDbTurbulenceModelIncompressible>(
-                "DARegDbTurbulenceModelIncompressible");
-        incompressible::turbulenceModel& regDbObj =
-            const_cast<incompressible::turbulenceModel&>(regDb.getObject());
-        turbulencePtr_.reset(&regDbObj);
-    }
-    else
-    {
-        FatalErrorIn(
-            "DARegDbTurbulenceModelIncompressible not found in mesh.thisDb()!"
-            "Please use DARegDb to register it before initializing DATurbulenceModel!"
-            "Check src/adjoint/DARegDb/DARegDbTurbulenceModelIncompressible.H")
-            << exit(FatalError);
-    }
-
 #endif
 
 #ifdef CompressibleFlow
@@ -183,58 +152,16 @@ DATurbulenceModel::DATurbulenceModel(
     Pr_ = readScalar(
         thermophysicalProperties.subDict("mixture").subDict("transport").lookup("Pr"));
 
-    // initialize thermoPtr_
-    // first check if DARegDbFluidThermo has been registered
-    // to fvMesh, if not, print an error
-    if (mesh.thisDb().foundObject<DARegDbFluidThermo>("DARegDbFluidThermo"))
-    {
-        const DARegDbFluidThermo& regDb =
-            mesh.thisDb().lookupObject<DARegDbFluidThermo>("DARegDbFluidThermo");
-        fluidThermo& regDbObj = const_cast<fluidThermo&>(regDb.getObject());
-        thermoPtr_.reset(&regDbObj);
-    }
-    else
-    {
-        FatalErrorIn(
-            "DARegDbSinglePhaseTransportModel not found in mesh.thisDb()!"
-            "Please use DARegDb to register it before initializing DATurbulenceModel!"
-            "Check src/adjoint/DARegDb/DARegDbSinglePhaseTransportModel.H")
-            << exit(FatalError);
-    }
-
-    // initialize turbulencePtr_
-    // first check if DARegDbTurbulenceModelCompressible has been registered
-    // to fvMesh, if not, print an error
-    if (mesh.thisDb().foundObject<DARegDbTurbulenceModelCompressible>(
-            "DARegDbTurbulenceModelCompressible"))
-    {
-        const DARegDbTurbulenceModelCompressible& regDb =
-            mesh.thisDb().lookupObject<DARegDbTurbulenceModelCompressible>(
-                "DARegDbTurbulenceModelCompressible");
-        compressible::turbulenceModel& regDbObj =
-            const_cast<compressible::turbulenceModel&>(regDb.getObject());
-        turbulencePtr_.reset(&regDbObj);
-    }
-    else
-    {
-        FatalErrorIn(
-            "DARegDbTurbulenceModelCompressible not found in mesh.thisDb()!"
-            "Please use DARegDb to register it before initializing DATurbulenceModel!"
-            "Check src/adjoint/DARegDb/DARegDbTurbulenceModelCompressible.H")
-            << exit(FatalError);
-    }
-
 #endif
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
 autoPtr<DATurbulenceModel> DATurbulenceModel::New(
+    const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption)
 {
-    // look up the solver name
-    word modelType = daOption.getOption<word>("turbulenceModel");
 
     Info << "Selecting " << modelType << " for DATurbulenceModel" << endl;
 
@@ -246,6 +173,7 @@ autoPtr<DATurbulenceModel> DATurbulenceModel::New(
         FatalErrorIn(
             "DATurbulenceModel::New"
             "("
+            "    const word,"
             "    const fvMesh&,"
             "    const DAOption&"
             ")")
@@ -257,7 +185,7 @@ autoPtr<DATurbulenceModel> DATurbulenceModel::New(
     }
 
     return autoPtr<DATurbulenceModel>(
-        cstrIter()(mesh, daOption));
+        cstrIter()(modelType, mesh, daOption));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -294,7 +222,7 @@ tmp<volScalarField> DATurbulenceModel::alphaEff()
     return tmp<volScalarField>(
         new volScalarField(
             "alphaEff",
-            thermoPtr_->alphaEff(alphat)));
+            thermo_.alphaEff(alphat)));
 #endif
 }
 
@@ -302,11 +230,11 @@ tmp<volScalarField> DATurbulenceModel::getNu() const
 {
 
 #ifdef IncompressibleFlow
-    return laminarTransportPtr_->nu();
+    return laminarTransport_.nu();
 #endif
 
 #ifdef CompressibleFlow
-    return thermoPtr_->mu() / rho_;
+    return thermo_.mu() / rho_;
 #endif
 }
 
@@ -319,7 +247,7 @@ tmp<Foam::volScalarField> DATurbulenceModel::getMu() const
 {
 
 #ifdef CompressibleFlow
-    return thermoPtr_->mu();
+    return thermo_.mu();
 #else
     FatalErrorIn("flowCondition not valid!") << abort(FatalError);
     return nut_;

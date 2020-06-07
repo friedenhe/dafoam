@@ -29,7 +29,6 @@ namespace Foam
 \*---------------------------------------------------------------------------*/
 
 class DAObjFunc
-    : public regIOobject
 {
 
 private:
@@ -43,6 +42,12 @@ protected:
     /// fvMesh
     const fvMesh& mesh_;
 
+    /// DAOption object
+    const DAOption& daOption_;
+
+    /// DAModel object
+    const DAModel& daModel_;
+
     /// the name of the objective function
     word objFuncName_;
 
@@ -54,15 +59,6 @@ protected:
 
     /// dictionary containing the information for the objective function
     const dictionary& objFuncDict_;
-
-    /// DAOption object
-    const DAOption& daOption_;
-
-    /// DATurbuleneModel object
-    const DATurbulenceModel& daTurb_;
-
-    /// DAIndex object
-    const DAIndex& daIndex_;
 
     /// a sorted list of all face sources for the objective function
     labelList objFuncFaceSources_;
@@ -93,11 +89,15 @@ public:
         dictionary,
         (
             const fvMesh& mesh,
+            const DAOption& daOption,
+            const DAModel& daModel,
             const word objFuncName,
             const word objFuncPart,
             const dictionary& objFuncDict),
         (
             mesh,
+            daOption,
+            daModel,
             objFuncName,
             objFuncPart,
             objFuncDict));
@@ -107,6 +107,8 @@ public:
     //- Construct from components
     DAObjFunc(
         const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);
@@ -116,6 +118,8 @@ public:
     //- Return a reference to the selected model
     static autoPtr<DAObjFunc> New(
         const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);
@@ -124,9 +128,6 @@ public:
     virtual ~DAObjFunc()
     {
     }
-
-    /// this is a virtual function for regIOobject
-    bool writeData(Ostream& os) const;
 
     /// calculate DAObjFunc::objFuncFaceSources_ and DAObjFunc::objFuncCellSources_
     void calcObjFuncSources(

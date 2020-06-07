@@ -8,16 +8,18 @@ opt:
 # compile src/adjoint 
 	cd src/adjoint && ./Allmake_Opt
 # compile src/pySolvers
-#	cd src/pyDASolvers && ./Allmake_Opt
+	cd src/pyDASolvers && ./Allmake_Opt
 # compile src/utilities
-#	cd src/utilities && ./Allmake
+	cd src/utilities && ./Allmake
 
 debug:
 	@echo "******************Compiling Debug Mode******************"
 # compile src/adjoint
 	cd src/adjoint && ./Allmake_Debug
 # compile src/pySolvers
-#	cd src/pyDASolvers && ./Allmake_Debug
+	cd src/pyDASolvers && ./Allmake_Debug
+# compile src/utilities
+	cd src/utilities && ./Allmake
 
 clean:
 	@echo "********************Cleaning up********************"

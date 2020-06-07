@@ -31,7 +31,6 @@ DASolver::DASolver(
       daOptionPtr_(nullptr),
       daTurbulenceModelPtr_(nullptr),
       daModelPtr_(nullptr),
-      daRegStatePtr_(nullptr),
       daIndexPtr_(nullptr),
       daCheckMeshPtr_(nullptr)
 {
@@ -55,13 +54,13 @@ autoPtr<DASolver> DASolver::New(
     DAUtility daUtil;
     dictionary allOptions;
     daUtil.pyDict2OFDict(pyOptions, allOptions);
-    word solverName;
-    allOptions.readEntry<word>("solverName", solverName);
+    word modelType;
+    allOptions.readEntry<word>("solverName", modelType);
 
-    Info << "Selecting " << solverName << " for DASolver" << endl;
+    Info << "Selecting " << modelType << " for DASolver" << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(solverName);
+        dictionaryConstructorTablePtr_->find(modelType);
 
     // if the solver name is not found in any child class, print an error
     if (cstrIter == dictionaryConstructorTablePtr_->end())
@@ -73,7 +72,7 @@ autoPtr<DASolver> DASolver::New(
             "    PyObject*"
             ")")
             << "Unknown DASolver type "
-            << solverName << nl << nl
+            << modelType << nl << nl
             << "Valid DASolver types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
@@ -109,13 +108,20 @@ void DASolver::printAllObjFuncs()
     NOTE: we need to call DASolver::setDAObjFuncList before calling this function!
     */
 
+    if (daObjFuncPtrList_.size() == 0)
+    {
+        FatalErrorIn("printAllObjFuncs") << "daObjFuncPtrList_.size() ==0... "
+                                         << "Forgot to call setDAObjFuncList?"
+                                         << abort(FatalError);
+    }
+
     forAll(daObjFuncPtrList_, idxI)
     {
         DAObjFunc& daObjFunc = daObjFuncPtrList_[idxI];
-        Info << "Objective. Name: " << daObjFunc.getObjFuncName()
-             << " Part: " << daObjFunc.getObjFuncPart()
-             << " Type: " << daObjFunc.getObjFuncType()
-             << " Value: " << daObjFunc.getObjFuncValue() << endl;
+        Info << daObjFunc.getObjFuncName()
+             << "-" << daObjFunc.getObjFuncPart()
+             << "-" << daObjFunc.getObjFuncType()
+             << ": " << daObjFunc.getObjFuncValue() << endl;
     }
 }
 
@@ -133,6 +139,13 @@ scalar DASolver::getObjFuncValue(const word objFuncName)
     ------
     objFuncValue: the value of the objective
     */
+
+    if (daObjFuncPtrList_.size() == 0)
+    {
+        FatalErrorIn("printAllObjFuncs") << "daObjFuncPtrList_.size() ==0... "
+                                         << "Forgot to call setDAObjFuncList?"
+                                         << abort(FatalError);
+    }
 
     scalar objFuncValue = 0.0;
 
@@ -226,7 +239,14 @@ void DASolver::setDAObjFuncList()
 
             daObjFuncPtrList_.set(
                 objFuncInstanceI,
-                DAObjFunc::New(mesh, objFunI, objPart, objFuncSubDictPart).ptr());
+                DAObjFunc::New(
+                    mesh,
+                    daOptionPtr_(),
+                    daModelPtr_(),
+                    objFunI,
+                    objPart,
+                    objFuncSubDictPart)
+                    .ptr());
 
             objFuncInstanceI++;
         }

@@ -4,12 +4,12 @@
     Version : v2
 
     Description:
-        Child class for DASimpleFoam
+        Child class for dFdW
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAJacConSimpleFoam_H
-#define DAJacConSimpleFoam_H
+#ifndef DAJacCondFdW_H
+#define DAJacCondFdW_H
 
 #include "DAJacCon.H"
 #include "addToRunTimeSelectionTable.H"
@@ -20,25 +20,53 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAJacConSimpleFoam Declaration
+      Class DAJacCondFdW Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAJacConSimpleFoam
+class DAJacCondFdW
     : public DAJacCon
 {
 
+protected:
+
+    /// dFdW connectivity mat
+    Mat dFdWCon_;
+
+    /// dFdWPC connectivity mat
+    Mat dFdWConPC_;
+
+    /// dFdW colors
+    Vec dFdWColors_;
+
+    /// dFdW colored columns. It contains the global column index of perturbed state for the current color
+    Vec dFdWColoredColumns_;
+
+    /// number of dFdW colors
+    label ndFdWColors_;
+
 public:
-    TypeName("DASimpleFoam");
+    TypeName("DAJacCondFdW");
     // Constructors
 
     //- Construct from components
-    DAJacConSimpleFoam(
-        const fvMesh& mesh);
+    DAJacCondFdW(
+        const word modelType,
+        const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel);
 
     //- Destructor
-    virtual ~DAJacConSimpleFoam()
+    virtual ~DAJacCondFdW()
     {
     }
+
+    // Member functions
+
+    /// initialize petsc vectors
+    void initializePetscVecs();
+
+    /// initialize the state Jacobian connectivity matrix
+    virtual void initializeJacCon(const label isPC = 0);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -1,5 +1,8 @@
 DAUtility/DAUtility.C
 
+DACheckMesh/DACheckMesh.C
+DACheckMesh/checkGeometry.C
+
 DAOption/DAOption.C
 
 DARegDb/DARegDbFluidThermo.C
@@ -15,5 +18,21 @@ DAModel/DAModel.C
 
 DAStateInfo/DAStateInfo.C
 DAStateInfo/DAStateInfoRhoSimpleFoam.C
+
+DAIndex/DAIndex.C
+
+DAObjFunc/DAObjFunc.C
+DAObjFunc/DAObjFuncForce.C
+
+DAResidual/DAResidual.C
+DAResidual/DAResidualRhoSimpleFoam.C
+
+DAColoring/DAColoring.C
+
+DAJacCon/DAJacCon.C
+DAJacCon/DAJacCondRdW.C
+
+DASolver/DASolver.C
+DASolver/DARhoSimpleFoam/DARhoSimpleFoam.C
 
 LIB = $(FOAM_USER_LIBBIN)/libDAFoamCompressible

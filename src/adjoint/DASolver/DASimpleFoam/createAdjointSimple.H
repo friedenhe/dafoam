@@ -8,12 +8,11 @@ daOptionPtr_.reset(new DAOption(mesh, pyOptions_));
 DARegDbSinglePhaseTransportModel regDbTransport(mesh, laminarTransport);
 DARegDbTurbulenceModelIncompressible regDbTurbulence(mesh, turbulencePtr_());
 
-daTurbulenceModelPtr_.reset(DATurbulenceModel::New(mesh));
+word turbModelName = daOptionPtr_->getOption<word>("turbulenceModel");
+daTurbulenceModelPtr_.reset(DATurbulenceModel::New(turbModelName, mesh, daOptionPtr_()));
 
-daModelPtr_.reset(new DAModel(mesh));
+daModelPtr_.reset(new DAModel(mesh, daOptionPtr_()));
 
-daRegStatePtr_.reset(DARegState::New(mesh));
+daIndexPtr_.reset(new DAIndex(mesh, daOptionPtr_(), daModelPtr_()));
 
-daIndexPtr_.reset(new DAIndex(mesh));
-
-daJacConPtr_.reset(DAJacCon::New(mesh));
+daIndexPtr_->printIndices();

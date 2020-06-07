@@ -13,6 +13,19 @@ volVectorField U(
     mesh,
     dimensionedVector("U", dimensionSet(0, 1, -1, 0, 0, 0, 0), vector::zero),
     zeroGradientFvPatchVectorField::typeName);
+
+// need the p field for DATurbulenceModel
+volScalarField p(
+    IOobject(
+        "p",
+        mesh.time().timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE),
+    mesh,
+    dimensionedScalar("p", dimensionSet(0, 2, -2, 0, 0, 0, 0), 0.0),
+    zeroGradientFvPatchScalarField::typeName);
+
 #include "createPhi.H"
 
 singlePhaseTransportModel laminarTransport(U, phi);

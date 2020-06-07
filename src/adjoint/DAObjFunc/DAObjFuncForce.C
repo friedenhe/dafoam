@@ -18,14 +18,20 @@ addToRunTimeSelectionTable(DAObjFunc, DAObjFuncForce, dictionary);
 
 DAObjFuncForce::DAObjFuncForce(
     const fvMesh& mesh,
+    const DAOption& daOption,
+    const DAModel& daModel,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
     : DAObjFunc(
         mesh,
+        daOption,
+        daModel,
         objFuncName,
         objFuncPart,
-        objFuncDict)
+        objFuncDict),
+      daTurb_(daModel.getDATurbulenceModel()),
+      daIndexPtr_(nullptr)
 {
 
     objFuncDict_.readEntry<word>("type", objFuncType_);
@@ -37,6 +43,9 @@ DAObjFuncForce::DAObjFuncForce(
     forceDir_[2] = dir[2];
 
     objFuncDict_.readEntry<scalar>("scale", scale_);
+
+    // initialize daIndex
+    daIndexPtr_.reset(new DAIndex(mesh, daOption, daModel));
     
 }
 
@@ -90,9 +99,9 @@ void DAObjFuncForce::calcObjFunc(
     forAll(objFuncFaceSources, idxI)
     {
         const label& objFuncFaceI = objFuncFaceSources[idxI];
-        label bFaceI = objFuncFaceI - daIndex_.nLocalInternalFaces;
-        const label patchI = daIndex_.bFacePatchI[bFaceI];
-        const label faceI = daIndex_.bFaceFaceI[bFaceI];
+        label bFaceI = objFuncFaceI - daIndexPtr_->nLocalInternalFaces;
+        const label patchI = daIndexPtr_->bFacePatchI[bFaceI];
+        const label faceI = daIndexPtr_->bFaceFaceI[bFaceI];
 
         // normal force
         vector fN(Sfb[patchI][faceI] * p.boundaryField()[patchI][faceI]);

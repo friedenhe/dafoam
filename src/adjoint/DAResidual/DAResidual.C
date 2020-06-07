@@ -5,7 +5,7 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAStateInfo.H"
+#include "DAResidual.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -14,12 +14,12 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(DAStateInfo, 0);
-defineRunTimeSelectionTable(DAStateInfo, dictionary);
+defineTypeNameAndDebug(DAResidual, 0);
+defineRunTimeSelectionTable(DAResidual, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAStateInfo::DAStateInfo(
+DAResidual::DAResidual(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -38,18 +38,12 @@ DAStateInfo::DAStateInfo(
         daModel: DAModel object
     */
 
-    // initialize stateInfo
-    stateInfo_.set("volScalarStates", {});
-    stateInfo_.set("volVectorStates", {});
-    stateInfo_.set("surfaceScalarStates", {});
-    stateInfo_.set("modelStates", {});
 
-    //Info<<stateInfo_<<endl;
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
-autoPtr<DAStateInfo> DAStateInfo::New(
+autoPtr<DAResidual> DAResidual::New(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -57,7 +51,7 @@ autoPtr<DAStateInfo> DAStateInfo::New(
 {
     // standard setup for runtime selectable classes
 
-    Info << "Selecting " << modelType << " for DAStateInfo" << endl;
+    Info << "Selecting " << modelType << " for DAResidual" << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);
@@ -66,22 +60,22 @@ autoPtr<DAStateInfo> DAStateInfo::New(
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorIn(
-            "DAStateInfo::New"
+            "DAResidual::New"
             "("
             "    const word,"
             "    const fvMesh&,"
             "    const DAOption&,"
             "    const DAModel&"
             ")")
-            << "Unknown DAStateInfo type "
+            << "Unknown DAResidual type "
             << modelType << nl << nl
-            << "Valid DAStateInfo types:" << endl
+            << "Valid DAResidual types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }
 
     // child class found
-    return autoPtr<DAStateInfo>(
+    return autoPtr<DAResidual>(
         cstrIter()(modelType, mesh, daOption, daModel));
 }
 

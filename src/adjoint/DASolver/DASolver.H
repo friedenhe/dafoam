@@ -19,12 +19,13 @@
 #include "DAUtility.H"
 #include "DACheckMesh.H"
 #include "DAOption.H"
-#include "DARegState.H"
+#include "DAStateInfo.H"
 #include "DAModel.H"
 #include "DATurbulenceModel.H"
 #include "DAIndex.H"
 #include "DAObjFunc.H"
 #include "DAJacCon.H"
+#include "DAColoring.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -72,9 +73,6 @@ protected:
 
     /// DAModel pointer
     autoPtr<DAModel> daModelPtr_;
-
-    /// DARegState pointer
-    autoPtr<DARegState> daRegStatePtr_;
 
     /// DAIndex pointer
     autoPtr<DAIndex> daIndexPtr_;
@@ -196,7 +194,7 @@ public:
     /// print all DAOption
     void printAllOptions()
     {
-        Info<<"All DAFoam Options:"<<endl;
+        Info<<"DAFoam option dictionary: ";
         Info<<daOptionPtr_->getAllOptions()<<endl;
     }
 };

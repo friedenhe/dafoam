@@ -41,8 +41,10 @@ protected:
     /// fvMesh
     const fvMesh& mesh_;
 
+    /// DAOption object
     const DAOption& daOption_;
 
+    /// DAModel object
     const DAModel& daModel_;
 
     /// registered states 1st hash: solverName, 2nd hash: fieldType, 3nd list, stateNames
@@ -63,13 +65,17 @@ public:
         autoPtr,
         DAStateInfo,
         dictionary,
-        (const fvMesh& mesh, const DAOption& daOption, const DAModel& daModel),
-        (mesh, daOption, daModel));
+        (const word modelType,
+         const fvMesh& mesh,
+         const DAOption& daOption,
+         const DAModel& daModel),
+        (modelType, mesh, daOption, daModel));
 
     // Constructors
 
     //- Construct from components
     DAStateInfo(
+        const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel);
@@ -78,6 +84,7 @@ public:
 
     //- Return a reference to the selected model
     static autoPtr<DAStateInfo> New(
+        const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel);
@@ -98,7 +105,6 @@ public:
     {
         return stateResConInfo_;
     }
-
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

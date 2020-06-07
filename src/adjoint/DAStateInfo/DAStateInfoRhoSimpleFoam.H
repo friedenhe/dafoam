@@ -4,7 +4,7 @@
     Version : v2
 
     Description:
-        Child class for DASimpleFoam
+        Child class for DARhoSimpleFoam
 
 \*---------------------------------------------------------------------------*/
 
@@ -33,6 +33,7 @@ public:
 
     //- Construct from components
     DAStateInfoRhoSimpleFoam(
+        const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel);

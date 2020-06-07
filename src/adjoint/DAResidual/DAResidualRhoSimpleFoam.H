@@ -4,14 +4,14 @@
     Version : v2
 
     Description:
-        Child class for DASimpleFoam
+        Child class for DARhoSimpleFoam
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAStateInfoSimpleFoam_H
-#define DAStateInfoSimpleFoam_H
+#ifndef DAResidualRhoSimpleFoam_H
+#define DAResidualRhoSimpleFoam_H
 
-#include "DAStateInfo.H"
+#include "DAResidual.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -20,26 +20,26 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAStateInfoSimpleFoam Declaration
+      Class DAResidualRhoSimpleFoam Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAStateInfoSimpleFoam
-    : public DAStateInfo
+class DAResidualRhoSimpleFoam
+    : public DAResidual
 {
 
 public:
-    TypeName("DASimpleFoam");
+    TypeName("DARhoSimpleFoam");
     // Constructors
 
     //- Construct from components
-    DAStateInfoSimpleFoam(
+    DAResidualRhoSimpleFoam(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel);
 
     //- Destructor
-    virtual ~DAStateInfoSimpleFoam()
+    virtual ~DAResidualRhoSimpleFoam()
     {
     }
 };

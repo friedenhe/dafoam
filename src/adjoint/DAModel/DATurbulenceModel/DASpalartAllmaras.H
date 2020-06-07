@@ -34,6 +34,7 @@ public:
 
     //- Construct from components
     DASpalartAllmaras(
+        const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption);
 
@@ -44,7 +45,7 @@ public:
 
     // Member functions
 
-    /// update the turbulence state for DARegState::regStates_
+    /// update the turbulence state for DAStateInfo::regStates_
     virtual void correctModelStates(wordList& modelStates) const;
 
     /// update nut based on other turbulence variables and update the BCs

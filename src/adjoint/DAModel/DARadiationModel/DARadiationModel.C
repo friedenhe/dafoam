@@ -20,6 +20,7 @@ defineRunTimeSelectionTable(DARadiationModel, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 DARadiationModel::DARadiationModel(
+    const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption)
     : regIOobject(
@@ -39,11 +40,10 @@ DARadiationModel::DARadiationModel(
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
 autoPtr<DARadiationModel> DARadiationModel::New(
+    const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption)
 {
-    // look up the solver name
-    word modelType = daOption.getOption<word>("radiationModel");
 
     Info << "Selecting " << modelType << " for DARadiationModel" << endl;
 
@@ -55,6 +55,7 @@ autoPtr<DARadiationModel> DARadiationModel::New(
         FatalErrorIn(
             "DARadiationModel::New"
             "("
+            "    const word,"
             "    const fvMesh&,"
             "    const DAOption&"
             ")")
@@ -66,7 +67,7 @@ autoPtr<DARadiationModel> DARadiationModel::New(
     }
 
     return autoPtr<DARadiationModel>(
-        cstrIter()(mesh, daOption));
+        cstrIter()(modelType, mesh, daOption));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

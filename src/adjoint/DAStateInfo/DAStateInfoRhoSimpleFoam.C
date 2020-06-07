@@ -17,10 +17,11 @@ addToRunTimeSelectionTable(DAStateInfo, DAStateInfoRhoSimpleFoam, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 DAStateInfoRhoSimpleFoam::DAStateInfoRhoSimpleFoam(
+    const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel)
-    : DAStateInfo(mesh, daOption, daModel)
+    : DAStateInfo(modelType, mesh, daOption, daModel)
 {
     // Register the names of state variables
     // NOTE:
@@ -42,7 +43,10 @@ DAStateInfoRhoSimpleFoam::DAStateInfoRhoSimpleFoam(
     // correct the names for model states based on the selected physical model at runtime
     daModel.correctModelStates(stateInfo_["modelStates"]);
 
-    Info << "stateInfo: " << stateInfo_ << endl;
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "stateInfo: " << stateInfo_ << endl;
+    }
 
     /* 
     Adjoint state connectivity info, numbers denote the level of connectivity
@@ -114,8 +118,11 @@ DAStateInfoRhoSimpleFoam::DAStateInfoRhoSimpleFoam(
 
     // add physical model residual connectivity
     daModel.addModelResidualCon(stateResConInfo_);
-
-    Info << "stateResConInfo: " << stateResConInfo_ << endl;
+    
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "stateResConInfo: " << stateResConInfo_ << endl;
+    }
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

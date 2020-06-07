@@ -17,9 +17,10 @@ addToRunTimeSelectionTable(DATurbulenceModel, DASpalartAllmaras, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 DASpalartAllmaras::DASpalartAllmaras(
+    const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption)
-    : DATurbulenceModel(mesh, daOption)
+    : DATurbulenceModel(modelType, mesh, daOption)
 {
 }
 

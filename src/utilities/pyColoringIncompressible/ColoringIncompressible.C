@@ -37,17 +37,35 @@ void ColoringIncompressible::run()
 #include "createFields.H"
 #include "createAdjoint.H"
 
-    label isPrealloc = 1;
+    // a dictionary to pass the parameters int daJacCon
+    dictionary options;
     label isPC = 0;
-    daJacCon->setupdRdWCon(isPrealloc, isPC);
-    daJacCon->initializedRdWCon(isPC);
+    label isPrealloc = 1;
+
+    // need to first set isPrealloc to true to calcualte the preallocation for the dRdWCon matrix
+    // because directly initializing the dRdWCon matrix will use too much memory
+    options.set("isPC", isPC);
+    options.set("isPrealloc", isPrealloc);
+    daJacCon->setupJacCon(options);
+
+    // now we can initilaize dRdWCon
+    daJacCon->initializeJacCon(options);
+
+    // setup dRdWCon
     isPrealloc = 0;
-    daJacCon->setupdRdWCon(isPrealloc, isPC);
+    options.set("isPrealloc", isPrealloc);
+    daJacCon->setupJacCon(options);
     Info << "dRdWCon Created. " << mesh.time().elapsedClockTime() << " s" << endl;
+
+    // compute the coloring
     Info << "Calculating dRdW Coloring... " << mesh.time().elapsedClockTime() << " s" << endl;
-    daJacCon->calcdRdWColoring();
+    daJacCon->calcJacConColoring();
     Info << "Calculating dRdW Coloring... Completed! " << mesh.time().elapsedClockTime() << " s" << endl;
-    daJacCon->deletedRdWCon();
+
+    // clean up
+    daJacCon->deleteJacCon(options);
+
+    return;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
