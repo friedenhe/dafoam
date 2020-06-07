@@ -28,17 +28,6 @@ class DAJacCondRdW
 {
 
 protected:
-    /// table to specify how the states are connected to the residuals for a given solver
-    HashTable<List<List<word>>> stateResConInfo_;
-
-    /// a backup for DAJacCondRdW::adjstateResConInfo_ when reducing the connectivity levels
-    HashTable<List<List<word>>> stateResConInfoBK_;
-
-    /// dRdW connectivity mat
-    Mat dRdWCon_;
-
-    /// dRdWPC connectivity mat
-    Mat dRdWConPC_;
 
     /// \name on- and off-diagonal preallocation sizes for each row of dRdW, dRdWT, and dRdXv
     //@{
@@ -48,17 +37,30 @@ protected:
     Vec dRdWPreallocOff_;
     //@}
 
-    /// dRdW colors
-    Vec dRdWColors_;
+    /// initialize petsc vectors
+    void initializePetscVecs();
 
-    /// dRdW colored columns. It contains the global column index of perturbed state for the current color
-    Vec dRdWColoredColumns_;
+    /// compute preallocation vectors
+    void allocateJacobianConnections(
+        Vec preallocOnProc,
+        Vec preallocOffProc,
+        Vec preallocOnProcT,
+        Vec preallocOffProcT,
+        Mat connections,
+        const label row);
 
-    /// number of dRdW colors
-    label ndRdWColors_;
+    /// compute preallocation vectors
+    void preallocateJacobianMatrix(
+        Mat dRMat,
+        const Vec preallocOnProc,
+        const Vec preallocOffProc) const;
+
+    void setupdRdWCon(
+        const HashTable<List<List<word>>>& stateResConInfo,
+        const label isPrealloc);
 
 public:
-    TypeName("DAJacCondRdW");
+    TypeName("dRdW");
     // Constructors
 
     //- Construct from components
@@ -75,59 +77,22 @@ public:
 
     // Member functions
 
-    /// initialize petsc vectors
-    void initializePetscVecs();
+    /// calculate the
+    virtual void setupJacConPreallocation(const dictionary& options);
 
-    /// reduce the connectivity level for DAJacCondRdW::dRdWCon_
-    void reduceStateResConLevel();
-
-    /// restore the connectivity level for DAJacCondRdW::dRdWCon_
-    void restoreStateResConLevel();
-
-    /// compute preallocation vectors
-    void allocateJacobianConnections(
-        Vec preallocOnProc,
-        Vec preallocOffProc,
-        Vec preallocOnProcT,
-        Vec preallocOffProcT,
-        Mat connections,
-        const label row);
-
-    /// compute preallocation vectors
-    void preallocateJacobianMatrix(
-        Mat dRMat,
-        const Vec preallocOnProc,
-        const Vec preallocOffProc);
-
-    /// preallocate memory for dRdW using the computed preallocation vectors
-    void preallocatedRdW(
-        Mat dRMat,
-        const label transposed);
-    
-     /// initialize the state Jacobian connectivity matrix
+    /// initialize the state Jacobian connectivity matrix
     virtual void initializeJacCon(const dictionary& options);
 
     /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
     virtual void setupJacCon(const dictionary& options);
-    
-    /// get the number of dRdW colors
+
+    /// get the number of JacCon colors
     virtual label getNJacConColors() const;
 
-    /// return DAJacCondRdW::dRdWColoredColumns_
-    virtual Vec getJacConColoredColumns() const
-    {
-        return dRdWColoredColumns_;
-    }
-
-    /// delete DAJacCondRdW::dRdWCon_
-    virtual void deleteJacCon(const dictionary& options);
-
-    /// compute graph coloring for Jacobian connectivity matrix
-    virtual void calcJacConColoring();
-
-    /// read colors for dRdW
-    virtual void readJacConColoring();
-
+    /// preallocate memory for dRdW using the computed preallocation vectors
+    virtual void preallocatedRdW(
+        Mat dRMat,
+        const label transposed) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

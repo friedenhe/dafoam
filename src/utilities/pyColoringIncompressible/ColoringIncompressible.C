@@ -37,33 +37,98 @@ void ColoringIncompressible::run()
 #include "createFields.H"
 #include "createAdjoint.H"
 
-    // a dictionary to pass the parameters int daJacCon
-    dictionary options;
-    label isPC = 0;
-    label isPrealloc = 1;
+    word solverName = daOption.getOption<word>("solverName");
+    autoPtr<DAStateInfo> daStateInfo(DAStateInfo::New(solverName, mesh, daOption, daModel));
 
-    // need to first set isPrealloc to true to calcualte the preallocation for the dRdWCon matrix
-    // because directly initializing the dRdWCon matrix will use too much memory
-    options.set("isPC", isPC);
-    options.set("isPrealloc", isPrealloc);
-    daJacCon->setupJacCon(options);
+    // dRdW
+    {
+        autoPtr<DAJacCon> daJacCon(DAJacCon::New("dRdW", mesh, daOption, daModel));
 
-    // now we can initilaize dRdWCon
-    daJacCon->initializeJacCon(options);
+        if (!daJacCon->coloringExists())
+        {
+            dictionary options;
+            const HashTable<List<List<word>>>& stateResConInfo = daStateInfo->getStateResConInfo();
+            options.set("stateResConInfo", stateResConInfo);
 
-    // setup dRdWCon
-    isPrealloc = 0;
-    options.set("isPrealloc", isPrealloc);
-    daJacCon->setupJacCon(options);
-    Info << "dRdWCon Created. " << mesh.time().elapsedClockTime() << " s" << endl;
+            // need to first setup preallocation vectors for the dRdWCon matrix
+            // because directly initializing the dRdWCon matrix will use too much memory
+            daJacCon->setupJacConPreallocation(options);
 
-    // compute the coloring
-    Info << "Calculating dRdW Coloring... " << mesh.time().elapsedClockTime() << " s" << endl;
-    daJacCon->calcJacConColoring();
-    Info << "Calculating dRdW Coloring... Completed! " << mesh.time().elapsedClockTime() << " s" << endl;
+            // now we can initilaize dRdWCon
+            daJacCon->initializeJacCon(options);
 
-    // clean up
-    daJacCon->deleteJacCon(options);
+            // setup dRdWCon
+            daJacCon->setupJacCon(options);
+            Info << "dRdWCon Created. " << mesh.time().elapsedClockTime() << " s" << endl;
+
+            // compute the coloring
+            Info << "Calculating dRdW Coloring... " << mesh.time().elapsedClockTime() << " s" << endl;
+            daJacCon->calcJacConColoring();
+            Info << "Calculating dRdW Coloring... Completed! " << mesh.time().elapsedClockTime() << " s" << endl;
+
+            // clean up
+            daJacCon->deleteJacCon();
+        }
+    }
+
+    // dFdW
+    const dictionary& allOptions = daOption.getAllOptions();
+    dictionary objFuncDict = allOptions.subDict("objFunc");
+    forAll(objFuncDict.toc(), idxI)
+    {
+        word objFuncName = objFuncDict.toc()[idxI];
+        dictionary objFuncSubDict = objFuncDict.subDict(objFuncName);
+        forAll(objFuncSubDict.toc(), idxJ)
+        {
+            word objFuncPart = objFuncSubDict.toc()[idxJ];
+            dictionary objFuncSubDictPart = objFuncSubDict.subDict(objFuncPart);
+
+            autoPtr<DAJacCon> daJacCon(DAJacCon::New("dFdW", mesh, daOption, daModel));
+
+            word postFix = "_" + objFuncName + "_" + objFuncPart;
+
+            if (!daJacCon->coloringExists(postFix))
+            {
+                autoPtr<DAObjFunc> daObjFunc(
+                    DAObjFunc::New(
+                        mesh,
+                        daOption,
+                        daModel,
+                        objFuncName,
+                        objFuncPart,
+                        objFuncSubDictPart));
+
+                dictionary options;
+                const List<List<word>>& objFuncConInfo = daObjFunc->getObjFuncConInfo();
+                const labelList& objFuncFaceSources = daObjFunc->getObjFuncFaceSources();
+                const labelList& objFuncCellSources = daObjFunc->getObjFuncCellSources();
+                options.set("objFuncConInfo", objFuncConInfo);
+                options.set("objFuncFaceSources", objFuncFaceSources);
+                options.set("objFuncCellSources", objFuncCellSources);
+
+                // now we can initilaize dFdWCon
+                daJacCon->initializeJacCon(options);
+
+                // setup dFdWCon
+                daJacCon->setupJacCon(options);
+                Info << "dFdWCon Created. " << mesh.time().elapsedClockTime() << " s" << endl;
+
+                // compute the coloring
+                Info << "Calculating dFdW " << objFuncName << "-"
+                     << objFuncPart << " Coloring... "
+                     << mesh.time().elapsedClockTime() << " s" << endl;
+
+                daJacCon->calcJacConColoring(postFix);
+
+                Info << "Calculating dFdW " << objFuncName << "-"
+                     << objFuncPart << " Coloring... Completed"
+                     << mesh.time().elapsedClockTime() << " s" << endl;
+
+                // clean up
+                daJacCon->deleteJacCon();
+            }
+        }
+    }
 
     return;
 }

@@ -13,6 +13,7 @@
 
 #include "runTimeSelectionTables.H"
 #include "fvOptions.H"
+#include "DAUtility.H"
 #include "DAOption.H"
 #include "DAIndex.H"
 #include "DAModel.H"
@@ -41,6 +42,9 @@ private:
     void operator=(const DAJacCon&);
 
 protected:
+    /// the name of the jacCon matrix
+    const word modelType_;
+
     /// fvMesh
     const fvMesh& mesh_;
 
@@ -71,48 +75,17 @@ protected:
     /// neibough face global index for a given local boundary face
     labelList neiBFaceGlobalCompact_;
 
-public:
-    /// Runtime type information
-    TypeName("DAJacCon");
+    /// Jacobian connectivity mat
+    Mat jacCon_;
 
-    // Declare run-time constructor selection table
-    declareRunTimeSelectionTable(
-        autoPtr,
-        DAJacCon,
-        dictionary,
-        (const word modelType,
-         const fvMesh& mesh,
-         const DAOption& daOption,
-         const DAModel& daModel),
-        (modelType,
-         mesh,
-         daOption,
-         daModel));
+    /// jacCon matrix colors
+    Vec jacConColors_;
 
-    // Constructors
+    /// jacCon colored columns. It contains the global column index of perturbed state for the current color
+    Vec jacConColoredColumns_;
 
-    //- Construct from components
-    DAJacCon(
-        const word modelType,
-        const fvMesh& mesh,
-        const DAOption& daOption,
-        const DAModel& daModel);
-
-    // Selectors
-
-    //- Return a reference to the selected model
-    static autoPtr<DAJacCon> New(
-        const word modelType,
-        const fvMesh& mesh,
-        const DAOption& daOption,
-        const DAModel& daModel);
-
-    //- Destructor
-    virtual ~DAJacCon()
-    {
-    }
-
-    // Member functions
+    /// number of jacCon colors
+    label nJacConColors_;
 
     /// initialize state boundary connection
     void initializeStateBoundaryCon();
@@ -190,27 +163,87 @@ public:
         const List<List<word>> connectedStates,
         const label addFaces);
 
-    // ****************** Pure virutal function ********************
+public:
+    /// Runtime type information
+    TypeName("DAJacCon");
 
-    /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
-    virtual void setupJacCon(const dictionary& options) = 0;
+    // Declare run-time constructor selection table
+    declareRunTimeSelectionTable(
+        autoPtr,
+        DAJacCon,
+        dictionary,
+        (const word modelType,
+         const fvMesh& mesh,
+         const DAOption& daOption,
+         const DAModel& daModel),
+        (modelType,
+         mesh,
+         daOption,
+         daModel));
+
+    // Constructors
+
+    //- Construct from components
+    DAJacCon(
+        const word modelType,
+        const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel);
+
+    // Selectors
+
+    //- Return a reference to the selected model
+    static autoPtr<DAJacCon> New(
+        const word modelType,
+        const fvMesh& mesh,
+        const DAOption& daOption,
+        const DAModel& daModel);
+
+    //- Destructor
+    virtual ~DAJacCon()
+    {
+    }
+
+    // Member functions
+
+    /// calculate the preallocation vector for initializing the JacCon mat, if necessary
+    virtual void setupJacConPreallocation(const dictionary& options);
 
     /// initialize the state Jacobian connectivity matrix
     virtual void initializeJacCon(const dictionary& options) = 0;
 
-    virtual void deleteJacCon(const dictionary& options) = 0;
+    /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
+    virtual void setupJacCon(const dictionary& options) = 0;
 
-    /// get the number of dRdW colors
+    /// get the number of JacCon colors
     virtual label getNJacConColors() const = 0;
 
-    /// return DAJacCon::dRdWColoredColumns_
-    virtual Vec getJacConColoredColumns() const = 0;
+    virtual void preallocatedRdW(
+        Mat dRMat,
+        const label transposed) const;
 
     /// compute graph coloring for Jacobian connectivity matrix
-    virtual void calcJacConColoring() = 0;
+    void calcJacConColoring(const word postFix="");
 
-    /// read colors for dRdW
-    virtual void readJacConColoring() = 0;
+    /// read colors for JacCon
+    void readJacConColoring(const word postFix="");
+
+    /// whether the coloring file exists
+    label coloringExists(const word postFix="") const;
+
+    /// delete the JacCon matrix to free the memory
+    void deleteJacCon()
+    {
+        MatDestroy(&jacCon_);
+    }
+
+    /// return DAJacCon::jacConColoredColumns_
+    Vec getJacConColoredColumns() const
+    {
+        return jacConColoredColumns_;
+    }
+
+    
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

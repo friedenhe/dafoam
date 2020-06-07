@@ -276,9 +276,6 @@ public:
     /// set adjoint state unique ID: adjStateID
     void calcAdjStateID(HashTable<label>& adjStateID);
 
-    /// generate global index numbering for local-global index transferring
-    globalIndex genGlobalIndex(const label localIndexSize);
-
     /// compute local lists such as adjStateName4LocalAdjIdx and  cellIFaceI4LocalAdjIdx;
     void calcLocalIdxLists(
         wordList& adjStateName4LocalAdjIdx,

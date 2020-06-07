@@ -53,9 +53,6 @@ protected:
     /// table to specify how the states are connected to the residuals for a given solver
     HashTable<List<List<word>>> stateResConInfo_;
 
-    /// a backup for stateResConInfo_ when reducing the connectivity levels
-    HashTable<List<List<word>>> stateResConInfoBK_;
-
 public:
     /// Runtime type information
     TypeName("DAStateInfo");

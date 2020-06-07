@@ -46,7 +46,15 @@ DAObjFuncForce::DAObjFuncForce(
 
     // initialize daIndex
     daIndexPtr_.reset(new DAIndex(mesh, daOption, daModel));
+
+    // setup the connectivity for force, it depends on zero level
+    // of U, nut, and p, and one level of U
+    objFuncConInfo_ = {
+        {"U", "nut", "p"}, // level 0
+        {"U"}}; // level 1
     
+    // now replace nut with the corrected name for the selected turbulence model
+    daModel.correctModelStates(objFuncConInfo_[0]);
 }
 
 /// calculate the value of objective function
@@ -82,7 +90,7 @@ void DAObjFuncForce::calcObjFunc(
     // initialize faceValues to zero
     forAll(objFuncFaceValues, idxI)
     {
-        objFuncFaceValues[idxI]=0.0;
+        objFuncFaceValues[idxI] = 0.0;
     }
     // initialize objFunValue
     objFuncValue = 0.0;

@@ -15,6 +15,7 @@
 #include <petscksp.h>
 #include "Python.h"
 #include "fvOptions.H"
+#include "globalIndex.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -120,6 +121,9 @@ public:
             return 0;
         }
     }
+
+    /// generate global index numbering for local-global index transferring
+    globalIndex genGlobalIndex(const label localIndexSize) const;
 };
 
 template<class classType>

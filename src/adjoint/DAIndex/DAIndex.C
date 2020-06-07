@@ -108,11 +108,12 @@ DAIndex::DAIndex(
     nLocalAdjointStates = nLocalCellStates + nLocalFaceStates;
 
     // Setup the global numbering to convert a local index to the associated global index
-    globalAdjointStateNumbering = this->genGlobalIndex(nLocalAdjointStates);
-    globalCellNumbering = this->genGlobalIndex(nLocalCells);
-    globalCellVectorNumbering = this->genGlobalIndex(nLocalCells * 3);
-    globalFaceNumbering = this->genGlobalIndex(nLocalFaces);
-    globalXvNumbering = this->genGlobalIndex(nLocalXv);
+    DAUtility daUtil;
+    globalAdjointStateNumbering = daUtil.genGlobalIndex(nLocalAdjointStates);
+    globalCellNumbering = daUtil.genGlobalIndex(nLocalCells);
+    globalCellVectorNumbering = daUtil.genGlobalIndex(nLocalCells * 3);
+    globalFaceNumbering = daUtil.genGlobalIndex(nLocalFaces);
+    globalXvNumbering = daUtil.genGlobalIndex(nLocalXv);
 
     // global Adjoint state sizes
     nGlobalAdjointStates = globalAdjointStateNumbering.size();
@@ -170,7 +171,7 @@ DAIndex::DAIndex(
             }
         }
 
-        globalCoupledBFaceNumbering = this->genGlobalIndex(nLocalCoupledBFaces);
+        globalCoupledBFaceNumbering = daUtil.genGlobalIndex(nLocalCoupledBFaces);
         nGlobalCoupledBFaces = globalCoupledBFaceNumbering.size();
     }
 
@@ -413,58 +414,6 @@ void DAIndex::calcAdjStateID(HashTable<label>& adjStateID)
         id++;
     }
     return;
-}
-
-globalIndex DAIndex::genGlobalIndex(const label localIndexSize)
-{
-    /*
-    Generate a glocal index system based on the local index size 
-    such that we can use it to map a local index to a global one
-
-    Input:
-    -----
-    localIndexSize: the SIZE of local index
-
-    Output:
-    ------
-    globalIndex object: the global index object to map a local index
-    to a global index
-
-    Example:
-    --------
-    If the local index reads:
-
-    On processor 0:
-    labelList sampleList = {0, 1, 2};
-    globalIndex glbSample = genGlobalIndex(sampleList.size());
-
-    On processor 1:
-    labelList sampleList = {0, 1};
-    globalIndex glbSample = genGlobalIndex(sampleList.size());
-
-    After each processor calls genGlobalIndex and get the glbSample
-    object, we can use it to map a local index to a global one,
-    e.g., on processor 0, if we call:
-
-    label glxIdx = glbSample.toGlobal(1);
-
-    it will return glbIdx = 1;
-    However, on processor 1, if we call
-
-    label glxIdx = glbSample.toGlobal(1);
-
-    it will return glbIdx = 4;
-
-    The date storage structure is illustrated as follows
-
-    global index -> 0 1 2 3 4
-    local index  -> 0 1 2 0 1
-                    ----- ===
-                    proc0 proc1
-
-    */
-    globalIndex result(localIndexSize);
-    return result;
 }
 
 void DAIndex::calcLocalIdxLists(

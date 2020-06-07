@@ -78,6 +78,9 @@ protected:
     /// the value of the objective function
     scalar objFuncValue_;
 
+    /// the connectivity information for the objective function
+    List<List<word>> objFuncConInfo_;
+
 public:
     /// Runtime type information
     TypeName("DAObjFunc");
@@ -185,6 +188,12 @@ public:
     const labelList& getObjFuncCellSources() const
     {
         return objFuncCellSources_;
+    }
+
+    /// return DAObjFunc::objFuncConInfo_
+    const List<List<word>>& getObjFuncConInfo() const
+    {
+        return objFuncConInfo_;
     }
 };
 

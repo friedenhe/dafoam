@@ -31,6 +31,7 @@ DAColoring/DAColoring.C
 
 DAJacCon/DAJacCon.C
 DAJacCon/DAJacCondRdW.C
+DAJacCon/DAJacCondFdW.C
 
 DASolver/DASolver.C
 DASolver/DASimpleFoam/DASimpleFoam.C

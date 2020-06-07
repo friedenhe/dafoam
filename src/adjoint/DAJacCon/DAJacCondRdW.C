@@ -26,14 +26,10 @@ DAJacCondRdW::DAJacCondRdW(
 
     if (daOption_.getOption<label>("adjUseColoring"))
     {
-        word solverName = daOption.getOption<word>("solverName");
-        autoPtr<DAStateInfo> daStateInfo(DAStateInfo::New(solverName, mesh, daOption, daModel));
-        stateResConInfo_ = daStateInfo->getStateResConInfo();
 
         this->initializeStateBoundaryCon();
         this->initializePetscVecs();
     }
-
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -53,13 +49,54 @@ void DAJacCondRdW::initializePetscVecs()
 
     // initialize coloring vectors
 
-    //dRdW Colors
-    VecCreate(PETSC_COMM_WORLD, &dRdWColors_);
-    VecSetSizes(dRdWColors_, daIndex_.nLocalAdjointStates, PETSC_DECIDE);
-    VecSetFromOptions(dRdWColors_);
-    VecDuplicate(dRdWColors_, &dRdWColoredColumns_);
+    // dRdW Colors
+    VecCreate(PETSC_COMM_WORLD, &jacConColors_);
+    VecSetSizes(jacConColors_, daIndex_.nLocalAdjointStates, PETSC_DECIDE);
+    VecSetFromOptions(jacConColors_);
+    VecDuplicate(jacConColors_, &jacConColoredColumns_);
 
     return;
+}
+
+void DAJacCondRdW::setupJacConPreallocation(const dictionary& options)
+{
+    /*
+    Setup the connectivity mat preallocation vectors:
+
+    dRdWTPreallocOn_
+    dRdWTPreallocOff_
+    dRdWPreallocOn_
+    dRdWPreallocOff_
+    
+    Input:
+    -----
+    options.stateResConInfo: a hashtable that contains the connectivity
+    information for dRdW
+    */
+
+    HashTable<List<List<word>>> stateResConInfo;
+    options.readEntry<HashTable<List<List<word>>>>("stateResConInfo", stateResConInfo);
+
+    label isPrealloc = 1;
+    this->setupdRdWCon(stateResConInfo, isPrealloc);
+}
+
+void DAJacCondRdW::setupJacCon(const dictionary& options)
+{
+    /*
+    Setup DAJacCon::jacCon_
+    
+    Input:
+    -----
+    options.stateResConInfo: a hashtable that contains the connectivity
+    information for dRdW
+    */
+
+    HashTable<List<List<word>>> stateResConInfo;
+    options.readEntry<HashTable<List<List<word>>>>("stateResConInfo", stateResConInfo);
+
+    label isPrealloc = 0;
+    this->setupdRdWCon(stateResConInfo, isPrealloc);
 }
 
 void DAJacCondRdW::initializeJacCon(const dictionary& options)
@@ -69,80 +106,70 @@ void DAJacCondRdW::initializeJacCon(const dictionary& options)
     
     Input:
     -----
-    options.isPC whether to initialize dRdWCon or dRdWConPC
+    options: it is not used.
     */
 
-    label isPC;
-    options.readEntry<label>("isPC", isPC);
-
-    Mat* conMat;
-    if (isPC)
-    {
-        conMat = &dRdWConPC_;
-    }
-    else
-    {
-        conMat = &dRdWCon_;
-    }
-
-    MatCreate(PETSC_COMM_WORLD, conMat);
+    MatCreate(PETSC_COMM_WORLD, &jacCon_);
     MatSetSizes(
-        *conMat,
+        jacCon_,
         daIndex_.nLocalAdjointStates,
         daIndex_.nLocalAdjointStates,
         PETSC_DETERMINE,
         PETSC_DETERMINE);
-    MatSetFromOptions(*conMat);
+    MatSetFromOptions(jacCon_);
 
     this->preallocateJacobianMatrix(
-        *conMat,
+        jacCon_,
         dRdWPreallocOn_,
         dRdWPreallocOff_);
-    //MatSetOption(*conMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
-    MatSetUp(*conMat);
+    //MatSetOption(jacCon_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    MatSetUp(jacCon_);
 
     Info << "Connectivity matrix initialized." << endl;
 }
 
-void DAJacCondRdW::setupJacCon(const dictionary& options)
+void DAJacCondRdW::setupdRdWCon(
+    const HashTable<List<List<word>>>& stateResConInfo,
+    const label isPrealloc)
 {
     /*
-    Calculates the state Jacobian connectivity mat DAJacCondRdW::dRdWCon_ or 
+    Calculates the state Jacobian connectivity mat DAJacCon::jacCon_ or 
     computing the preallocation vectors DAJacCondRdW::dRdWPreallocOn_ and 
     DAJacCondRdW::dRdWPreallocOff_
 
     Input:
     ------
-    options.isPrealloc == 1: calculate the preallocation vectors, else, calculate dRdWCon_
-    
-    options.isPC == 1: calc dRdWConPC_, else calculate dRdWCon_
+    stateResConInfo: a hashtable that contains the connectivity
+    information for dRdW
+
+    isPrealloc == 1: calculate the preallocation vectors, else, calculate jacCon_
 
     Output:
     ------
     DAJacCondRdW::dRdWPreallocOn_: preallocation vector that stores the number of 
     on-diagonal conectivity for each row
 
-    DAJacCondRdW::dRdWCon_: state Jacobian connectivity mat with dimension 
-    sizeAdjStates by sizeAdjStates. dRdWCon has the same non-zero pattern as dRdW.
-    The difference is that dRdWCon has values one for all non-zero values, so dRdWCon
+    DAJacCon::jacCon_: state Jacobian connectivity mat with dimension 
+    sizeAdjStates by sizeAdjStates. jacCon_ has the same non-zero pattern as Jacobian mat.
+    The difference is that jacCon_ has values one for all non-zero values, so jacCon_
     may look like this
 
                 1 1 0 0 1 0 
                 1 1 1 0 0 1 
                 0 1 1 1 0 0 
-    dRdWCon =   1 0 1 1 1 0 
+    jacCon_ =   1 0 1 1 1 0 
                 0 1 0 1 1 1
                 0 0 1 0 0 1
 
     Example:
     -------
-    The way setupJacCon works is that we call the DAJacCondRdW::addStateConnections function
-    to add connectivity for each row of DAJacCondRdWCon_.
+    The way setupJacCon works is that we call the DAJacCon::addStateConnections function
+    to add connectivity for each row of DAJacCon::jacCon_.
     
     Here we need to loop over all cellI and add a certain number levels of connected states.
     If the connectivity list reads:
 
-    stateResConInfo_
+    stateResConInfo
     {
         "URes"
         {
@@ -194,7 +221,7 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
     state on the other side of the inter-proc boundary for CASE 1. This is the only chance we 
     can add all two levels of connected state across the boundary for CASE 1. For CASE 2, we won't
     add any level 1 inter-proc states because non of the faces for cellI are inter-proc
-    faces so calling DAJacCondRdW::addBoundaryFaceConnections for cellI won't add anything
+    faces so calling DAJacCon::addBoundaryFaceConnections for cellI won't add anything
 
     To add level 2 connectivity, we need to
     set connectedLevelLocal = 2
@@ -203,39 +230,15 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
     set addFace = 0
     NOTE 1: we need only level 2 con (U) for connectedStatesInterProc because if we are in CASE 1,
     the level 2 of inter-proc states have been added. For CASE 2, we only need to add cellQ
-    by calling DAJacCondRdW::addBoundaryFaceConnections with cellJ
+    by calling DAJacCon::addBoundaryFaceConnections with cellJ
     NOTE 2: If we didn't call two levels of connectedStatesInterProc in the previous call for 
     level 1 con, we can not add it for connectedLevelLocal = 2 becasue for CASE 2 there is no
     inter-proc boundary for cellI
 
     NOTE: how to provide connectedLevelLocal, connectedStatesLocal, and connectedStatesInterProc
-    are done in DAJacCondRdW::setupJacCon and DAJacCondRdW::setupObjFuncCon
+    are done in this function
 
     */
-
-    label isPC;
-    options.readEntry<label>("isPC", isPC);
-
-    label isPrealloc;
-    options.readEntry<label>("isPrealloc", isPrealloc);
-
-    // first decide which con mat we need to set
-    Mat* conMat;
-    if (isPC)
-    {
-        conMat = &dRdWConPC_;
-    }
-    else
-    {
-        conMat = &dRdWCon_;
-    }
-
-    // if it is preconditioner mat, check if we need to reduce its
-    // con level for reducing memory cost
-    if (isPC)
-    {
-        this->reduceStateResConLevel();
-    }
 
     label globalIdx;
     // connectedStatesP: one row matrix that stores the actual connectivity,
@@ -261,17 +264,17 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
 
     if (isPrealloc)
     {
-        Info << "Preallocating state Jacobian connectivity mat" << endl;
+        Info << "Computing preallocating vectors for Jacobian connectivity mat" << endl;
     }
     else
     {
-        Info << "Setup state Jacobian connectivity mat" << endl;
+        Info << "Setup Jacobian connectivity mat" << endl;
     }
 
     // loop over all cell residuals, we bascially need to compute all
     // the input parameters for the DAJacCondRdW::addStateConnections function, then call
     // the function to get connectedStatesP (matrix that contains one row of connectivity
-    // in DAJacCondRdW::dRdWCon_). Check DAJacCondRdW::addStateConnections for detail usages
+    // in DAJacCondRdW::jacCon_). Check DAJacCondRdW::addStateConnections for detail usages
     forAll(daIndex_.adjStateNames, idxI)
     {
         // get stateName and residual names
@@ -285,9 +288,9 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
         }
 
         // maximal connectivity level information
-        // Note that stateResConInfo_ starts with level zero,
+        // Note that stateResConInfo starts with level zero,
         // so the maxConLeve is its size minus one
-        label maxConLevel = stateResConInfo_[resName].size() - 1;
+        label maxConLevel = stateResConInfo[resName].size() - 1;
 
         // if it is a vectorState, set compMax=3
         label compMax = 1;
@@ -305,14 +308,14 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                 this->createConnectionMat(&connectedStatesP);
 
                 // now add the con. We loop over all the connectivity levels
-                forAll(stateResConInfo_[resName], idxJ) // idxJ: con level
+                forAll(stateResConInfo[resName], idxJ) // idxJ: con level
                 {
 
                     // set connectedStatesLocal: the locally connected state variables for this level
                     wordList connectedStatesLocal(0);
-                    forAll(stateResConInfo_[resName][idxJ], idxK)
+                    forAll(stateResConInfo[resName][idxJ], idxK)
                     {
-                        word conName = stateResConInfo_[resName][idxJ][idxK];
+                        word conName = stateResConInfo[resName][idxJ][idxK];
                         // Exclude surfaceScalarState when appending connectedStatesLocal
                         // whether to add it depends on addFace parameter
                         if (daIndex_.adjStateType[conName] != "surfaceScalarState")
@@ -333,10 +336,10 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                         connectedStatesInterProc.setSize(maxConLevel - idxJ + 1);
                         for (label k = 0; k < maxConLevel - idxJ + 1; k++)
                         {
-                            label conSize = stateResConInfo_[resName][k + idxJ].size();
+                            label conSize = stateResConInfo[resName][k + idxJ].size();
                             for (label l = 0; l < conSize; l++)
                             {
-                                word conName = stateResConInfo_[resName][k + idxJ][l];
+                                word conName = stateResConInfo[resName][k + idxJ][l];
                                 // Exclude surfaceScalarState when appending connectedStatesLocal
                                 // whether to add it depends on addFace parameter
                                 if (daIndex_.adjStateType[conName] != "surfaceScalarState")
@@ -349,10 +352,10 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                     else
                     {
                         connectedStatesInterProc.setSize(1);
-                        label conSize = stateResConInfo_[resName][maxConLevel].size();
+                        label conSize = stateResConInfo[resName][maxConLevel].size();
                         for (label l = 0; l < conSize; l++)
                         {
-                            word conName = stateResConInfo_[resName][maxConLevel][l];
+                            word conName = stateResConInfo[resName][maxConLevel][l];
                             // Exclude surfaceScalarState when appending connectedStatesLocal
                             // whether to add it depends on addFace parameter
                             if (daIndex_.adjStateType[conName] != "surfaceScalarState")
@@ -367,7 +370,7 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                     forAll(stateInfo_["surfaceScalarStates"], idxK)
                     {
                         word conName = stateInfo_["surfaceScalarStates"][idxK];
-                        if (daUtil_.isInList<word>(conName, stateResConInfo_[resName][idxJ]))
+                        if (daUtil_.isInList<word>(conName, stateResConInfo[resName][idxJ]))
                         {
                             addFace = 1;
                         }
@@ -402,7 +405,7 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                 else
                 {
                     this->setupJacobianConnections(
-                        *conMat,
+                        jacCon_,
                         connectedStatesP,
                         globalIdx);
                 }
@@ -418,7 +421,7 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
         word resName = stateName + "Res";
 
         // maximal connectivity level information
-        label maxConLevel = stateResConInfo_[resName].size() - 1;
+        label maxConLevel = stateResConInfo[resName].size() - 1;
 
         forAll(mesh_.faces(), faceI)
         {
@@ -444,14 +447,14 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
             }
 
             // now add the con. We loop over all the connectivity levels
-            forAll(stateResConInfo_[resName], idxJ) // idxJ: con level
+            forAll(stateResConInfo[resName], idxJ) // idxJ: con level
             {
 
                 // set connectedStatesLocal: the locally connected state variables for this level
                 wordList connectedStatesLocal(0);
-                forAll(stateResConInfo_[resName][idxJ], idxK)
+                forAll(stateResConInfo[resName][idxJ], idxK)
                 {
-                    word conName = stateResConInfo_[resName][idxJ][idxK];
+                    word conName = stateResConInfo[resName][idxJ][idxK];
                     // Exclude surfaceScalarState when appending connectedStatesLocal
                     // whether to add it depends on addFace parameter
                     if (daIndex_.adjStateType[conName] != "surfaceScalarState")
@@ -472,10 +475,10 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                     connectedStatesInterProc.setSize(maxConLevel - idxJ + 1);
                     for (label k = 0; k < maxConLevel - idxJ + 1; k++)
                     {
-                        label conSize = stateResConInfo_[resName][k + idxJ].size();
+                        label conSize = stateResConInfo[resName][k + idxJ].size();
                         for (label l = 0; l < conSize; l++)
                         {
-                            word conName = stateResConInfo_[resName][k + idxJ][l];
+                            word conName = stateResConInfo[resName][k + idxJ][l];
                             // Exclude surfaceScalarState when appending connectedStatesLocal
                             // whether to add it depends on addFace parameter
                             if (daIndex_.adjStateType[conName] != "surfaceScalarState")
@@ -488,10 +491,10 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                 else
                 {
                     connectedStatesInterProc.setSize(1);
-                    label conSize = stateResConInfo_[resName][maxConLevel].size();
+                    label conSize = stateResConInfo[resName][maxConLevel].size();
                     for (label l = 0; l < conSize; l++)
                     {
-                        word conName = stateResConInfo_[resName][maxConLevel][l];
+                        word conName = stateResConInfo[resName][maxConLevel][l];
                         // Exclude surfaceScalarState when appending connectedStatesLocal
                         // whether to add it depends on addFace parameter
                         if (daIndex_.adjStateType[conName] != "surfaceScalarState")
@@ -521,7 +524,7 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                         levelCheck = idxJ - 1;
                     }
 
-                    if (daUtil_.isInList<word>(conName, stateResConInfo_[resName][levelCheck]))
+                    if (daUtil_.isInList<word>(conName, stateResConInfo[resName][levelCheck]))
                     {
                         addFace = 1;
                     }
@@ -559,7 +562,7 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                 label relIdx = faceI - daIndex_.nLocalInternalFaces;
                 label patchIdx = daIndex_.bFacePatchI[relIdx];
 
-                label maxLevel = stateResConInfo_[resName].size();
+                label maxLevel = stateResConInfo[resName].size();
 
                 if (mesh_.boundaryMesh()[patchIdx].coupled())
                 {
@@ -578,11 +581,11 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
                         word conName = daIndex_.adjStateNames[stateID];
                         label addState = 0;
                         // NOTE: we use val-1 here since phi actually has 3 levels of connectivity
-                        // however, when we assign stateResConInfo_, we ignore the level 0
+                        // however, when we assign stateResConInfo, we ignore the level 0
                         // connectivity since they are idxN and idxO
                         if (val != 10 && val < maxLevel + 1)
                         {
-                            if (daUtil_.isInList<word>(conName, stateResConInfo_[resName][val - 1]))
+                            if (daUtil_.isInList<word>(conName, stateResConInfo[resName][val - 1]))
                             {
                                 addState = 1;
                             }
@@ -613,16 +616,11 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
             else
             {
                 this->setupJacobianConnections(
-                    *conMat,
+                    jacCon_,
                     connectedStatesP,
                     globalIdx);
             }
         }
-    }
-
-    if (isPC)
-    {
-        this->restoreStateResConLevel();
     }
 
     if (isPrealloc)
@@ -647,14 +645,14 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
     }
     else
     {
-        MatAssemblyBegin(*conMat, MAT_FINAL_ASSEMBLY);
-        MatAssemblyEnd(*conMat, MAT_FINAL_ASSEMBLY);
+        MatAssemblyBegin(jacCon_, MAT_FINAL_ASSEMBLY);
+        MatAssemblyEnd(jacCon_, MAT_FINAL_ASSEMBLY);
 
         //output the matrix to a file
         if (daOption_.getOption<label>("debug"))
         {
-            //daUtil_.writeMatRowSize(*conMat, "dRdWCon");
-            daUtil_.writeMatrixBinary(*conMat, "dRdWCon");
+            //daUtil_.writeMatRowSize(jacCon_, "dRdWCon");
+            daUtil_.writeMatrixBinary(jacCon_, "dRdWCon");
         }
     }
 
@@ -666,164 +664,6 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
     {
         Info << "Setup state Jacobian connectivity mat: finished!" << endl;
     }
-}
-
-void DAJacCondRdW::reduceStateResConLevel()
-{
-    /*
-    Reduce the connectivity levels for DAJacCondRdW::stateResConInfo_
-    based on maxResConLv4JacPCMat specified in DAOption
-
-    Input:
-    -----
-    maxResConLv4JacPCMat: the maximal levels of connectivity for each
-    state variable residual
-
-    Output:
-    ------
-    stateResConInfo_: reduced connectivity level.
-
-    stateResConInfoBK_: Original connectivity level. Will be used
-    when calling DAJacCondRdW::restoreStateResConLevel to restore 
-    the connectivity level to DAJacCondRdW::stateResConInfo_
-
-    Example:
-    -------
-
-    If the original stateResConInfo_ reads:
-
-    stateResConInfo_
-    {
-        "URes":
-        {
-            {"U", "p", "phi"}, // level 0
-            {"U", "p"},        // level 1
-            {"U"}              // level 2
-        }
-    }
-    And maxResConLv4JacPCMat in DAOption reads:
-
-    maxResConLv4JacPCMat
-    {
-        "URes": 1
-    }
-    
-    Then, calling reduceStateResConLevel will give:
-
-    stateResConInfo_
-    {
-        "URes":
-        {
-            {"U", "p", "phi"}, // level 0
-            {"U", "p"},        // level 1
-        }
-    }
-
-    Note that the level 2 of the connectivity in URes is removed becasue
-    "URes"=1 in maxResConLv4JacPCMat
-
-    */
-
-    // if no maxResConLv4JacPCMat is specified, just return;
-    HashTable<label> maxResConLv4JacPCMat =
-        daOption_.getOption<HashTable<label>>("maxResConLv4JacPCMat");
-    if (maxResConLv4JacPCMat.size() == 0)
-    {
-        return;
-    }
-
-    // now check if maxResConLv4JacPCMat has all the maxRes level defined
-    // and these max levels are <= stateResConInfo_.size()
-    forAll(stateResConInfo_.toc(), idxJ)
-    {
-        word key1 = stateResConInfo_.toc()[idxJ];
-        bool keyFound = false;
-        forAll(maxResConLv4JacPCMat.toc(), idxI)
-        {
-            word key = maxResConLv4JacPCMat.toc()[idxI];
-            if (key == key1)
-            {
-                keyFound = true;
-                label maxLv = maxResConLv4JacPCMat[key];
-                label maxLv1 = stateResConInfo_[key1].size() - 1;
-                if (maxLv > maxLv1)
-                {
-                    FatalErrorIn("") << "maxResConLv4JacPCMat maxLevel"
-                                     << maxLv << " for " << key
-                                     << " larger than stateResConInfo maxLevel "
-                                     << maxLv1 << " for " << key1
-                                     << abort(FatalError);
-                }
-            }
-        }
-        if (!keyFound)
-        {
-            FatalErrorIn("") << key1 << " not found in maxResConLv4JacPCMat"
-                             << abort(FatalError);
-        }
-    }
-
-    Info << "Reducing max connectivity level of Jacobian PC Mat to:";
-    Info << maxResConLv4JacPCMat << endl;
-
-    // assign stateResConInfo_ to stateResConInfoBK_
-    forAll(stateResConInfo_.toc(), idxI)
-    {
-        word key = stateResConInfo_.toc()[idxI];
-        stateResConInfoBK_.set(key, stateResConInfo_[key]);
-    }
-
-    // now we can erase stateResConInfo
-    stateResConInfo_.clearStorage();
-
-    // get the reduced stateResConInfo_
-    forAll(stateResConInfoBK_.toc(), idxI)
-    {
-        word key = stateResConInfoBK_.toc()[idxI];
-        label maxConLevel = maxResConLv4JacPCMat[key];
-        label conSize = stateResConInfoBK_[key].size();
-        if (conSize > maxConLevel + 1)
-        {
-            List<List<word>> conList;
-            conList.setSize(maxConLevel + 1);
-            for (label i = 0; i <= maxConLevel; i++) // NOTE: it is <=
-            {
-                conList[i] = stateResConInfoBK_[key][i];
-            }
-            stateResConInfo_.set(key, conList);
-        }
-        else
-        {
-            stateResConInfo_.set(key, stateResConInfoBK_[key]);
-        }
-    }
-    //Info<<stateResConInfo_<<endl;
-}
-
-void DAJacCondRdW::restoreStateResConLevel()
-{
-    /*
-    Assign DAJacCondRdW::stateResConInfoBK_ to DAJacCondRdW::stateResConInfo_
-    such that the reduced connecitvity is restored.
-    See DAJacCondRdW::reduceStateResConLevel for recuding con levels
-
-    Input:
-    -----
-    stateResConInfoBK_: the back up of original stateResConInfo_
-
-    Output:
-    ------
-    stateResConInfo_: original un-reduced connectivity levels
-
-    */
-
-    forAll(stateResConInfoBK_.toc(), idxI)
-    {
-        word key = stateResConInfoBK_.toc()[idxI];
-        stateResConInfo_.set(key, stateResConInfoBK_[key]);
-    }
-
-    return;
 }
 
 void DAJacCondRdW::allocateJacobianConnections(
@@ -840,7 +680,7 @@ void DAJacCondRdW::allocateJacobianConnections(
     Input:
     -----
     connections: a one row matrix that contains all the nonzeros for one 
-    row of DAJacCondRdW::dRdWCon
+    row of DAJacCon::jacCon_
 
     row: which row to add for the preallocation vector
 
@@ -919,7 +759,7 @@ void DAJacCondRdW::allocateJacobianConnections(
 void DAJacCondRdW::preallocateJacobianMatrix(
     Mat dRMat,
     const Vec preallocOnProc,
-    const Vec preallocOffProc)
+    const Vec preallocOffProc) const
 {
     /*
     Preallocate memory for dRMat.
@@ -932,6 +772,17 @@ void DAJacCondRdW::preallocateJacobianMatrix(
     Output:
     dRMat: matrix to preallocate memory for
     */
+
+    scalar normOn, normOff;
+    VecNorm(preallocOnProc, NORM_2, &normOn);
+    VecNorm(preallocOffProc, NORM_2, &normOff);
+    scalar normSum = normOn + normOff;
+    if (normSum < 1.0e-10)
+    {
+        FatalErrorIn("preallocateJacobianMatrix")
+            << "preallocOnProc and preallocOffProc are not allocated!"
+            << abort(FatalError);
+    }
 
     PetscScalar *onVec, *offVec;
     PetscInt onSize[daIndex_.nLocalAdjointStates], offSize[daIndex_.nLocalAdjointStates];
@@ -962,7 +813,7 @@ void DAJacCondRdW::preallocateJacobianMatrix(
 
 void DAJacCondRdW::preallocatedRdW(
     Mat dRMat,
-    const label transposed)
+    const label transposed) const
 {
     /*
     Call the DAJacCondRdW::preallocateJacobianMatrix function with the 
@@ -987,70 +838,6 @@ void DAJacCondRdW::preallocatedRdW(
     }
 }
 
-void DAJacCondRdW::readJacConColoring()
-{
-    /*
-    Read the dRdW coloring from files and 
-    compute ndRdWColors. The naming convention for
-    coloring vector is coloringVecName_nProcs.bin
-    This is necessary because using different CPU
-    cores result in different dRdWCon and therefore
-    different coloring
-
-    Output:
-    ------
-    dRdWColors_: read from file
-    ndRdWColors: number of dRdW colors
-    */
-
-    Info << "Reading dRdW Coloring.." << endl;
-    label nProcs = Pstream::nProcs();
-    std::ostringstream fileName("");
-    fileName << "dRdWColoring_" << nProcs;
-    word fileName1 = fileName.str();
-    VecZeroEntries(dRdWColors_);
-    daUtil_.readVectorBinary(dRdWColors_, fileName1);
-
-    daColoring_.validateColoring(dRdWCon_, dRdWColors_);
-
-    PetscReal maxVal;
-    VecMax(dRdWColors_, NULL, &maxVal);
-    ndRdWColors_ = maxVal + 1;
-}
-
-void DAJacCondRdW::calcJacConColoring()
-{
-    /*
-    Calculate the coloring for dRdW.
-
-    Output:
-    ------
-    dRdWColors_: dRdW coloring and save to files. 
-    The naming convention for coloring vector is 
-    coloringVecName_nProcs.bin. This is necessary because 
-    using different CPU cores result in different dRdWCon 
-    and therefore different coloring
-
-    ndRdWColors: number of dRdW colors
-
-    */
-
-    VecZeroEntries(dRdWColors_);
-    daColoring_.parallelD2Coloring(dRdWCon_, dRdWColors_, ndRdWColors_);
-    daColoring_.validateColoring(dRdWCon_, dRdWColors_);
-    Info << " ndRdWColors: " << ndRdWColors_ << endl;
-
-    // write dRdW colors
-    Info << "Writing dRdW Colors.." << endl;
-    label nProcs = Pstream::nProcs();
-    std::ostringstream fileName("");
-    fileName << "dRdWColoring_" << nProcs;
-    word fileName1 = fileName.str();
-    daUtil_.writeVectorBinary(dRdWColors_, fileName1);
-
-    return;
-}
-
 label DAJacCondRdW::getNJacConColors() const
 {
     /*
@@ -1058,13 +845,13 @@ label DAJacCondRdW::getNJacConColors() const
 
     Output:
     ------
-    ndRdWColors: the number of colors depends on 
+    nJacConColors_: the number of colors depends on 
     whether the coloring is used
     */
 
     if (daOption_.getOption<label>("adjUseColoring"))
     {
-        return ndRdWColors_;
+        return nJacConColors_;
     }
     else
     {
@@ -1072,20 +859,6 @@ label DAJacCondRdW::getNJacConColors() const
     }
 
     return -1;
-}
-
-void DAJacCondRdW::deleteJacCon(const dictionary& options)
-{
-    label isPC;
-    options.readEntry<label>("isPC", isPC);
-    if (isPC)
-    {
-        MatDestroy(&dRdWConPC_);
-    }
-    else
-    {
-        MatDestroy(&dRdWCon_);
-    }
 }
 
 } // End namespace Foam

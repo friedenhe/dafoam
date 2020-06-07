@@ -29,23 +29,14 @@ class DAJacCondFdW
 
 protected:
 
-    /// dFdW connectivity mat
-    Mat dFdWCon_;
+    /// initialize petsc vectors
+    void initializePetscVecs();
 
-    /// dFdWPC connectivity mat
-    Mat dFdWConPC_;
-
-    /// dFdW colors
-    Vec dFdWColors_;
-
-    /// dFdW colored columns. It contains the global column index of perturbed state for the current color
-    Vec dFdWColoredColumns_;
-
-    /// number of dFdW colors
-    label ndFdWColors_;
+    /// the global numbering for the discrete source of objective function
+    globalIndex globalObjFuncGeoNumbering_;
 
 public:
-    TypeName("DAJacCondFdW");
+    TypeName("dFdW");
     // Constructors
 
     //- Construct from components
@@ -62,11 +53,15 @@ public:
 
     // Member functions
 
-    /// initialize petsc vectors
-    void initializePetscVecs();
-
+    /// calculate the
     /// initialize the state Jacobian connectivity matrix
-    virtual void initializeJacCon(const label isPC = 0);
+    virtual void initializeJacCon(const dictionary& options);
+
+    /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
+    virtual void setupJacCon(const dictionary& options);
+
+    /// get the number of JacCon colors
+    virtual label getNJacConColors() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -194,9 +194,15 @@ public:
     /// print all DAOption
     void printAllOptions()
     {
-        Info<<"DAFoam option dictionary: ";
-        Info<<daOptionPtr_->getAllOptions()<<endl;
+        Info << "DAFoam option dictionary: ";
+        Info << daOptionPtr_->getAllOptions() << endl;
     }
+
+    /// reduce the connectivity level for Jacobian connectivity mat
+    void reduceStateResConLevel(
+        const HashTable<label> maxResConLv4JacPCMat,
+        HashTable<List<List<word>>>& stateResConInfo) const;
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

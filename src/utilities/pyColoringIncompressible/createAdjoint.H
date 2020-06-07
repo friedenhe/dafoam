@@ -12,7 +12,3 @@ word turbModelName = daOption.getOption<word>("turbulenceModel");
 autoPtr<DATurbulenceModel> daTurbulenceModel(DATurbulenceModel::New(turbModelName, mesh, daOption));
 
 DAModel daModel(mesh, daOption);
-
-DAIndex daIndex(mesh, daOption, daModel);
-
-autoPtr<DAJacCon> daJacCon(DAJacCon::New("DAJacCondRdW", mesh, daOption, daModel));

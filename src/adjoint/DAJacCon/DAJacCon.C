@@ -24,7 +24,8 @@ DAJacCon::DAJacCon(
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel)
-    : mesh_(mesh),
+    : modelType_(modelType),
+      mesh_(mesh),
       daUtil_(),
       daOption_(daOption),
       daModel_(daModel),
@@ -139,7 +140,7 @@ void DAJacCon::createConnectionMat(Mat* connectedStates)
 {
     /*
     Initialize a serial connectivity matrix connectedStates,
-    basically, it is one row of connectivity in dRdWCon
+    basically, it is one row of connectivity in DAJacCon::jacCon_
     */
 
     // create a local matrix to store this row's connectivity
@@ -168,7 +169,7 @@ void DAJacCon::addStateConnections(
 {
     /*
     A high level interface to add the connectivity for the row matrix connections
-    Note: the connections mat is basically one row of connectivity in DAJacCon::dRdWCon_
+    Note: the connections mat is basically one row of connectivity in DAJacCon::jacCon_
 
     Input:
     ------
@@ -186,7 +187,7 @@ void DAJacCon::addStateConnections(
 
     Output:
     ------
-    connections: one row of connectivity in DAJacCon::dRdWCon_
+    connections: one row of connectivity in DAJacCon::jacCon_
 
     Example:
     -------
@@ -259,7 +260,7 @@ void DAJacCon::addStateConnections(
     inter-proc boundary for cellI
 
     NOTE: how to provide connectedLevelLocal, connectedStatesLocal, and connectedStatesInterProc
-    are done in DAJacCon::setupdRdWCon and DAJacCon::setupObjFuncCon
+    are done in DAJacCon::setupJacCon
 
     */
 
@@ -1740,6 +1741,143 @@ void DAJacCon::addBoundaryFaceConnections(
     }
 
     return;
+}
+
+label DAJacCon::coloringExists(const word postFix) const
+{
+    /// Check whether the coloring file exists
+
+    Info << "Checking if Coloring file exists.." << endl;
+    label nProcs = Pstream::nProcs();
+    word fileName = modelType_ + "Coloring" + postFix + "_" + Foam::name(nProcs);
+    word checkFile = fileName + ".bin";
+    std::ifstream fIn(checkFile);
+    if (!fIn.fail())
+    {
+        Info << checkFile << " exists." << endl;
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+void DAJacCon::calcJacConColoring(const word postFix)
+{
+    /*
+    Calculate the coloring for jacCon.
+
+    Input:
+    -----
+    postFix: the post fix of the file name, e.g., the original
+    name is dFdWColoring_1.bin, then the new name is
+    dFdWColoring_drag_1.bin with postFix = _drag
+
+    Output:
+    ------
+    jacConColors_: jacCon coloring and save to files. 
+    The naming convention for coloring vector is 
+    coloringVecName_nProcs.bin. This is necessary because 
+    using different CPU cores result in different jacCon 
+    and therefore different coloring
+
+    nJacColors: number of jacCon colors
+
+    */
+
+    // first check if the file name exists, if yes, return and
+    // don't compute the coloring
+    Info << "Calculating " << modelType_ << " Coloring.." << endl;
+    label nProcs = Pstream::nProcs();
+    word fileName = modelType_ + "Coloring" + postFix + "_" + Foam::name(nProcs);
+    /*
+    word checkFile = fileName + ".bin";
+    std::ifstream fIn(checkFile);
+    if (!fIn.fail())
+    {
+        Info << checkFile << " exists. Skip coloring computation..." << endl;
+        return;
+    }
+    */
+
+    // if the coloring does not exist, compute it
+    VecZeroEntries(jacConColors_);
+    daColoring_.parallelD2Coloring(jacCon_, jacConColors_, nJacConColors_);
+    daColoring_.validateColoring(jacCon_, jacConColors_);
+    Info << " nJacConColors: " << nJacConColors_ << endl;
+
+    // write jacCon colors
+    Info << "Writing Colors to " << fileName << endl;
+    daUtil_.writeVectorBinary(jacConColors_, fileName);
+
+    return;
+}
+
+void DAJacCon::readJacConColoring(const word postFix)
+{
+    /*
+    Read the jacCon coloring from files and 
+    compute nJacConColors. The naming convention for
+    coloring vector is coloringVecName_nProcs.bin
+    This is necessary because using different CPU
+    cores result in different jacCon and therefore
+    different coloring
+
+    Input:
+    -----
+    postFix: the post fix of the file name, e.g., the original
+    name is dFdWColoring_1.bin, then the new name is
+    dFdWColoring_drag_1.bin with postFix = _drag
+
+    Output:
+    ------
+    jacConColors_: read from file
+    nJacConColors: number of jacCon colors
+    */
+
+    label nProcs = Pstream::nProcs();
+    word fileName = modelType_ + "Coloring" + postFix + "_" + Foam::name(nProcs);
+    Info << "Reading Coloring " << fileName << endl;
+
+    VecZeroEntries(jacConColors_);
+    daUtil_.readVectorBinary(jacConColors_, fileName);
+
+    daColoring_.validateColoring(jacCon_, jacConColors_);
+
+    PetscReal maxVal;
+    VecMax(jacConColors_, NULL, &maxVal);
+    nJacConColors_ = maxVal + 1;
+}
+
+void DAJacCon::setupJacConPreallocation(const dictionary& options)
+{
+    /*
+    Compute the preallocation vectors.
+    NOTE: this need to be implemented in the child class, if not,
+    print an error! For example, for dRdW, this needs to be implemented;
+    however, for dFdW, no setupJacConPreallocation is needed so users
+    shouldn't call this function at all!
+    */
+    FatalErrorIn("") << "setupJacConPreallocation not implemented " << endl
+                     << " in the child class for " << modelType_
+                     << abort(FatalError);
+}
+
+void DAJacCon::preallocatedRdW(
+    Mat dRMat,
+    const label transposed) const
+{
+    /*
+    Preallocate the dRMat
+    NOTE: this need to be implemented in the child class, if not,
+    print an error! For example, for dRdW, this needs to be implemented;
+    however, for dFdW, no preallocatedRdW is needed so users
+    shouldn't call this function at all!
+    */
+    FatalErrorIn("") << "preallocatedRdW not implemented " << endl
+                     << " in the child class for " << modelType_
+                     << abort(FatalError);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
