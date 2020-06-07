@@ -105,11 +105,16 @@ label DASimpleFoam::solvePrimal(
                  << nl << endl;
         }
 
+        runTime.write();
+
         nSolverIters++;
     }
 
     // primal converged, assign the OpenFoam fields to the state vec wVec
     this->ofField2StateVec(wVec);
+
+    // write the mesh to files
+    mesh.write();
 
     Info << "End\n"
          << endl;

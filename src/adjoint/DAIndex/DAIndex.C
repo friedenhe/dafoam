@@ -968,6 +968,7 @@ void DAIndex::pointVec2OFMesh(const Vec xvVec) const
     // movePoints update the mesh metrics such as volume, surface area and cell centers
     fvMesh& mesh = const_cast<fvMesh&>(mesh_);
     mesh.movePoints(meshPoints);
+    
 }
 
 void DAIndex::ofMesh2PointVec(Vec xvVec) const
