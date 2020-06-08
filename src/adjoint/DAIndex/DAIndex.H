@@ -18,7 +18,7 @@
 #include "DAStateInfo.H"
 #include "DAModel.H"
 #include "globalIndex.H"
-#include "macroDAFunctions.H"
+#include "DAMacroFunctions.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

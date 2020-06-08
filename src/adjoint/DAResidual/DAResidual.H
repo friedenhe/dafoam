@@ -16,6 +16,8 @@
 #include "surfaceFields.H"
 #include "DAOption.H"
 #include "DAModel.H"
+#include "DAMacroFunctions.H"
+#include "DAUtility.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -45,6 +47,9 @@ protected:
 
     /// DAModel object
     const DAModel& daModel_;
+
+    /// DAUtility
+    DAUtility daUtil_;
 
 public:
     /// Runtime type information
@@ -83,6 +88,10 @@ public:
     virtual ~DAResidual()
     {
     }
+
+    // Members
+
+    virtual void calcResiduals(const dictionary& options) = 0;
 
 };
 

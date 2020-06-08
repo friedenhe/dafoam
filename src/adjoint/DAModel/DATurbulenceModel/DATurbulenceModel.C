@@ -34,6 +34,8 @@ DATurbulenceModel::DATurbulenceModel(
             )),
       mesh_(mesh),
       daOption_(daOption),
+      allOptions_(daOption.getAllOptions()),
+      daUtil_(),
       nut_(const_cast<volScalarField&>(
           mesh.thisDb().lookupObject<volScalarField>("nut"))),
       U_(const_cast<volVectorField&>(
@@ -122,6 +124,7 @@ DATurbulenceModel::DATurbulenceModel(
               nut_.dimensions(),
               SMALL))
 {
+
     // Now we need to initialize other variables
 #ifdef IncompressibleFlow
 
@@ -203,7 +206,7 @@ tmp<volScalarField> DATurbulenceModel::nuEff() const
     return tmp<volScalarField>(
         new volScalarField(
             "nuEff",
-            this->getNu() + nut_));
+            this->nu() + nut_));
 }
 
 tmp<volScalarField> DATurbulenceModel::alphaEff()
@@ -226,7 +229,7 @@ tmp<volScalarField> DATurbulenceModel::alphaEff()
 #endif
 }
 
-tmp<volScalarField> DATurbulenceModel::getNu() const
+tmp<volScalarField> DATurbulenceModel::nu() const
 {
 
 #ifdef IncompressibleFlow
@@ -240,7 +243,7 @@ tmp<volScalarField> DATurbulenceModel::getNu() const
 
 tmp<volScalarField> DATurbulenceModel::getAlpha() const
 {
-    return this->getNu() / Pr_;
+    return this->nu() / Pr_;
 }
 
 tmp<Foam::volScalarField> DATurbulenceModel::getMu() const

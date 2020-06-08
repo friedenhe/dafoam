@@ -79,6 +79,12 @@ protected:
     /// DAOption object
     const DAOption& daOption_;
 
+    /// all DAFoam options
+    const dictionary& allOptions_;
+
+    /// DAUtility
+    DAUtility daUtil_;
+
     /// turbulence viscosity
     volScalarField& nut_;
 
@@ -151,7 +157,7 @@ public:
         DATurbulenceModel,
         dictionary,
         (const word modelType,
-         const fvMesh& mesh, 
+         const fvMesh& mesh,
          const DAOption& daOption),
         (modelType, mesh, daOption));
 
@@ -182,7 +188,7 @@ public:
     void correctWallDist();
 
     /// update nut based on other turbulence variables and update the BCs
-    virtual void updateNut() = 0;
+    virtual void correctNut() = 0;
 
     /// update the turbulence state for DAStateInfo::regStates_
     virtual void correctModelStates(wordList& modelStates) const = 0;
@@ -195,6 +201,12 @@ public:
 
     /// add the model residual connectivity to stateCon
     virtual void addModelResidualCon(HashTable<List<List<word>>>& allCon) const = 0;
+
+    /// compute the turbulence residuals
+    virtual void calcResiduals(const dictionary& options) = 0;
+
+    /// solve the residual equations and update the state
+    virtual void correct() = 0;
 
     /// dev terms
     tmp<volSymmTensorField> devRhoReff() const;
@@ -218,7 +230,7 @@ public:
     tmp<volScalarField> alphaEff();
 
     /// get the nu field
-    tmp<volScalarField> getNu() const;
+    tmp<volScalarField> nu() const;
 
     tmp<volScalarField> getAlpha() const;
 

@@ -13,6 +13,13 @@ daTurbulenceModelPtr_.reset(DATurbulenceModel::New(turbModelName, mesh, daOption
 
 daModelPtr_.reset(new DAModel(mesh, daOptionPtr_()));
 
+// initialize stateInfo_
+word solverName = daOptionPtr_->getOption<word>("solverName");
+autoPtr<DAStateInfo> daStateInfo(DAStateInfo::New(solverName, mesh, daOptionPtr_(), daModelPtr_()));
+stateInfo_ = daStateInfo->getStateInfo();
+
 daIndexPtr_.reset(new DAIndex(mesh, daOptionPtr_(), daModelPtr_()));
 
 daIndexPtr_->printIndices();
+
+daResidualPtr_.reset(DAResidual::New(solverName, mesh, daOptionPtr_(), daModelPtr_()));

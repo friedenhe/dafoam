@@ -94,7 +94,7 @@ label DASimpleFoam::solvePrimal(
         }
 
         laminarTransport.correct();
-        turbulencePtr_->correct();
+        daTurbulenceModelPtr_->correct();
 
         if (nSolverIters % 100 == 0 || nSolverIters == 1)
         {
@@ -109,6 +109,8 @@ label DASimpleFoam::solvePrimal(
 
         nSolverIters++;
     }
+
+    this->calcPrimalResidualStatistics("print");
 
     // primal converged, assign the OpenFoam fields to the state vec wVec
     this->ofField2StateVec(wVec);

@@ -27,6 +27,10 @@ DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
+{
+
+}
 } // End namespace Foam
 
 // ************************************************************************* //

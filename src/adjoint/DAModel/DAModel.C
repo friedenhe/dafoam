@@ -186,6 +186,21 @@ const DATurbulenceModel& DAModel::getDATurbulenceModel() const
     return mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel");
 }
 
+/// calculate the residuals for model state variables
+void DAModel::calcResiduals(const dictionary& options)
+{
+    if (hasTurbulenceModel_)
+    {
+        DATurbulenceModel& daTurb = const_cast<DATurbulenceModel&>(
+            mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel"));
+        daTurb.calcResiduals(options);
+    }
+
+    if (hasRadiationModel_)
+    {
+    }
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

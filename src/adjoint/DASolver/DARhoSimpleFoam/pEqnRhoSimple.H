@@ -76,7 +76,7 @@ else
 
 if (nSolverIters % 100 == 0 || nSolverIters == 1)
 {
-#include "incompressible/continuityErrs.H"
+#include "continuityErrsPython.H"
 }
 
 // Explicitly relax pressure for momentum corrector

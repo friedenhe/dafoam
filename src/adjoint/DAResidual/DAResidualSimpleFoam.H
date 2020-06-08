@@ -13,6 +13,8 @@
 
 #include "DAResidual.H"
 #include "addToRunTimeSelectionTable.H"
+#include "simpleControl.H"
+#include "adjustPhi.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -26,6 +28,31 @@ namespace Foam
 class DAResidualSimpleFoam
     : public DAResidual
 {
+protected:
+    /// \name These are state variables, reference state variables, flow residuals, and partial derivatives
+    //@{
+    volVectorField& U_;
+    volVectorField URef_;
+    volVectorField URes_;
+    volVectorField UResRef_;
+    volVectorField UResPartDeriv_;
+
+    volScalarField& p_;
+    volScalarField pRef_;
+    volScalarField pRes_;
+    volScalarField pResRef_;
+    volScalarField pResPartDeriv_;
+
+    surfaceScalarField& phi_;
+    surfaceScalarField phiRef_;
+    surfaceScalarField phiRes_;
+    surfaceScalarField phiResRef_;
+    surfaceScalarField phiResPartDeriv_;
+    //@}
+
+    DATurbulenceModel& daTurb_;
+
+    simpleControl simple_;
 
 public:
     TypeName("DASimpleFoam");
@@ -42,6 +69,10 @@ public:
     virtual ~DAResidualSimpleFoam()
     {
     }
+
+    // Members
+
+    virtual void calcResiduals(const dictionary& options);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

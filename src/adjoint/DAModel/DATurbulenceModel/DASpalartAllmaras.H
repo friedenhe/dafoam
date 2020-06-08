@@ -28,6 +28,52 @@ class DASpalartAllmaras
 {
 
 protected:
+    /// \name SA parameters
+    //@{
+    dimensionedScalar sigmaNut_;
+    dimensionedScalar kappa_;
+    dimensionedScalar Cb1_;
+    dimensionedScalar Cb2_;
+    dimensionedScalar Cw1_;
+    dimensionedScalar Cw2_;
+    dimensionedScalar Cw3_;
+    dimensionedScalar Cv1_;
+    dimensionedScalar Cs_;
+    //@}
+
+    /// \name SA functions
+    //@{
+    tmp<volScalarField> chi() const;
+
+    tmp<volScalarField> fv1(const volScalarField& chi) const;
+
+    tmp<volScalarField> fv2(
+        const volScalarField& chi,
+        const volScalarField& fv1) const;
+
+    tmp<volScalarField> Stilda(
+        const volScalarField& chi,
+        const volScalarField& fv1) const;
+
+    tmp<volScalarField> fw(const volScalarField& Stilda) const;
+
+    //@}
+
+    /// \name Augmented variables for residual computation
+    //@{
+    volScalarField& nuTilda_;
+    volScalarField nuTildaRes_;
+    volScalarField nuTildaResRef_;
+    volScalarField nuTildaResPartDeriv_;
+    volScalarField nuTildaRef_;
+    //@}
+
+    /// 3D wall distance
+    const volScalarField& y_;
+
+    /// whether to solve for turb states
+    label solveTurbState_ = 0;
+
 public:
     TypeName("SpalartAllmaras");
     // Constructors
@@ -45,11 +91,14 @@ public:
 
     // Member functions
 
+    /// Return the effective diffusivity for nuTilda
+    tmp<volScalarField> DnuTildaEff() const;
+
     /// update the turbulence state for DAStateInfo::regStates_
     virtual void correctModelStates(wordList& modelStates) const;
 
     /// update nut based on other turbulence variables and update the BCs
-    virtual void updateNut();
+    virtual void correctNut();
 
     /// update turbulence variable boundary values
     virtual void correctTurbBoundaryConditions();
@@ -59,6 +108,12 @@ public:
 
     /// add the model residual connectivity to stateCon
     virtual void addModelResidualCon(HashTable<List<List<word>>>& allCon) const;
+
+    /// compute the turbulence residuals
+    virtual void calcResiduals(const dictionary& options);
+
+    /// solve the residual equations and update the state
+    virtual void correct();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

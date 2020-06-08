@@ -42,6 +42,9 @@ public:
     virtual ~DAResidualRhoSimpleFoam()
     {
     }
+
+    // Members
+    virtual void calcResiduals(const dictionary& options);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

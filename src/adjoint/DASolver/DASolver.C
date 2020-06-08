@@ -32,7 +32,8 @@ DASolver::DASolver(
       daTurbulenceModelPtr_(nullptr),
       daModelPtr_(nullptr),
       daIndexPtr_(nullptr),
-      daCheckMeshPtr_(nullptr)
+      daCheckMeshPtr_(nullptr),
+      daResidualPtr_(nullptr)
 {
     // initialize fvMesh and Time object pointer
     Info << "Initializing mesh and runtime for DASolver" << endl;
@@ -310,7 +311,7 @@ void DASolver::reduceStateResConLevel(
     // if no maxResConLv4JacPCMat is specified, just return;
     if (maxResConLv4JacPCMat.size() == 0)
     {
-        Info<<"maxResConLv4JacPCMat is empty, just return"<<endl;
+        Info << "maxResConLv4JacPCMat is empty, just return" << endl;
         return;
     }
 
@@ -383,6 +384,191 @@ void DASolver::reduceStateResConLevel(
     //Info<<stateResConInfo<<endl;
 }
 
+void DASolver::calcPrimalResidualStatistics(
+    const word mode,
+    const label writeRes)
+{
+    if (mode == "print")
+    {
+        // print the primal residuals to screen
+        Info << "Printing Primal Residual Statistics." << endl;
+    }
+    else
+    {
+        FatalErrorIn("") << "mode not valid" << abort(FatalError);
+    }
+
+    label isRef = 0;
+    label isPC = 0;
+    dictionary options;
+    options.set("isPC", isPC);
+    options.set("isRef", isRef);
+    daResidualPtr_->calcResiduals(options);
+    daModelPtr_->calcResiduals(options);
+
+    forAll(stateInfo_["volVectorStates"], idxI)
+    {
+        const word stateName = stateInfo_["volVectorStates"][idxI];
+        const word resName = stateName + "Res";
+        const volVectorField& stateRes = meshPtr_->thisDb().lookupObject<volVectorField>(resName);
+
+        vector vecResMax(0, 0, 0);
+        vector vecResNorm2(0, 0, 0);
+        vector vecResMean(0, 0, 0);
+        forAll(stateRes, cellI)
+        {
+            vecResNorm2.x() += Foam::pow(stateRes[cellI].x(), 2.0);
+            vecResNorm2.y() += Foam::pow(stateRes[cellI].y(), 2.0);
+            vecResNorm2.z() += Foam::pow(stateRes[cellI].z(), 2.0);
+            vecResMean.x() += fabs(stateRes[cellI].x());
+            vecResMean.y() += fabs(stateRes[cellI].y());
+            vecResMean.z() += fabs(stateRes[cellI].z());
+            if (fabs(stateRes[cellI].x()) > vecResMax.x())
+            {
+                vecResMax.x() = fabs(stateRes[cellI].x());
+            }
+            if (fabs(stateRes[cellI].y()) > vecResMax.y())
+            {
+                vecResMax.y() = fabs(stateRes[cellI].y());
+            }
+            if (fabs(stateRes[cellI].z()) > vecResMax.z())
+            {
+                vecResMax.z() = fabs(stateRes[cellI].z());
+            }
+        }
+        vecResMean = vecResMean / stateRes.size();
+        reduce(vecResMean, sumOp<vector>());
+        vecResMean = vecResMean / Pstream::nProcs();
+        reduce(vecResNorm2, sumOp<vector>());
+        reduce(vecResMax, maxOp<vector>());
+        vecResNorm2.x() = Foam::pow(vecResNorm2.x(), 0.5);
+        vecResNorm2.y() = Foam::pow(vecResNorm2.y(), 0.5);
+        vecResNorm2.z() = Foam::pow(vecResNorm2.z(), 0.5);
+        if (mode == "print")
+        {
+            Info << stateName << " Residual Norm2: " << vecResNorm2 << endl;
+            Info << stateName << " Residual Mean: " << vecResMean << endl;
+            Info << stateName << " Residual Max: " << vecResMax << endl;
+        }
+
+        if (writeRes)
+        {
+            stateRes.write();
+        }
+    }
+
+    forAll(stateInfo_["volScalarStates"], idxI)
+    {
+        const word stateName = stateInfo_["volScalarStates"][idxI];
+        const word resName = stateName + "Res";
+        const volScalarField& stateRes = meshPtr_->thisDb().lookupObject<volScalarField>(resName);
+
+        scalar scalarResMax = 0, scalarResNorm2 = 0, scalarResMean = 0;
+        forAll(stateRes, cellI)
+        {
+            scalarResNorm2 += Foam::pow(stateRes[cellI], 2.0);
+            scalarResMean += fabs(stateRes[cellI]);
+            if (fabs(stateRes[cellI]) > scalarResMax)
+                scalarResMax = fabs(stateRes[cellI]);
+        }
+        scalarResMean = scalarResMean / stateRes.size();
+        reduce(scalarResMean, sumOp<scalar>());
+        scalarResMean = scalarResMean / Pstream::nProcs();
+        reduce(scalarResNorm2, sumOp<scalar>());
+        reduce(scalarResMax, maxOp<scalar>());
+        scalarResNorm2 = Foam::pow(scalarResNorm2, 0.5);
+        if (mode == "print")
+        {
+            Info << stateName << " Residual Norm2: " << scalarResNorm2 << endl;
+            Info << stateName << " Residual Mean: " << scalarResMean << endl;
+            Info << stateName << " Residual Max: " << scalarResMax << endl;
+        }
+
+        if (writeRes)
+        {
+            stateRes.write();
+        }
+    }
+
+    forAll(stateInfo_["modelStates"], idxI)
+    {
+        const word stateName = stateInfo_["modelStates"][idxI];
+        const word resName = stateName + "Res";
+        const volScalarField& stateRes = meshPtr_->thisDb().lookupObject<volScalarField>(resName);
+
+        scalar scalarResMax = 0, scalarResNorm2 = 0, scalarResMean = 0;
+        forAll(stateRes, cellI)
+        {
+            scalarResNorm2 += Foam::pow(stateRes[cellI], 2.0);
+            scalarResMean += fabs(stateRes[cellI]);
+            if (fabs(stateRes[cellI]) > scalarResMax)
+                scalarResMax = fabs(stateRes[cellI]);
+        }
+        scalarResMean = scalarResMean / stateRes.size();
+        reduce(scalarResMean, sumOp<scalar>());
+        scalarResMean = scalarResMean / Pstream::nProcs();
+        reduce(scalarResNorm2, sumOp<scalar>());
+        reduce(scalarResMax, maxOp<scalar>());
+        scalarResNorm2 = Foam::pow(scalarResNorm2, 0.5);
+        if (mode == "print")
+        {
+            Info << stateName << " Residual Norm2: " << scalarResNorm2 << endl;
+            Info << stateName << " Residual Mean: " << scalarResMean << endl;
+            Info << stateName << " Residual Max: " << scalarResMax << endl;
+        }
+
+        if (writeRes)
+        {
+            stateRes.write();
+        }
+    }
+
+    forAll(stateInfo_["surfaceScalarStates"], idxI)
+    {
+        const word stateName = stateInfo_["surfaceScalarStates"][idxI];
+        const word resName = stateName + "Res";
+        const surfaceScalarField& stateRes = meshPtr_->thisDb().lookupObject<surfaceScalarField>(resName);
+
+        scalar phiResMax = 0, phiResNorm2 = 0, phiResMean = 0;
+        forAll(stateRes, faceI)
+        {
+            phiResNorm2 += Foam::pow(stateRes[faceI], 2.0);
+            phiResMean += fabs(stateRes[faceI]);
+            if (fabs(stateRes[faceI]) > phiResMax)
+                phiResMax = fabs(stateRes[faceI]);
+        }
+        forAll(stateRes.boundaryField(), patchI)
+        {
+            forAll(stateRes.boundaryField()[patchI], faceI)
+            {
+                scalar bPhiRes = stateRes.boundaryField()[patchI][faceI];
+                phiResNorm2 += Foam::pow(bPhiRes, 2.0);
+                phiResMean += fabs(bPhiRes);
+                if (fabs(bPhiRes) > phiResMax)
+                    phiResMax = fabs(bPhiRes);
+            }
+        }
+        phiResMean = phiResMean / meshPtr_->nFaces();
+        reduce(phiResMean, sumOp<scalar>());
+        phiResMean = phiResMean / Pstream::nProcs();
+        reduce(phiResNorm2, sumOp<scalar>());
+        reduce(phiResMax, maxOp<scalar>());
+        phiResNorm2 = Foam::pow(phiResNorm2, 0.5);
+        if (mode == "print")
+        {
+            Info << stateName << " Residual Norm2: " << phiResNorm2 << endl;
+            Info << stateName << " Residual Mean: " << phiResMean << endl;
+            Info << stateName << " Residual Max: " << phiResMax << endl;
+        }
+
+        if (writeRes)
+        {
+            stateRes.write();
+        }
+    }
+
+    return;
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

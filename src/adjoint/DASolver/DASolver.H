@@ -26,6 +26,7 @@
 #include "DAObjFunc.H"
 #include "DAJacCon.H"
 #include "DAColoring.H"
+#include "DAResidual.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -85,6 +86,12 @@ protected:
 
     /// DAJacCon pointer
     autoPtr<DAJacCon> daJacConPtr_;
+
+    /// DAResidual pointer
+    autoPtr<DAResidual> daResidualPtr_;
+
+    /// the stateInfo_ list from DAStateInfo object
+    HashTable<wordList> stateInfo_;
 
 public:
     /// Runtime type information
@@ -203,6 +210,9 @@ public:
         const HashTable<label> maxResConLv4JacPCMat,
         HashTable<List<List<word>>>& stateResConInfo) const;
 
+    void calcPrimalResidualStatistics(
+        const word mode,
+        const label writeRes = 0);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

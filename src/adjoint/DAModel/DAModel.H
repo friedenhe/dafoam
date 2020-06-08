@@ -87,6 +87,9 @@ public:
     /// add the model residual connectivity to stateCon
     void addModelResidualCon(HashTable<List<List<word>>>& allCon) const;
 
+    /// calculate the residuals for model state variables
+    void calcResiduals(const dictionary& options);
+
     /// get a reference to DATurbulenceModel
     const DATurbulenceModel& getDATurbulenceModel() const;
 

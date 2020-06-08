@@ -97,7 +97,7 @@ label DARhoSimpleFoam::solvePrimal(
 #include "EEqnRhoSimple.H"
 #include "pEqnRhoSimple.H"
 
-        turbulencePtr_->correct();
+        daTurbulenceModelPtr_->correct();
 
         if (nSolverIters % 100 == 0 || nSolverIters == 1)
         {
