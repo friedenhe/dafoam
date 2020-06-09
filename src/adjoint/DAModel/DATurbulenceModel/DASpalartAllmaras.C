@@ -75,14 +75,6 @@ DASpalartAllmaras::DASpalartAllmaras(
           dimensionedScalar("nuTildaRes", dimensionSet(0, 2, -2, 0, 0, 0, 0), 0.0),
 #endif
           zeroGradientFvPatchScalarField::typeName),
-      nuTildaResRef_(
-          IOobject(
-              "nuTildaResRef",
-              mesh.time().timeName(),
-              mesh,
-              IOobject::NO_READ,
-              IOobject::NO_WRITE),
-          nuTildaRes_),
       nuTildaResPartDeriv_(
           IOobject(
               "nuTildaResPartDeriv",
@@ -91,21 +83,8 @@ DASpalartAllmaras::DASpalartAllmaras(
               IOobject::NO_READ,
               IOobject::NO_WRITE),
           nuTildaRes_),
-      nuTildaRef_(
-          IOobject(
-              "nuTildaRef",
-              mesh.time().timeName(),
-              mesh,
-              IOobject::NO_READ,
-              IOobject::NO_WRITE),
-          nuTilda_),
       y_(mesh.thisDb().lookupObject<volScalarField>("yWall"))
 {
-    // add the turbulence state variables, this will be used in AdjointIndexing
-    //this->turbStates.append("nuTilda");
-    //this->copyTurbStates("Var2Ref"); // copy turbVars to turbVarsRef
-    //this->calcTurbResiduals(1,0);
-    //Info<<nuTildaResidualRef_<<endl;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -194,11 +173,15 @@ void DASpalartAllmaras::correctNut()
 }
 
 /// update turbulence variable boundary values
-void DASpalartAllmaras::correctTurbBoundaryConditions()
+void DASpalartAllmaras::correctBoundaryConditions()
 {
     // correct the BCs for the perturbed fields
     nuTilda_.correctBoundaryConditions();
+}
 
+void DASpalartAllmaras::updateIntermediateVariables(const dictionary& options)
+{
+    // update nut based on nuTilda
     // Note: we need to update nut and its BC since we may have perturbed other turbulence vars
     // that affect the nut values
     this->correctNut();
@@ -280,13 +263,11 @@ void DASpalartAllmaras::calcResiduals(const dictionary& options)
 
     word divNuTildaScheme = "div(phi,nuTilda)";
 
-    label isRef = 0;
     if (!solveTurbState_)
     {
-        options.readEntry<label>("isRef", isRef);
         // we need to bound nuTilda before computing residuals
         // this will avoid having NaN residuals
-        daUtil_.boundVar(allOptions_, nuTilda_);
+        DAUtility::boundVar(allOptions_, nuTilda_);
     }
 
     //eddyViscosity<RASModelAugmented<BasicTurbulenceModel> >::correct();
@@ -321,7 +302,7 @@ void DASpalartAllmaras::calcResiduals(const dictionary& options)
                  << "          Final residual: " << solverNuTilda.finalResidual() << endl;
         }
 
-        daUtil_.boundVar(allOptions_, nuTilda_);
+        DAUtility::boundVar(allOptions_, nuTilda_);
         nuTilda_.correctBoundaryConditions();
 
         // NOTE: in the original SA, it is correctNut(fv1) and fv1 is not
@@ -332,14 +313,7 @@ void DASpalartAllmaras::calcResiduals(const dictionary& options)
     else
     {
         // calculate residuals
-        if (isRef)
-        {
-            nuTildaResRef_ = nuTildaEqn.ref() & nuTilda_;
-        }
-        else
-        {
-            nuTildaRes_ = nuTildaEqn.ref() & nuTilda_;
-        }
+        nuTildaRes_ = nuTildaEqn.ref() & nuTilda_;
     }
 
     return;

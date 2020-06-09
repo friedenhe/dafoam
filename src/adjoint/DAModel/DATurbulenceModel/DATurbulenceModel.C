@@ -35,7 +35,6 @@ DATurbulenceModel::DATurbulenceModel(
       mesh_(mesh),
       daOption_(daOption),
       allOptions_(daOption.getAllOptions()),
-      daUtil_(),
       nut_(const_cast<volScalarField&>(
           mesh.thisDb().lookupObject<volScalarField>("nut"))),
       U_(const_cast<volVectorField&>(
@@ -57,12 +56,12 @@ DATurbulenceModel::DATurbulenceModel(
           mesh.thisDb().lookupObject<surfaceScalarField>("phi"))),
 #ifdef IncompressibleFlow
       daRegDbTransport_(
-            mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
-                "DARegDbSinglePhaseTransportModel")),
+          mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
+              "DARegDbSinglePhaseTransportModel")),
       laminarTransport_(daRegDbTransport_.getObject()),
       daRegDbTurbIncomp_(
-            mesh.thisDb().lookupObject<DARegDbTurbulenceModelIncompressible>(
-                "DARegDbTurbulenceModelIncompressible")),
+          mesh.thisDb().lookupObject<DARegDbTurbulenceModelIncompressible>(
+              "DARegDbTurbulenceModelIncompressible")),
       turbulence_(daRegDbTurbIncomp_.getObject()),
       // for incompressible, we use uniform one field for rho
       rho_(
@@ -79,12 +78,12 @@ DATurbulenceModel::DATurbulenceModel(
 #endif
 #ifdef CompressibleFlow
       daRegDbThermo_(
-            mesh.thisDb().lookupObject<DARegDbFluidThermo>(
-                "DARegDbFluidThermo")),
+          mesh.thisDb().lookupObject<DARegDbFluidThermo>(
+              "DARegDbFluidThermo")),
       thermo_(daRegDbThermo_.getObject()),
       daRegDbTurbComp_(
-            mesh.thisDb().lookupObject<DARegDbTurbulenceModelCompressible>(
-                "DARegDbTurbulenceModelCompressible")),
+          mesh.thisDb().lookupObject<DARegDbTurbulenceModelCompressible>(
+              "DARegDbTurbulenceModelCompressible")),
       turbulence_(daRegDbTurbComp_.getObject()),
       // for compressible flow, we lookup rho in fvMesh
       rho_(const_cast<volScalarField&>(
@@ -302,7 +301,7 @@ void DATurbulenceModel::correctWallDist()
     // need to correct turbulence boundary conditions
     // this is because when the near wall distance changes, the nut, omega, epsilon at wall
     // may change if you use wall functions
-    this->correctTurbBoundaryConditions();
+    this->correctBoundaryConditions();
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

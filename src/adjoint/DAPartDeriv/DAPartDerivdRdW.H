@@ -4,14 +4,14 @@
     Version : v2
 
     Description:
-        Child class for DARhoSimpleFoam
+        Child class for dRdW
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAResidualRhoSimpleFoam_H
-#define DAResidualRhoSimpleFoam_H
+#ifndef DAPartDerivdRdW_H
+#define DAPartDerivdRdW_H
 
-#include "DAResidual.H"
+#include "DAPartDeriv.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -20,37 +20,42 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAResidualRhoSimpleFoam Declaration
+      Class DAPartDerivdRdW Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAResidualRhoSimpleFoam
-    : public DAResidual
+class DAPartDerivdRdW
+    : public DAPartDeriv
 {
 
+protected:
 public:
-    TypeName("DARhoSimpleFoam");
+    TypeName("dRdW");
     // Constructors
 
     //- Construct from components
-    DAResidualRhoSimpleFoam(
+    DAPartDerivdRdW(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
-        const DAIndex& daIndex);
+        const DAIndex& daIndex,
+        const DAJacCon& daJacCon);
 
     //- Destructor
-    virtual ~DAResidualRhoSimpleFoam()
+    virtual ~DAPartDerivdRdW()
     {
     }
 
-    // Members
+    // Member functions
 
-    /// compute residual
-    virtual void calcResiduals(const dictionary& options);
+    /// initialize partial derivative matrix/vector
+    virtual void initializePartDeriv(
+        Mat* jacMat,
+        const dictionary& options);
+    
+    /// compute the partial derivative matrix/vector
+    virtual void calcPartDeriv(const dictionary& options);
 
-    /// update any intermediate variables that are dependent on state variables and are used in calcResiduals
-    virtual void updateIntermediateVariables(const dictionary& options);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

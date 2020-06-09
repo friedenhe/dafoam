@@ -21,7 +21,7 @@
     }
 
     // bound he
-    daUtilPtr_->boundVar(allOptions, he);
+    DAUtility::boundVar(allOptions, he);
 
     thermo.correct();
 }

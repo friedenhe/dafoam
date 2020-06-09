@@ -1,7 +1,5 @@
 // adjoint
 
-daUtilPtr_.reset(new DAUtility);
-
 daOptionPtr_.reset(new DAOption(mesh, pyOptions_));
 
 // need to register thermo and turbulence to mesh 

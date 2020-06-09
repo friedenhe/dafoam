@@ -44,7 +44,8 @@ public:
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
-        const DAModel& daModel);
+        const DAModel& daModel,
+        const DAIndex& daIndex);
 
     //- Destructor
     virtual ~DAJacCondFdW()

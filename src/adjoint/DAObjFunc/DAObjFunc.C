@@ -23,12 +23,14 @@ DAObjFunc::DAObjFunc(
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel,
+    const DAIndex& daIndex,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
     : mesh_(mesh),
       daOption_(daOption),
       daModel_(daModel),
+      daIndex_(daIndex),
       objFuncName_(objFuncName),
       objFuncPart_(objFuncPart),
       objFuncDict_(objFuncDict)
@@ -67,6 +69,7 @@ autoPtr<DAObjFunc> DAObjFunc::New(
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel,
+    const DAIndex& daIndex,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
@@ -92,6 +95,7 @@ autoPtr<DAObjFunc> DAObjFunc::New(
             "    const fvMesh&,"
             "    const DAOption&,"
             "    const DAModel&,"
+            "    const DAIndex&,"
             "    const word,"
             "    const word,"
             "    const dictionary&"
@@ -105,7 +109,7 @@ autoPtr<DAObjFunc> DAObjFunc::New(
 
     // child class found
     return autoPtr<DAObjFunc>(
-        cstrIter()(mesh, daOption, daModel, objFuncName, objFuncPart, objFuncDict));
+        cstrIter()(mesh, daOption, daModel, daIndex, objFuncName, objFuncPart, objFuncDict));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

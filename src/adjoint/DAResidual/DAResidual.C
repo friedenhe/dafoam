@@ -23,10 +23,13 @@ DAResidual::DAResidual(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
-    const DAModel& daModel)
+    const DAModel& daModel,
+    const DAIndex& daIndex)
     : mesh_(mesh),
       daOption_(daOption),
-      daModel_(daModel)
+      daModel_(daModel),
+      daIndex_(daIndex),
+      daField_(mesh, daOption, daModel, daIndex)
 {
     /*
     Description:
@@ -37,8 +40,6 @@ DAResidual::DAResidual(
         daOption: DAOption object
         daModel: DAModel object
     */
-
-
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
@@ -47,7 +48,8 @@ autoPtr<DAResidual> DAResidual::New(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
-    const DAModel& daModel)
+    const DAModel& daModel,
+    const DAIndex& daIndex)
 {
     // standard setup for runtime selectable classes
 
@@ -65,7 +67,8 @@ autoPtr<DAResidual> DAResidual::New(
             "    const word,"
             "    const fvMesh&,"
             "    const DAOption&,"
-            "    const DAModel&"
+            "    const DAModel&,"
+            "    const DAIndex&"
             ")")
             << "Unknown DAResidual type "
             << modelType << nl << nl
@@ -76,11 +79,48 @@ autoPtr<DAResidual> DAResidual::New(
 
     // child class found
     return autoPtr<DAResidual>(
-        cstrIter()(modelType, mesh, daOption, daModel));
+        cstrIter()(modelType, mesh, daOption, daModel, daIndex));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+void DAResidual::masterFunction(
+    const dictionary& options,
+    const Vec xvVec,
+    const Vec wVec,
+    Vec resVec)
+{
+    // the master function that compute the residual vector given the state and point vectors
+
+    DAModel& daModel = const_cast<DAModel&>(daModel_);
+
+    label updateState = 0;
+    options.readEntry<label>("updateState", updateState);
+
+    label updateMesh = 0;
+    options.readEntry<label>("updateMesh", updateMesh);
+
+    if (updateMesh)
+    {
+        daField_.pointVec2OFMesh(xvVec);
+    }
+
+    if (updateState)
+    {
+        daField_.stateVec2OFField(wVec);
+        daField_.correctBoundaryConditions();
+        this->updateIntermediateVariables(options);
+        daModel.correctBoundaryConditions();
+        daModel.updateIntermediateVariables();
+    }
+
+    this->calcResiduals(options);
+    daModel.calcResiduals(options);
+
+    // asssign the openfoam residual field to resVec
+    daField_.ofResField2ResVec(resVec);
+
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

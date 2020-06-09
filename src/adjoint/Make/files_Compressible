@@ -21,6 +21,8 @@ DAStateInfo/DAStateInfoRhoSimpleFoam.C
 
 DAIndex/DAIndex.C
 
+DAField/DAField.C
+
 DAObjFunc/DAObjFunc.C
 DAObjFunc/DAObjFuncForce.C
 
@@ -32,6 +34,11 @@ DAColoring/DAColoring.C
 DAJacCon/DAJacCon.C
 DAJacCon/DAJacCondRdW.C
 DAJacCon/DAJacCondFdW.C
+
+DAPartDeriv/DAPartDeriv.C
+DAPartDeriv/DAPartDerivdRdW.C
+
+DALinearEqn/DALinearEqn.C
 
 DASolver/DASolver.C
 DASolver/DARhoSimpleFoam/DARhoSimpleFoam.C

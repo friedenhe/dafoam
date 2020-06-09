@@ -23,14 +23,14 @@ DAJacCon::DAJacCon(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
-    const DAModel& daModel)
+    const DAModel& daModel,
+    const DAIndex& daIndex)
     : modelType_(modelType),
       mesh_(mesh),
-      daUtil_(),
       daOption_(daOption),
       daModel_(daModel),
-      daIndex_(mesh, daOption, daModel),
-      daColoring_(mesh, daOption, daModel)
+      daIndex_(daIndex),
+      daColoring_(mesh, daOption, daModel, daIndex)
 {
     // initialize stateInfo_
     word solverName = daOption.getOption<word>("solverName");
@@ -44,7 +44,8 @@ autoPtr<DAJacCon> DAJacCon::New(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
-    const DAModel& daModel)
+    const DAModel& daModel,
+    const DAIndex& daIndex)
 {
 
     Info << "Selecting " << modelType << " for DAJacCon" << endl;
@@ -61,7 +62,8 @@ autoPtr<DAJacCon> DAJacCon::New(
             "    const word,"
             "    const fvMesh&,"
             "    const DAOption&,"
-            "    const DAModel&"
+            "    const DAModel&,"
+            "    const DAIndex&"
             ")")
             << "Unknown DAJacCon type "
             << modelType << nl << nl
@@ -72,7 +74,7 @@ autoPtr<DAJacCon> DAJacCon::New(
 
     // child class found
     return autoPtr<DAJacCon>(
-        cstrIter()(modelType, mesh, daOption, daModel));
+        cstrIter()(modelType, mesh, daOption, daModel, daIndex));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -95,8 +97,8 @@ void DAJacCon::initializeStateBoundaryCon()
 
     if (daOption_.getOption<label>("debug"))
     {
-        daUtil_.writeMatrixBinary(stateBoundaryCon_, "stateBoundaryCon");
-        daUtil_.writeMatrixBinary(stateBoundaryConID_, "stateBoundaryConID");
+        DAUtility::writeMatrixBinary(stateBoundaryCon_, "stateBoundaryCon");
+        DAUtility::writeMatrixBinary(stateBoundaryConID_, "stateBoundaryConID");
     }
 }
 
@@ -1349,7 +1351,7 @@ void DAJacCon::setupStateBoundaryConID(Mat* stateBoundaryConID)
         MatGetRow(stateBoundaryCon_, i, &nCols, &cols, &vals);
         for (PetscInt j = 0; j < nCols; j++)
         {
-            if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+            if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
             {
                 colI = cols[j];
                 valIn = adjStateID4GlobalAdjIdx[colI];
@@ -1706,7 +1708,7 @@ void DAJacCon::addBoundaryFaceConnections(
                     {
                         addState = 1;
                     }
-                    else if (daUtil_.isInList<label>(stateID, connectedStateIDs[lv - 1]))
+                    else if (DAUtility::isInList<label>(stateID, connectedStateIDs[lv - 1]))
                     {
                         addState = 1;
                     }
@@ -1809,7 +1811,7 @@ void DAJacCon::calcJacConColoring(const word postFix)
 
     // write jacCon colors
     Info << "Writing Colors to " << fileName << endl;
-    daUtil_.writeVectorBinary(jacConColors_, fileName);
+    DAUtility::writeVectorBinary(jacConColors_, fileName);
 
     return;
 }
@@ -1841,7 +1843,7 @@ void DAJacCon::readJacConColoring(const word postFix)
     Info << "Reading Coloring " << fileName << endl;
 
     VecZeroEntries(jacConColors_);
-    daUtil_.readVectorBinary(jacConColors_, fileName);
+    DAUtility::readVectorBinary(jacConColors_, fileName);
 
     daColoring_.validateColoring(jacCon_, jacConColors_);
 

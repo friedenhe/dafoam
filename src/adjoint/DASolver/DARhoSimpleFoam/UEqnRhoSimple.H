@@ -18,5 +18,5 @@ if (nSolverIters % 100 == 0 || nSolverIters == 1)
 }
 
 // bound U
-daUtilPtr_->boundVar(allOptions, U);
+DAUtility::boundVar(allOptions, U);
 U.correctBoundaryConditions();

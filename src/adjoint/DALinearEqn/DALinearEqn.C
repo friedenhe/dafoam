@@ -5,37 +5,28 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAResidualRhoSimpleFoam.H"
+#include "DALinearEqn.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAResidualRhoSimpleFoam, 0);
-addToRunTimeSelectionTable(DAResidual, DAResidualRhoSimpleFoam, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
-    const word modelType,
+DALinearEqn::DALinearEqn(
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel,
     const DAIndex& daIndex)
-    : DAResidual(modelType, mesh, daOption, daModel, daIndex)
+    : mesh_(mesh),
+      daOption_(daOption),
+      daModel_(daModel),
+      daIndex_(daIndex)
 {
-    
 }
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
-{
-
-}
-
-void DAResidualRhoSimpleFoam::updateIntermediateVariables(const dictionary& options)
-{
-}
 
 } // End namespace Foam
 

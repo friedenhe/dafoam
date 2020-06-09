@@ -29,24 +29,18 @@ class DAResidualSimpleFoam
     : public DAResidual
 {
 protected:
-    /// \name These are state variables, reference state variables, flow residuals, and partial derivatives
+    /// \name These are state variables, state residuals, and partial derivatives
     //@{
     volVectorField& U_;
-    volVectorField URef_;
     volVectorField URes_;
-    volVectorField UResRef_;
     volVectorField UResPartDeriv_;
 
     volScalarField& p_;
-    volScalarField pRef_;
     volScalarField pRes_;
-    volScalarField pResRef_;
     volScalarField pResPartDeriv_;
 
     surfaceScalarField& phi_;
-    surfaceScalarField phiRef_;
     surfaceScalarField phiRes_;
-    surfaceScalarField phiResRef_;
     surfaceScalarField phiResPartDeriv_;
     //@}
 
@@ -63,7 +57,8 @@ public:
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
-        const DAModel& daModel);
+        const DAModel& daModel,
+        const DAIndex& daIndex);
 
     //- Destructor
     virtual ~DAResidualSimpleFoam()
@@ -71,8 +66,12 @@ public:
     }
 
     // Members
-
+    
+    /// compute residual
     virtual void calcResiduals(const dictionary& options);
+
+    /// update any intermediate variables that are dependent on state variables and are used in calcResiduals
+    virtual void updateIntermediateVariables(const dictionary& options);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

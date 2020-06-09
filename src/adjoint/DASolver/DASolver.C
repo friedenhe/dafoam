@@ -27,11 +27,11 @@ DASolver::DASolver(
       argsPtr_(nullptr),
       runTimePtr_(nullptr),
       meshPtr_(nullptr),
-      daUtilPtr_(nullptr),
       daOptionPtr_(nullptr),
       daTurbulenceModelPtr_(nullptr),
       daModelPtr_(nullptr),
       daIndexPtr_(nullptr),
+      daFieldPtr_(nullptr),
       daCheckMeshPtr_(nullptr),
       daResidualPtr_(nullptr)
 {
@@ -52,9 +52,8 @@ autoPtr<DASolver> DASolver::New(
     // standard setup for runtime selectable classes
 
     // look up the solver name defined in pyOptions
-    DAUtility daUtil;
     dictionary allOptions;
-    daUtil.pyDict2OFDict(pyOptions, allOptions);
+    DAUtility::pyDict2OFDict(pyOptions, allOptions);
     word modelType;
     allOptions.readEntry<word>("solverName", modelType);
 
@@ -244,6 +243,7 @@ void DASolver::setDAObjFuncList()
                     mesh,
                     daOptionPtr_(),
                     daModelPtr_(),
+                    daIndexPtr_(),
                     objFunI,
                     objPart,
                     objFuncSubDictPart)

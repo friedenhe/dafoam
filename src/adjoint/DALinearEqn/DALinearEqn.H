@@ -4,13 +4,12 @@
     Version : v2
 
     Description:
-        Compute the coloring for Jacobian matrices using the parallel
-        distance 2 method
+        Solve the linear euqation using Petsc
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAColoring_H
-#define DAColoring_H
+#ifndef DALinearEqn_H
+#define DALinearEqn_H
 
 #include "fvOptions.H"
 #include "surfaceFields.H"
@@ -26,70 +25,46 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class DAColoring Declaration
+                       Class DALinearEqn Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAColoring
+class DALinearEqn
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DAColoring(const DAColoring&);
+    DALinearEqn(const DALinearEqn&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DAColoring&);
+    void operator=(const DALinearEqn&);
 
 protected:
+    /// Foam::fvMesh object
+    const fvMesh& mesh_;
 
-   /// fvMesh object
-   const fvMesh& mesh_;
+    /// Foam::DAOption object
+    const DAOption& daOption_;
+
+    /// DAModel object
+    const DAModel& daModel_;
 
     /// DAIndex object
-   const DAIndex& daIndex_;
+    const DAIndex& daIndex_;
 
 public:
     /// Constructors
-    DAColoring(
+    DALinearEqn(
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
         const DAIndex& daIndex);
 
     /// Destructor
-    virtual ~DAColoring()
+    virtual ~DALinearEqn()
     {
     }
 
     // Members
-    /// number of non-zero elements in a matrix
-    void getMatNonZeros(
-        const Mat conMat,
-        label& maxCols,
-        scalar& allNonZeros) const;
-
-    /// find the index of a prescribed value in an array
-    label find_index(
-        const label target,
-        const label start,
-        const label size,
-        const label* valArray) const;
-
-    /// check if there is non-colored columns
-    void coloringComplete(
-        const Vec colors,
-        label& colorCounter,
-        label& notColored) const;
-
-    /// a parallel distance-2 graph coloring function
-    void parallelD2Coloring(
-        const Mat conMat,
-        Vec colors,
-        label& nColors) const;
-
-    /// validate if there is coloring conflict
-    void validateColoring(
-        Mat conMat,
-        Vec colors) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -303,18 +303,6 @@ public:
         const label idxPoint,
         const label idxCoord) const;
 
-    /// set the state vector based on the latest fields in OpenFOAM
-    void ofField2StateVec(Vec stateVec) const;
-
-    /// assign the fields in OpenFOAM based on the state vector
-    void stateVec2OFField(const Vec stateVec) const;
-
-    /// assign the points in fvMesh of OpenFOAM based on the point vector
-    void pointVec2OFMesh(const Vec xvVec) const;
-
-    /// assign the point vector based on the points in fvMesh of OpenFOAM
-    void ofMesh2PointVec(Vec xvVec) const;
-
     /// compute global list adjStateID4GlobalAdjIdx that stores the stateID for a given globalAdjIndx
     void calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) const;
 

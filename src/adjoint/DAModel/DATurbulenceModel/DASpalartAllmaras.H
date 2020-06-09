@@ -63,9 +63,7 @@ protected:
     //@{
     volScalarField& nuTilda_;
     volScalarField nuTildaRes_;
-    volScalarField nuTildaResRef_;
     volScalarField nuTildaResPartDeriv_;
-    volScalarField nuTildaRef_;
     //@}
 
     /// 3D wall distance
@@ -101,7 +99,10 @@ public:
     virtual void correctNut();
 
     /// update turbulence variable boundary values
-    virtual void correctTurbBoundaryConditions();
+    virtual void correctBoundaryConditions();
+
+    /// update any intermediate variables that are dependent on state variables and are used in calcResiduals
+    virtual void updateIntermediateVariables(const dictionary& options);
 
     /// update the original variable connectivity for the adjoint state residuals in stateCon
     virtual void correctStateResidualModelCon(List<List<word>>& stateCon) const;

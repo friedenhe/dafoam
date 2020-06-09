@@ -18,18 +18,24 @@
         const_cast<fieldType&>(            \
             db.lookupObject<fieldType>(stateName)));
 
+#define makeStateRes(regState, fieldType, db)    \
+    const word stateName = regState;             \
+    const word stateResName = stateName + "Res"; \
+    fieldType& stateRes(                         \
+        const_cast<fieldType&>(                  \
+            db.lookupObject<fieldType>(stateResName)));
+
+#define makeStatePartDeriv(regState, fieldType, db)          \
+    const word stateName = regState;                         \
+    const word statePartDerivName = stateName + "PartDeriv"; \
+    fieldType& statePartDeriv(                               \
+        const_cast<fieldType&>(                              \
+            db.lookupObject<fieldType>(statePartDerivName)));
+
 #define setResidualClassMemberScalar(stateName, stateUnit)            \
     stateName##_(                                                     \
         const_cast<volScalarField&>(                                  \
             mesh.thisDb().lookupObject<volScalarField>(#stateName))), \
-        stateName##Ref_(                                              \
-            IOobject(                                                 \
-                #stateName "Ref",                                     \
-                mesh.time().timeName(),                               \
-                mesh,                                                 \
-                IOobject::NO_READ,                                    \
-                IOobject::NO_WRITE),                                  \
-            stateName##_),                                            \
         stateName##Res_(                                              \
             IOobject(                                                 \
                 #stateName "Res",                                     \
@@ -40,14 +46,6 @@
             mesh,                                                     \
             dimensionedScalar(#stateName "Res", stateUnit, 0.0),      \
             zeroGradientFvPatchScalarField::typeName),                \
-        stateName##ResRef_(                                           \
-            IOobject(                                                 \
-                #stateName "ResRef",                                  \
-                mesh.time().timeName(),                               \
-                mesh,                                                 \
-                IOobject::NO_READ,                                    \
-                IOobject::NO_WRITE),                                  \
-            stateName##Res_),                                         \
         stateName##ResPartDeriv_(                                     \
             IOobject(                                                 \
                 #stateName "ResPartDeriv",                            \
@@ -61,14 +59,6 @@
     stateName##_(                                                         \
         const_cast<volVectorField&>(                                      \
             mesh.thisDb().lookupObject<volVectorField>(#stateName))),     \
-        stateName##Ref_(                                                  \
-            IOobject(                                                     \
-                #stateName "Ref",                                         \
-                mesh.time().timeName(),                                   \
-                mesh,                                                     \
-                IOobject::NO_READ,                                        \
-                IOobject::NO_WRITE),                                      \
-            stateName##_),                                                \
         stateName##Res_(                                                  \
             IOobject(                                                     \
                 #stateName "Res",                                         \
@@ -79,14 +69,6 @@
             mesh,                                                         \
             dimensionedVector(#stateName "Res", stateUnit, vector::zero), \
             zeroGradientFvPatchVectorField::typeName),                    \
-        stateName##ResRef_(                                               \
-            IOobject(                                                     \
-                #stateName "ResRef",                                      \
-                mesh.time().timeName(),                                   \
-                mesh,                                                     \
-                IOobject::NO_READ,                                        \
-                IOobject::NO_WRITE),                                      \
-            stateName##Res_),                                             \
         stateName##ResPartDeriv_(                                         \
             IOobject(                                                     \
                 #stateName "ResPartDeriv",                                \
@@ -100,25 +82,9 @@
     stateName##_(                                                         \
         const_cast<surfaceScalarField&>(                                  \
             mesh.thisDb().lookupObject<surfaceScalarField>(#stateName))), \
-        stateName##Ref_(                                                  \
-            IOobject(                                                     \
-                #stateName "Ref",                                         \
-                mesh.time().timeName(),                                   \
-                mesh,                                                     \
-                IOobject::NO_READ,                                        \
-                IOobject::NO_WRITE),                                      \
-            stateName##_),                                                \
         stateName##Res_(                                                  \
             IOobject(                                                     \
                 #stateName "Res",                                         \
-                mesh.time().timeName(),                                   \
-                mesh,                                                     \
-                IOobject::NO_READ,                                        \
-                IOobject::NO_WRITE),                                      \
-            mesh.thisDb().lookupObject<surfaceScalarField>(#stateName)),  \
-        stateName##ResRef_(                                               \
-            IOobject(                                                     \
-                #stateName "ResRef",                                      \
                 mesh.time().timeName(),                                   \
                 mesh,                                                     \
                 IOobject::NO_READ,                                        \

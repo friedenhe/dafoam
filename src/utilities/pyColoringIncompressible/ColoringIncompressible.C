@@ -42,7 +42,7 @@ void ColoringIncompressible::run()
 
     // dRdW
     {
-        autoPtr<DAJacCon> daJacCon(DAJacCon::New("dRdW", mesh, daOption, daModel));
+        autoPtr<DAJacCon> daJacCon(DAJacCon::New("dRdW", mesh, daOption, daModel, daIndex));
 
         if (!daJacCon->coloringExists())
         {
@@ -83,7 +83,7 @@ void ColoringIncompressible::run()
             word objFuncPart = objFuncSubDict.toc()[idxJ];
             dictionary objFuncSubDictPart = objFuncSubDict.subDict(objFuncPart);
 
-            autoPtr<DAJacCon> daJacCon(DAJacCon::New("dFdW", mesh, daOption, daModel));
+            autoPtr<DAJacCon> daJacCon(DAJacCon::New("dFdW", mesh, daOption, daModel, daIndex));
 
             word postFix = "_" + objFuncName + "_" + objFuncPart;
 
@@ -94,6 +94,7 @@ void ColoringIncompressible::run()
                         mesh,
                         daOption,
                         daModel,
+                        daIndex,
                         objFuncName,
                         objFuncPart,
                         objFuncSubDictPart));

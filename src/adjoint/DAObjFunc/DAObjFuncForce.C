@@ -20,6 +20,7 @@ DAObjFuncForce::DAObjFuncForce(
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel,
+    const DAIndex& daIndex,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
@@ -27,11 +28,11 @@ DAObjFuncForce::DAObjFuncForce(
         mesh,
         daOption,
         daModel,
+        daIndex,
         objFuncName,
         objFuncPart,
         objFuncDict),
-      daTurb_(daModel.getDATurbulenceModel()),
-      daIndexPtr_(nullptr)
+      daTurb_(daModel.getDATurbulenceModel())
 {
 
     objFuncDict_.readEntry<word>("type", objFuncType_);
@@ -43,9 +44,6 @@ DAObjFuncForce::DAObjFuncForce(
     forceDir_[2] = dir[2];
 
     objFuncDict_.readEntry<scalar>("scale", scale_);
-
-    // initialize daIndex
-    daIndexPtr_.reset(new DAIndex(mesh, daOption, daModel));
 
     // setup the connectivity for force, it depends on zero level
     // of U, nut, and p, and one level of U
@@ -107,9 +105,9 @@ void DAObjFuncForce::calcObjFunc(
     forAll(objFuncFaceSources, idxI)
     {
         const label& objFuncFaceI = objFuncFaceSources[idxI];
-        label bFaceI = objFuncFaceI - daIndexPtr_->nLocalInternalFaces;
-        const label patchI = daIndexPtr_->bFacePatchI[bFaceI];
-        const label faceI = daIndexPtr_->bFaceFaceI[bFaceI];
+        label bFaceI = objFuncFaceI - daIndex_.nLocalInternalFaces;
+        const label patchI = daIndex_.bFacePatchI[bFaceI];
+        const label faceI = daIndex_.bFaceFaceI[bFaceI];
 
         // normal force
         vector fN(Sfb[patchI][faceI] * p.boundaryField()[patchI][faceI]);

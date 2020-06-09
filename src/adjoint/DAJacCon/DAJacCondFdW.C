@@ -20,8 +20,9 @@ DAJacCondFdW::DAJacCondFdW(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
-    const DAModel& daModel)
-    : DAJacCon(modelType, mesh, daOption, daModel)
+    const DAModel& daModel,
+    const DAIndex& daIndex)
+    : DAJacCon(modelType, mesh, daOption, daModel, daIndex)
 {
     this->initializePetscVecs();
 }
@@ -72,8 +73,7 @@ void DAJacCondFdW::initializeJacCon(const dictionary& options)
     // nLocalObjFuncGeoElements: the number of objFunc discrete elements for local procs
     label nLocalObjFuncGeoElements = objFuncFaceSources.size() + objFuncCellSources.size();
 
-    DAUtility daUtil;
-    globalObjFuncGeoNumbering_ = daUtil.genGlobalIndex(nLocalObjFuncGeoElements);
+    globalObjFuncGeoNumbering_ = DAUtility::genGlobalIndex(nLocalObjFuncGeoElements);
 
     MatCreate(PETSC_COMM_WORLD, &jacCon_);
     MatSetSizes(

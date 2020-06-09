@@ -43,93 +43,83 @@ public:
     virtual ~DAUtility();
 
     /// convert a python dictionary object to OpenFoam dictionary
-    void pyDict2OFDict(
+    static void pyDict2OFDict(
         PyObject* pyDict,
         dictionary& ofDict);
 
     /// check whether a value is in the list
     template<class classType>
-    label isInList(
+    static label isInList(
         const classType value,
-        const List<classType>& list) const;
+        const List<classType>& list);
 
     /// replace a value in the list
     template<class classType>
-    label listReplaceVal(
+    static label listReplaceVal(
         List<classType>& listIn,
         const classType valOrig,
-        const classType valNew) const;
+        const classType valNew);
 
     /// delete a value in the list
     template<class classType>
-    label listDeleteVal(
+    static label listDeleteVal(
         List<classType>& listIn,
-        const classType valDel) const;
+        const classType valDel);
 
     /// write petsc matrix in binary format
-    void writeMatrixBinary(
+    static void writeMatrixBinary(
         const Mat matIn,
-        const word prefix) const;
+        const word prefix);
 
     /// write petsc matrix in ascii format
-    void writeMatrixASCII(
+    static void writeMatrixASCII(
         const Mat matIn,
-        const word prefix) const;
+        const word prefix);
 
     /// read petsc matrix in binary format
-    void readMatrixBinary(
+    static void readMatrixBinary(
         Mat matIn,
-        const word prefix) const;
+        const word prefix);
 
     /// write petsc vector in ascii format
-    void writeVectorASCII(
+    static void writeVectorASCII(
         const Vec vecIn,
-        const word prefix) const;
+        const word prefix);
 
     /// read petsc vector in binary format
-    void readVectorBinary(
+    static void readVectorBinary(
         Vec vecIn,
-        const word prefix) const;
+        const word prefix);
 
     /// write petsc vector in binary format
-    void writeVectorBinary(
+    static void writeVectorBinary(
         const Vec vecIn,
-        const word prefix) const;
+        const word prefix);
 
     /// bound a volScalar variable based on parametes defined in DAOption::allOptions_
-    void boundVar(
+    static void boundVar(
         const dictionary& allOptions,
         volScalarField& var);
 
     /// bound a volVector variable based on parametes defined in DAOption::allOptions_
-    void boundVar(
+    static void boundVar(
         const dictionary& allOptions,
         volVectorField& var);
 
     /// check whether a value is close to a reference value by a tolerance
-    inline label isValueCloseToRef(
+    static label isValueCloseToRef(
         const scalar val,
         const scalar refVal,
-        const scalar tol = 1.0e-6) const
-    {
-        if (fabs(val - refVal) < tol)
-        {
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
+        const scalar tol = 1.0e-6);
 
     /// generate global index numbering for local-global index transferring
-    globalIndex genGlobalIndex(const label localIndexSize) const;
+    static globalIndex genGlobalIndex(const label localIndexSize);
 };
 
 template<class classType>
 label DAUtility::isInList(
     const classType value,
-    const List<classType>& list) const
+    const List<classType>& list)
 {
     /*
     Description:
@@ -158,7 +148,7 @@ template<class classType>
 label DAUtility::listReplaceVal(
     List<classType>& listIn,
     const classType valOrig,
-    const classType valNew) const
+    const classType valNew)
 {
     /*
     Description:
@@ -191,7 +181,7 @@ label DAUtility::listReplaceVal(
 template<class classType>
 label DAUtility::listDeleteVal(
     List<classType>& listIn,
-    const classType valDel) const
+    const classType valDel)
 {
     /*
     Description:

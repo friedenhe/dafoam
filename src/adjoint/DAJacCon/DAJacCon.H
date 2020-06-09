@@ -48,9 +48,6 @@ protected:
     /// fvMesh
     const fvMesh& mesh_;
 
-    /// DAUtility object
-    DAUtility daUtil_;
-
     /// DAOption object
     const DAOption& daOption_;
 
@@ -58,7 +55,7 @@ protected:
     const DAModel& daModel_;
 
     /// DAIndex object
-    DAIndex daIndex_;
+    const DAIndex& daIndex_;
 
     /// DAColoring object
     DAColoring daColoring_;
@@ -175,11 +172,13 @@ public:
         (const word modelType,
          const fvMesh& mesh,
          const DAOption& daOption,
-         const DAModel& daModel),
+         const DAModel& daModel,
+         const DAIndex& daIndex),
         (modelType,
          mesh,
          daOption,
-         daModel));
+         daModel,
+         daIndex));
 
     // Constructors
 
@@ -188,7 +187,8 @@ public:
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
-        const DAModel& daModel);
+        const DAModel& daModel,
+        const DAIndex& daIndex);
 
     // Selectors
 
@@ -197,7 +197,8 @@ public:
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
-        const DAModel& daModel);
+        const DAModel& daModel,
+        const DAIndex& daIndex);
 
     //- Destructor
     virtual ~DAJacCon()

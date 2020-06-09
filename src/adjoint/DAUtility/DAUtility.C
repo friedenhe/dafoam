@@ -203,7 +203,7 @@ void DAUtility::pyDict2OFDict(
         {
             // if its a subdict, recursely call this function
             dictionary subDict;
-            this->pyDict2OFDict(value1, subDict);
+            DAUtility::pyDict2OFDict(value1, subDict);
             ofDict.add(keyUTF8, subDict);
         }
         else
@@ -218,7 +218,7 @@ void DAUtility::pyDict2OFDict(
 
 void DAUtility::readVectorBinary(
     Vec vecIn,
-    const word prefix) const
+    const word prefix)
 {
     /*
     Description:
@@ -249,7 +249,7 @@ void DAUtility::readVectorBinary(
 
 void DAUtility::writeVectorBinary(
     const Vec vecIn,
-    const word prefix) const
+    const word prefix)
 {
     /*
     Description:
@@ -279,7 +279,7 @@ void DAUtility::writeVectorBinary(
 
 void DAUtility::writeVectorASCII(
     const Vec vecIn,
-    const word prefix) const
+    const word prefix)
 {
     /*
     Description:
@@ -310,7 +310,7 @@ void DAUtility::writeVectorASCII(
 
 void DAUtility::readMatrixBinary(
     Mat matIn,
-    const word prefix) const
+    const word prefix)
 {
     /*
     Description:
@@ -341,7 +341,7 @@ void DAUtility::readMatrixBinary(
 
 void DAUtility::writeMatrixBinary(
     const Mat matIn,
-    const word prefix) const
+    const word prefix)
 {
     /*
     Description:
@@ -371,7 +371,7 @@ void DAUtility::writeMatrixBinary(
 
 void DAUtility::writeMatrixASCII(
     const Mat matIn,
-    const word prefix) const
+    const word prefix)
 {
     /*
     Description:
@@ -568,7 +568,7 @@ void DAUtility::boundVar(
     return;
 }
 
-globalIndex DAUtility::genGlobalIndex(const label localIndexSize) const
+globalIndex DAUtility::genGlobalIndex(const label localIndexSize)
 {
     /*
     Generate a glocal index system based on the local index size 
@@ -618,6 +618,22 @@ globalIndex DAUtility::genGlobalIndex(const label localIndexSize) const
     */
     globalIndex result(localIndexSize);
     return result;
+}
+
+/// check whether a value is close to a reference value by a tolerance
+label DAUtility::isValueCloseToRef(
+    const scalar val,
+    const scalar refVal,
+    const scalar tol)
+{
+    if (fabs(val - refVal) < tol)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

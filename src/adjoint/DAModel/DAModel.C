@@ -201,6 +201,14 @@ void DAModel::calcResiduals(const dictionary& options)
     }
 }
 
+void DAModel::correctBoundaryConditions()
+{
+}
+
+void DAModel::updateIntermediateVariables()
+{
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

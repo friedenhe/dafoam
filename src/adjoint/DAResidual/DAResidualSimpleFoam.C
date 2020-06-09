@@ -20,8 +20,9 @@ DAResidualSimpleFoam::DAResidualSimpleFoam(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
-    const DAModel& daModel)
-    : DAResidual(modelType, mesh, daOption, daModel),
+    const DAModel& daModel,
+    const DAIndex& daIndex)
+    : DAResidual(modelType, mesh, daOption, daModel, daIndex),
       // initialize and register state variables and their residuals, we use macros defined in macroFunctions.H
       setResidualClassMemberVector(U, dimensionSet(0, 1, -2, 0, 0, 0, 0)),
       setResidualClassMemberScalar(p, dimensionSet(0, 0, -1, 0, 0, 0, 0)),
@@ -30,16 +31,12 @@ DAResidualSimpleFoam::DAResidualSimpleFoam(
       // create simpleControl
       simple_(const_cast<fvMesh&>(mesh))
 {
-    //this->copyStates("Var2Ref"); // copy states to statesRef
 }
 
 void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
 {
     // We dont support MRF and fvOptions so all the related lines are commented
     // out for now
-
-    label isRef;
-    options.readEntry<label>("isRef", isRef);
 
     // ******** U Residuals **********
     // copied and modified from UEqn.H
@@ -53,14 +50,7 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
 
     UEqn.relax();
 
-    if (isRef)
-    {
-        UResRef_ = (UEqn & U_) + fvc::grad(p_);
-    }
-    else
-    {
-        URes_ = (UEqn & U_) + fvc::grad(p_);
-    }
+    URes_ = (UEqn & U_) + fvc::grad(p_);
     //normalizeResiduals(URes);
     //scaleResiduals(URes);
 
@@ -99,30 +89,20 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
         == fvc::div(phiHbyA));
     pEqn.setReference(pRefCell, pRefValue);
 
-    if (isRef)
-    {
-        pResRef_ = pEqn & p_;
-    }
-    else
-    {
-        pRes_ = pEqn & p_;
-    }
+    pRes_ = pEqn & p_;
     //normalizeResiduals(pRes);
     //scaleResiduals(pRes);
 
     // ******** phi Residuals **********
     // copied and modified from pEqn.H
-    if (isRef)
-    {
-        phiResRef_ = phiHbyA - pEqn.flux() - phi_;
-    }
-    else
-    {
-        phiRes_ = phiHbyA - pEqn.flux() - phi_;
-    }
+    phiRes_ = phiHbyA - pEqn.flux() - phi_;
     // need to normalize phiRes
     //normalizePhiResiduals(phiRes);
     //scalePhiResiduals(phiRes);
+}
+
+void DAResidualSimpleFoam::updateIntermediateVariables(const dictionary& options)
+{
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

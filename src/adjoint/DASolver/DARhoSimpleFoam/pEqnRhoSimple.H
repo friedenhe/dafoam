@@ -83,11 +83,11 @@ if (nSolverIters % 100 == 0 || nSolverIters == 1)
 p.relax();
 
 // bound p
-daUtilPtr_->boundVar(allOptions, p);
+DAUtility::boundVar(allOptions, p);
 
 U = HbyA - rAU * fvc::grad(p);
 // bound U
-daUtilPtr_->boundVar(allOptions, U);
+DAUtility::boundVar(allOptions, U);
 U.correctBoundaryConditions();
 
 bool pLimited = pressureControl.limit(p);
@@ -113,4 +113,4 @@ if (!simple.transonic())
 }
 
 // bound rho
-daUtilPtr_->boundVar(allOptions, rho);
+DAUtility::boundVar(allOptions, rho);

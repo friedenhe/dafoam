@@ -33,8 +33,6 @@ protected:
 
     const DATurbulenceModel& daTurb_;
 
-    autoPtr<DAIndex> daIndexPtr_;
-
 public:
     TypeName("force");
     // Constructors
@@ -44,6 +42,7 @@ public:
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
+        const DAIndex& daIndex,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);

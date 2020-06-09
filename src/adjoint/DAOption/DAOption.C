@@ -37,8 +37,7 @@ DAOption::DAOption(
     */
 
     // now we need to convert the pyOptions<PyObject*> to allOptions_<dictionary> in OpenFOAM
-    DAUtility daUtil;
-    daUtil.pyDict2OFDict(pyOptions, allOptions_);
+    DAUtility::pyDict2OFDict(pyOptions, allOptions_);
 
     //Info << "All DAFoam Options:";
     //Info << this->getAllOptions() << endl;

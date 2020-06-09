@@ -20,8 +20,9 @@ DAJacCondRdW::DAJacCondRdW(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
-    const DAModel& daModel)
-    : DAJacCon(modelType, mesh, daOption, daModel)
+    const DAModel& daModel,
+    const DAIndex& daIndex)
+    : DAJacCon(modelType, mesh, daOption, daModel, daIndex)
 {
 
     if (daOption_.getOption<label>("adjUseColoring"))
@@ -370,7 +371,7 @@ void DAJacCondRdW::setupdRdWCon(
                     forAll(stateInfo_["surfaceScalarStates"], idxK)
                     {
                         word conName = stateInfo_["surfaceScalarStates"][idxK];
-                        if (daUtil_.isInList<word>(conName, stateResConInfo[resName][idxJ]))
+                        if (DAUtility::isInList<word>(conName, stateResConInfo[resName][idxJ]))
                         {
                             addFace = 1;
                         }
@@ -524,7 +525,7 @@ void DAJacCondRdW::setupdRdWCon(
                         levelCheck = idxJ - 1;
                     }
 
-                    if (daUtil_.isInList<word>(conName, stateResConInfo[resName][levelCheck]))
+                    if (DAUtility::isInList<word>(conName, stateResConInfo[resName][levelCheck]))
                     {
                         addFace = 1;
                     }
@@ -585,7 +586,7 @@ void DAJacCondRdW::setupdRdWCon(
                         // connectivity since they are idxN and idxO
                         if (val != 10 && val < maxLevel + 1)
                         {
-                            if (daUtil_.isInList<word>(conName, stateResConInfo[resName][val - 1]))
+                            if (DAUtility::isInList<word>(conName, stateResConInfo[resName][val - 1]))
                             {
                                 addState = 1;
                             }
@@ -637,10 +638,10 @@ void DAJacCondRdW::setupdRdWCon(
         //output the matrix to a file
         if (daOption_.getOption<label>("debug"))
         {
-            daUtil_.writeVectorASCII(dRdWTPreallocOn_, "dRdWTPreallocOn");
-            daUtil_.writeVectorASCII(dRdWTPreallocOff_, "dRdWTPreallocOff");
-            daUtil_.writeVectorASCII(dRdWPreallocOn_, "dRdWPreallocOn");
-            daUtil_.writeVectorASCII(dRdWPreallocOff_, "dRdWPreallocOff");
+            DAUtility::writeVectorASCII(dRdWTPreallocOn_, "dRdWTPreallocOn");
+            DAUtility::writeVectorASCII(dRdWTPreallocOff_, "dRdWTPreallocOff");
+            DAUtility::writeVectorASCII(dRdWPreallocOn_, "dRdWPreallocOn");
+            DAUtility::writeVectorASCII(dRdWPreallocOff_, "dRdWPreallocOff");
         }
     }
     else
@@ -651,8 +652,8 @@ void DAJacCondRdW::setupdRdWCon(
         //output the matrix to a file
         if (daOption_.getOption<label>("debug"))
         {
-            //daUtil_.writeMatRowSize(jacCon_, "dRdWCon");
-            daUtil_.writeMatrixBinary(jacCon_, "dRdWCon");
+            //DAUtility::writeMatRowSize(jacCon_, "dRdWCon");
+            DAUtility::writeMatrixBinary(jacCon_, "dRdWCon");
         }
     }
 
@@ -725,7 +726,7 @@ void DAJacCondRdW::allocateJacobianConnections(
     {
         // int idx = cols[j];
         scalar val = vals[j];
-        if (daUtil_.isValueCloseToRef(val, 1.0))
+        if (DAUtility::isValueCloseToRef(val, 1.0))
         {
             // We can compute the first part of the non-transposed row here.
             totalCount++;

@@ -4,22 +4,23 @@
     Version : v2
 
     Description:
-        Compute the residual for a given solver
+        Compute partial derivatives using the finite-difference method
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAResidual_H
-#define DAResidual_H
+#ifndef DAPartDeriv_H
+#define DAPartDeriv_H
 
 #include "runTimeSelectionTables.H"
 #include "fvOptions.H"
-#include "surfaceFields.H"
-#include "DAOption.H"
-#include "DAModel.H"
-#include "DAMacroFunctions.H"
 #include "DAUtility.H"
+#include "DAOption.H"
 #include "DAIndex.H"
-#include "DAField.H"
+#include "DAModel.H"
+#include "DAStateInfo.H"
+#include "syncTools.H"
+#include "DAObjFunc.H"
+#include "DAJacCon.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -27,20 +28,23 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class DAResidual Declaration
+                    Class DAPartDeriv Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAResidual
+class DAPartDeriv
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DAResidual(const DAResidual&);
+    DAPartDeriv(const DAPartDeriv&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DAResidual&);
+    void operator=(const DAPartDeriv&);
 
 protected:
+    /// the name of the jacCon matrix
+    const word modelType_;
+
     /// fvMesh
     const fvMesh& mesh_;
 
@@ -50,69 +54,86 @@ protected:
     /// DAModel object
     const DAModel& daModel_;
 
-    /// DAIndex
+    /// DAJacCon object
+    const DAJacCon& daJacCon_;
+
+    /// DAIndex object
     const DAIndex& daIndex_;
 
-    /// DAField object
-    DAField daField_;
+    /// all the DAFoam option
+    const dictionary& allOptions_;
+
+    /// the regState_ list from DAStateInfo object
+    HashTable<wordList> stateInfo_;
+
+    /// perturb state variables given a color index
+    void perturbStates(
+        const label colorI,
+        const word mode);
 
 public:
     /// Runtime type information
-    TypeName("DAResidual");
+    TypeName("DAPartDeriv");
 
     // Declare run-time constructor selection table
     declareRunTimeSelectionTable(
         autoPtr,
-        DAResidual,
+        DAPartDeriv,
         dictionary,
         (const word modelType,
          const fvMesh& mesh,
          const DAOption& daOption,
          const DAModel& daModel,
-         const DAIndex& daIndex),
-        (modelType, mesh, daOption, daModel, daIndex));
+         const DAIndex& daIndex,
+         const DAJacCon& daJacCon),
+        (modelType,
+         mesh,
+         daOption,
+         daModel,
+         daIndex,
+         daJacCon));
 
     // Constructors
 
     //- Construct from components
-    DAResidual(
+    DAPartDeriv(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
-        const DAIndex& daIndex);
+        const DAIndex& daIndex,
+        const DAJacCon& daJacCon);
 
     // Selectors
 
     //- Return a reference to the selected model
-    static autoPtr<DAResidual> New(
+    static autoPtr<DAPartDeriv> New(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
-        const DAIndex& daIndex);
+        const DAIndex& daIndex,
+        const DAJacCon& daJacCon);
 
     //- Destructor
-    virtual ~DAResidual()
+    virtual ~DAPartDeriv()
     {
     }
 
-    // Members
+    // Member functions
 
-    /// compute residuals
-    virtual void calcResiduals(const dictionary& options) = 0;
+    label getRunTime()
+    {
+        return mesh_.time().elapsedClockTime();
+    }
 
-    /// update any intermdiate variables that are dependent on state variables and are used in calcResiduals
-    virtual void updateIntermediateVariables(const dictionary& options) = 0;
+    /// initialize partial derivative matrix
+    virtual void initializePartDeriv(
+        Mat* jacMat,
+        const dictionary& options) = 0;
 
-    /// the master function that compute the residual vector given the state and point vectors
-    virtual void masterFunction(
-        const dictionary& options,
-        const Vec xvVec,
-        const Vec wVec,
-        Vec resVec);
-    
-    void correctBoundaryConditions();
+    /// compute the partial derivative matrix
+    virtual void calcPartDeriv(const dictionary& options) = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

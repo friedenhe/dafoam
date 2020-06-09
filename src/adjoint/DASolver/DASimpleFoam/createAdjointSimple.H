@@ -1,7 +1,5 @@
 // adjoint
 
-daUtilPtr_.reset(new DAUtility);
-
 daOptionPtr_.reset(new DAOption(mesh, pyOptions_));
 
 // need to register laminarTransport and turbulence to mesh
@@ -22,4 +20,6 @@ daIndexPtr_.reset(new DAIndex(mesh, daOptionPtr_(), daModelPtr_()));
 
 daIndexPtr_->printIndices();
 
-daResidualPtr_.reset(DAResidual::New(solverName, mesh, daOptionPtr_(), daModelPtr_()));
+daFieldPtr_.reset(new DAField(mesh, daOptionPtr_(), daModelPtr_(), daIndexPtr_()));
+
+daResidualPtr_.reset(DAResidual::New(solverName, mesh, daOptionPtr_(), daModelPtr_(), daIndexPtr_()));

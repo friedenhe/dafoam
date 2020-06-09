@@ -17,10 +17,10 @@ namespace Foam
 DAColoring::DAColoring(
     const fvMesh& mesh,
     const DAOption& daOption,
-    const DAModel& daModel)
+    const DAModel& daModel,
+    const DAIndex& daIndex)
     : mesh_(mesh),
-      daUtil_(),
-      daIndex_(mesh, daOption, daModel)
+      daIndex_(daIndex)
 {
 }
 
@@ -134,7 +134,7 @@ void DAColoring::parallelD2Coloring(
         // set any columns that have a nonzero entry into localCols
         for (label j = 0; j < nCols; j++)
         {
-            if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+            if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
             {
                 PetscInt idx = cols[j];
                 MatSetValues(localCols, 1, &idxI, 1, &idx, &v, INSERT_VALUES);
@@ -150,7 +150,7 @@ void DAColoring::parallelD2Coloring(
     MatGetRow(localCols, 0, &nCols, &cols, &vals);
     for (label j = 0; j < nCols; j++)
     {
-        if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+        if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
         {
             nUniqueCols++;
         }
@@ -168,7 +168,7 @@ void DAColoring::parallelD2Coloring(
     for (label j = 0; j < nCols; j++)
     {
         PetscInt idx = cols[j];
-        if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+        if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
         {
             VecSetValue(globalVec, idx, vals[j], ADD_VALUES);
         }
@@ -190,13 +190,13 @@ void DAColoring::parallelD2Coloring(
     for (label j = 0; j < nCols; j++)
     {
         label col = cols[j];
-        if (daUtil_.isValueCloseToRef(vals[j], 1.0))
+        if (DAUtility::isValueCloseToRef(vals[j], 1.0))
         {
             globalIndexList[colCounter] = col;
             localColumnStat[colCounter] = 1;
             if (col >= colorStart && col < colorEnd)
             {
-                if (daUtil_.isValueCloseToRef(globalVecArray[col - colorStart], 1.0))
+                if (DAUtility::isValueCloseToRef(globalVecArray[col - colorStart], 1.0))
                 {
                     localColumnStat[colCounter] = 2; // 2: strictly local
                 }
@@ -223,7 +223,7 @@ void DAColoring::parallelD2Coloring(
         for (label j = 0; j < nCols; j++)
         {
             label matCol = cols[j];
-            if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+            if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
             {
                 //Info<<"j: "<<j<<vals[j]<<endl;
                 kLast = this->find_index(matCol, kLast + 1, nUniqueCols, globalIndexList);
@@ -322,7 +322,7 @@ void DAColoring::parallelD2Coloring(
         for (label j = 0; j < nCols; j++)
         {
             label matCol = cols[j];
-            if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+            if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
             {
                 kLast = this->find_index(matCol, kLast + 1, nUniqueCols, globalIndexList);
                 PetscScalar val = kLast;
@@ -362,7 +362,7 @@ void DAColoring::parallelD2Coloring(
             {
                 // this is a strictly local column;
                 label idx = localCol - colorStart;
-                if (daUtil_.isValueCloseToRef(colColor[idx], -1.0))
+                if (DAUtility::isValueCloseToRef(colColor[idx], -1.0))
                 {
                     colColor[idx] = n;
                 }
@@ -391,7 +391,7 @@ void DAColoring::parallelD2Coloring(
                 // set any columns with the current color into conflictCols
                 for (label j = 0; j < nCols; j++)
                 {
-                    if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+                    if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
                     {
                         label colIdx = cols[j];
 
@@ -404,7 +404,7 @@ void DAColoring::parallelD2Coloring(
                             {
                                 // check if the color in this column is from the
                                 // current set
-                                if (daUtil_.isValueCloseToRef(colColor[colIdx - colorStart], n * 1.0))
+                                if (DAUtility::isValueCloseToRef(colColor[colIdx - colorStart], n * 1.0))
                                 {
                                     /* This is a potentially conflicting column
                                        store it */
@@ -450,7 +450,7 @@ void DAColoring::parallelD2Coloring(
                 // reset the changed values in conflictCols
                 for (label j = 0; j < nCols; j++)
                 {
-                    if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+                    if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
                     {
                         //reset all values related to this row in conflictCols
                         conflictCols[j] = -1;
@@ -531,7 +531,7 @@ void DAColoring::parallelD2Coloring(
             // get the column of interest
             label matCol = cols[j];
             // confirm that it has an entry
-            if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+            if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
             {
                 // find the index into the local arrays for this column
                 kLast = this->find_index(matCol, kLast + 1, nUniqueCols, globalIndexList);
@@ -580,7 +580,7 @@ void DAColoring::parallelD2Coloring(
         for (label i = colorStart; i < colorEnd; i++)
         {
             label idx = i - colorStart;
-            if (daUtil_.isValueCloseToRef(colColor[idx], -1.0))
+            if (DAUtility::isValueCloseToRef(colColor[idx], -1.0))
             {
                 colColor[idx] = n;
             }
@@ -639,14 +639,14 @@ void DAColoring::parallelD2Coloring(
                     // set any columns with the current color into conflictCols
                     for (label j = 0; j < nCols; j++)
                     {
-                        if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+                        if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
                         {
                             label colIdx = cols[j];
                             label localColIdx = round(vals2[j]);
 
                             // check if the color in this column is from the
                             // current set
-                            if (daUtil_.isValueCloseToRef(colColorLocal[localColIdx], n * 1.0))
+                            if (DAUtility::isValueCloseToRef(colColorLocal[localColIdx], n * 1.0))
                             {
                                 /* This matches the current color, so set as a
                                    potential conflict */
@@ -706,7 +706,7 @@ void DAColoring::parallelD2Coloring(
                     and conflictLocalColIdx */
                     for (label j = 0; j < nCols; j++)
                     {
-                        if (!daUtil_.isValueCloseToRef(vals[j], 0.0))
+                        if (!DAUtility::isValueCloseToRef(vals[j], 0.0))
                         {
                             //reset all values related to this row in conflictCols
                             conflictCols[j] = -1;
@@ -1003,7 +1003,7 @@ void DAColoring::validateColoring(
         // set rowColors for this row
         for (label j = 0; j < nCols; j++)
         {
-            if (daUtil_.isValueCloseToRef(vals[j], 1.0))
+            if (DAUtility::isValueCloseToRef(vals[j], 1.0))
             {
                 rowColors[j] = round(colorsArray[cols[j]]);
             }

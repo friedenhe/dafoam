@@ -82,9 +82,6 @@ protected:
     /// all DAFoam options
     const dictionary& allOptions_;
 
-    /// DAUtility
-    DAUtility daUtil_;
-
     /// turbulence viscosity
     volScalarField& nut_;
 
@@ -194,7 +191,10 @@ public:
     virtual void correctModelStates(wordList& modelStates) const = 0;
 
     /// update turbulence variable boundary values
-    virtual void correctTurbBoundaryConditions() = 0;
+    virtual void correctBoundaryConditions() = 0;
+
+    /// update any intermediate variables that are dependent on state variables and are used in calcResiduals
+    virtual void updateIntermediateVariables(const dictionary& options) = 0;
 
     /// update the original variable connectivity for the adjoint state residuals in stateCon
     virtual void correctStateResidualModelCon(List<List<word>>& stateCon) const = 0;

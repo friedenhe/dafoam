@@ -27,6 +27,7 @@
 #include "DAJacCon.H"
 #include "DAColoring.H"
 #include "DAResidual.H"
+#include "DAField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -63,9 +64,6 @@ protected:
     /// fvMesh pointer
     autoPtr<fvMesh> meshPtr_;
 
-    /// DAUtility pointer
-    autoPtr<DAUtility> daUtilPtr_;
-
     /// DAOption pointer
     autoPtr<DAOption> daOptionPtr_;
 
@@ -77,6 +75,9 @@ protected:
 
     /// DAIndex pointer
     autoPtr<DAIndex> daIndexPtr_;
+
+    /// DAField pointer
+    autoPtr<DAField> daFieldPtr_;
 
     /// a list of DAObjFunc pointers
     UPtrList<DAObjFunc> daObjFuncPtrList_;
@@ -156,25 +157,25 @@ public:
     /// set the state vector based on the latest fields in OpenFOAM
     void ofField2StateVec(Vec stateVec) const
     {
-        return daIndexPtr_->ofField2StateVec(stateVec);
+        return daFieldPtr_->ofField2StateVec(stateVec);
     }
 
     /// assign the fields in OpenFOAM based on the state vector
     void stateVec2OFField(const Vec stateVec) const
     {
-        return daIndexPtr_->stateVec2OFField(stateVec);
+        return daFieldPtr_->stateVec2OFField(stateVec);
     }
 
     /// assign the points in fvMesh of OpenFOAM based on the point vector
     void pointVec2OFMesh(const Vec xvVec) const
     {
-        return daIndexPtr_->pointVec2OFMesh(xvVec);
+        return daFieldPtr_->pointVec2OFMesh(xvVec);
     }
 
     /// assign the point vector based on the points in fvMesh of OpenFOAM
     void ofMesh2PointVec(Vec xvVec) const
     {
-        return daIndexPtr_->ofMesh2PointVec(xvVec);
+        return daFieldPtr_->ofMesh2PointVec(xvVec);
     }
 
     /// return the number of local adjoint states

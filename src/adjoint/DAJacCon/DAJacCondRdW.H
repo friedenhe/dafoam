@@ -28,7 +28,6 @@ class DAJacCondRdW
 {
 
 protected:
-
     /// \name on- and off-diagonal preallocation sizes for each row of dRdW, dRdWT, and dRdXv
     //@{
     Vec dRdWTPreallocOn_;
@@ -68,7 +67,8 @@ public:
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
-        const DAModel& daModel);
+        const DAModel& daModel,
+        const DAIndex& daIndex);
 
     //- Destructor
     virtual ~DAJacCondRdW()

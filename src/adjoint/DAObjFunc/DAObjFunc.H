@@ -48,6 +48,9 @@ protected:
     /// DAModel object
     const DAModel& daModel_;
 
+    /// DAIndex object
+    const DAIndex& daIndex_;
+
     /// the name of the objective function
     word objFuncName_;
 
@@ -94,6 +97,7 @@ public:
             const fvMesh& mesh,
             const DAOption& daOption,
             const DAModel& daModel,
+            const DAIndex& daIndex,
             const word objFuncName,
             const word objFuncPart,
             const dictionary& objFuncDict),
@@ -101,6 +105,7 @@ public:
             mesh,
             daOption,
             daModel,
+            daIndex,
             objFuncName,
             objFuncPart,
             objFuncDict));
@@ -112,6 +117,7 @@ public:
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
+        const DAIndex& daIndex,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);
@@ -123,6 +129,7 @@ public:
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
+        const DAIndex& daIndex,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);
