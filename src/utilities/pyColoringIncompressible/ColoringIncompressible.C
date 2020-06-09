@@ -39,7 +39,7 @@ void ColoringIncompressible::run()
 
     word solverName = daOption.getOption<word>("solverName");
     autoPtr<DAStateInfo> daStateInfo(DAStateInfo::New(solverName, mesh, daOption, daModel));
-
+    
     // dRdW
     {
         autoPtr<DAJacCon> daJacCon(DAJacCon::New("dRdW", mesh, daOption, daModel, daIndex));
@@ -74,6 +74,8 @@ void ColoringIncompressible::run()
     // dFdW
     const dictionary& allOptions = daOption.getAllOptions();
     dictionary objFuncDict = allOptions.subDict("objFunc");
+    // create DAResidual
+    autoPtr<DAResidual> daResidual(DAResidual::New(solverName, mesh, daOption, daModel, daIndex));
     forAll(objFuncDict.toc(), idxI)
     {
         word objFuncName = objFuncDict.toc()[idxI];
@@ -95,6 +97,7 @@ void ColoringIncompressible::run()
                         daOption,
                         daModel,
                         daIndex,
+                        daResidual,
                         objFuncName,
                         objFuncPart,
                         objFuncSubDictPart));

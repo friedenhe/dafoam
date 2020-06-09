@@ -25,6 +25,7 @@
 #include "DAIndex.H"
 #include "DAObjFunc.H"
 #include "DAJacCon.H"
+#include "DAResidual.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

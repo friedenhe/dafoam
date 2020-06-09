@@ -93,8 +93,10 @@ public:
     /// get a reference to DATurbulenceModel
     const DATurbulenceModel& getDATurbulenceModel() const;
 
+    /// correct boundary conditions for model states
     void correctBoundaryConditions();
 
+    /// update intermediate variables that are dependent on the model states
     void updateIntermediateVariables();
 
 };

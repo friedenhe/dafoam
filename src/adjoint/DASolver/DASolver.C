@@ -244,6 +244,7 @@ void DASolver::setDAObjFuncList()
                     daOptionPtr_(),
                     daModelPtr_(),
                     daIndexPtr_(),
+                    daResidualPtr_(),
                     objFunI,
                     objPart,
                     objFuncSubDictPart)
@@ -398,11 +399,9 @@ void DASolver::calcPrimalResidualStatistics(
         FatalErrorIn("") << "mode not valid" << abort(FatalError);
     }
 
-    label isRef = 0;
     label isPC = 0;
     dictionary options;
     options.set("isPC", isPC);
-    options.set("isRef", isRef);
     daResidualPtr_->calcResiduals(options);
     daModelPtr_->calcResiduals(options);
 

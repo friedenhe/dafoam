@@ -24,6 +24,7 @@ DAObjFunc::DAObjFunc(
     const DAOption& daOption,
     const DAModel& daModel,
     const DAIndex& daIndex,
+    const DAResidual& daResidual,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
@@ -31,9 +32,11 @@ DAObjFunc::DAObjFunc(
       daOption_(daOption),
       daModel_(daModel),
       daIndex_(daIndex),
+      daResidual_(daResidual),
       objFuncName_(objFuncName),
       objFuncPart_(objFuncPart),
-      objFuncDict_(objFuncDict)
+      objFuncDict_(objFuncDict),
+      daField_(mesh, daOption, daModel, daIndex)
 {
     /*
     Description:
@@ -70,6 +73,7 @@ autoPtr<DAObjFunc> DAObjFunc::New(
     const DAOption& daOption,
     const DAModel& daModel,
     const DAIndex& daIndex,
+    const DAResidual& daResidual,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
@@ -96,6 +100,7 @@ autoPtr<DAObjFunc> DAObjFunc::New(
             "    const DAOption&,"
             "    const DAModel&,"
             "    const DAIndex&,"
+            "    const DAResidual&,"
             "    const word,"
             "    const word,"
             "    const dictionary&"
@@ -109,7 +114,14 @@ autoPtr<DAObjFunc> DAObjFunc::New(
 
     // child class found
     return autoPtr<DAObjFunc>(
-        cstrIter()(mesh, daOption, daModel, daIndex, objFuncName, objFuncPart, objFuncDict));
+        cstrIter()(mesh,
+                   daOption,
+                   daModel,
+                   daIndex,
+                   daResidual,
+                   objFuncName,
+                   objFuncPart,
+                   objFuncDict));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -205,6 +217,57 @@ void DAObjFunc::calcObjFuncSources(
                                            << "Options are: patchToFace, boxToCell!"
                                            << abort(FatalError);
     }
+}
+
+/// the master function to compute objective function given the state and point vectors
+scalar DAObjFunc::masterFunction(
+    const dictionary& options,
+    const Vec wVec,
+    const Vec xvVec)
+{
+    DAModel& daModel = const_cast<DAModel&>(daModel_);
+    DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);
+
+    label updateState = 0;
+    options.readEntry<label>("updateState", updateState);
+
+    label updateMesh = 0;
+    options.readEntry<label>("updateMesh", updateMesh);
+
+    if (updateMesh)
+    {
+        daField_.pointVec2OFMesh(xvVec);
+    }
+
+    if (updateState)
+    {
+        daField_.stateVec2OFField(wVec);
+
+        // now update intermediate states and boundry conditions
+        daResidual.correctBoundaryConditions();
+        daResidual.updateIntermediateVariables();
+        daModel.correctBoundaryConditions();
+        daModel.updateIntermediateVariables();
+    }
+
+    scalar objFuncValue = this->getObjFuncValue();
+
+    return objFuncValue;
+}
+
+/// calcluate the value of objective function
+scalar DAObjFunc::getObjFuncValue()
+{
+    // calculate
+    this->calcObjFunc(
+        objFuncFaceSources_,
+        objFuncCellSources_,
+        objFuncFaceValues_,
+        objFuncCellValues_,
+        objFuncValue_);
+
+    // return
+    return objFuncValue_;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

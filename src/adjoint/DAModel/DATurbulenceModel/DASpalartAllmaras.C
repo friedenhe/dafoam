@@ -179,7 +179,7 @@ void DASpalartAllmaras::correctBoundaryConditions()
     nuTilda_.correctBoundaryConditions();
 }
 
-void DASpalartAllmaras::updateIntermediateVariables(const dictionary& options)
+void DASpalartAllmaras::updateIntermediateVariables()
 {
     // update nut based on nuTilda
     // Note: we need to update nut and its BC since we may have perturbed other turbulence vars

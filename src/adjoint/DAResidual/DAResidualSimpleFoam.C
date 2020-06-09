@@ -101,8 +101,15 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
     //scalePhiResiduals(phiRes);
 }
 
-void DAResidualSimpleFoam::updateIntermediateVariables(const dictionary& options)
+void DAResidualSimpleFoam::updateIntermediateVariables()
 {
+}
+
+/// update the boundary condition for all the states in the selected solver
+void DAResidualSimpleFoam::correctBoundaryConditions()
+{
+    U_.correctBoundaryConditions();
+    p_.correctBoundaryConditions();
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

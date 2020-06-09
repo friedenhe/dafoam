@@ -43,6 +43,7 @@ public:
         const DAOption& daOption,
         const DAModel& daModel,
         const DAIndex& daIndex,
+        const DAResidual& daResidual,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);

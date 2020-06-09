@@ -86,8 +86,8 @@ autoPtr<DAResidual> DAResidual::New(
 
 void DAResidual::masterFunction(
     const dictionary& options,
-    const Vec xvVec,
     const Vec wVec,
+    const Vec xvVec,
     Vec resVec)
 {
     // the master function that compute the residual vector given the state and point vectors
@@ -100,6 +100,9 @@ void DAResidual::masterFunction(
     label updateMesh = 0;
     options.readEntry<label>("updateMesh", updateMesh);
 
+    label setResVec = 0;
+    options.readEntry<label>("setResVec", setResVec);
+
     if (updateMesh)
     {
         daField_.pointVec2OFMesh(xvVec);
@@ -108,8 +111,10 @@ void DAResidual::masterFunction(
     if (updateState)
     {
         daField_.stateVec2OFField(wVec);
-        daField_.correctBoundaryConditions();
-        this->updateIntermediateVariables(options);
+
+        // now update intermediate states and boundry conditions
+        this->correctBoundaryConditions();
+        this->updateIntermediateVariables();
         daModel.correctBoundaryConditions();
         daModel.updateIntermediateVariables();
     }
@@ -117,9 +122,11 @@ void DAResidual::masterFunction(
     this->calcResiduals(options);
     daModel.calcResiduals(options);
 
-    // asssign the openfoam residual field to resVec
-    daField_.ofResField2ResVec(resVec);
-
+    if (setResVec)
+    {
+        // asssign the openfoam residual field to resVec
+        daField_.ofResField2ResVec(resVec);
+    }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

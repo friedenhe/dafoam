@@ -21,6 +21,7 @@ DAObjFuncForce::DAObjFuncForce(
     const DAOption& daOption,
     const DAModel& daModel,
     const DAIndex& daIndex,
+    const DAResidual& daResidual,
     const word objFuncName,
     const word objFuncPart,
     const dictionary& objFuncDict)
@@ -29,6 +30,7 @@ DAObjFuncForce::DAObjFuncForce(
         daOption,
         daModel,
         daIndex,
+        daResidual,
         objFuncName,
         objFuncPart,
         objFuncDict),
@@ -50,7 +52,7 @@ DAObjFuncForce::DAObjFuncForce(
     objFuncConInfo_ = {
         {"U", "nut", "p"}, // level 0
         {"U"}}; // level 1
-    
+
     // now replace nut with the corrected name for the selected turbulence model
     daModel.correctModelStates(objFuncConInfo_[0]);
 }

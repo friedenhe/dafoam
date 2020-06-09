@@ -24,16 +24,19 @@ DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
     const DAIndex& daIndex)
     : DAResidual(modelType, mesh, daOption, daModel, daIndex)
 {
-    
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
 {
-
 }
 
-void DAResidualRhoSimpleFoam::updateIntermediateVariables(const dictionary& options)
+void DAResidualRhoSimpleFoam::updateIntermediateVariables()
+{
+}
+
+/// update the boundary condition for all the states in the selected solver
+void DAResidualRhoSimpleFoam::correctBoundaryConditions()
 {
 }
 

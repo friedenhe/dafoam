@@ -88,9 +88,6 @@ public:
     /// assign the residual vector based on the residual field in OpenFOAM
     void ofResField2ResVec(Vec resVec) const;
 
-    /// update the boundary conditions for all state variables
-    void correctBoundaryConditions();
-
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

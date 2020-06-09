@@ -203,10 +203,30 @@ void DAModel::calcResiduals(const dictionary& options)
 
 void DAModel::correctBoundaryConditions()
 {
+    if (hasTurbulenceModel_)
+    {
+        DATurbulenceModel& daTurb = const_cast<DATurbulenceModel&>(
+            mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel"));
+        daTurb.correctBoundaryConditions();
+    }
+
+    if (hasRadiationModel_)
+    {
+    }
 }
 
 void DAModel::updateIntermediateVariables()
 {
+    if (hasTurbulenceModel_)
+    {
+        DATurbulenceModel& daTurb = const_cast<DATurbulenceModel&>(
+            mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel"));
+        daTurb.updateIntermediateVariables();
+    }
+
+    if (hasRadiationModel_)
+    {
+    }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

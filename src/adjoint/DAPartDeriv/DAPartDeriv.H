@@ -21,6 +21,7 @@
 #include "syncTools.H"
 #include "DAObjFunc.H"
 #include "DAJacCon.H"
+#include "DAResidual.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

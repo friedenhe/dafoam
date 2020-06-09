@@ -103,16 +103,17 @@ public:
     virtual void calcResiduals(const dictionary& options) = 0;
 
     /// update any intermdiate variables that are dependent on state variables and are used in calcResiduals
-    virtual void updateIntermediateVariables(const dictionary& options) = 0;
+    virtual void updateIntermediateVariables() = 0;
+
+    /// update the boundary condition for all the states in the selected solver
+    virtual void correctBoundaryConditions() = 0;
 
     /// the master function that compute the residual vector given the state and point vectors
-    virtual void masterFunction(
+    void masterFunction(
         const dictionary& options,
-        const Vec xvVec,
         const Vec wVec,
+        const Vec xvVec,
         Vec resVec);
-    
-    void correctBoundaryConditions();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

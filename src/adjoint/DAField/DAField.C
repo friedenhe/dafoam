@@ -488,10 +488,6 @@ void DAField::resVec2OFResField(const Vec resVec) const
     VecRestoreArrayRead(resVec, &stateResVecArray);
 }
 
-void DAField::correctBoundaryConditions()
-{
-}
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

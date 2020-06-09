@@ -194,7 +194,7 @@ public:
     virtual void correctBoundaryConditions() = 0;
 
     /// update any intermediate variables that are dependent on state variables and are used in calcResiduals
-    virtual void updateIntermediateVariables(const dictionary& options) = 0;
+    virtual void updateIntermediateVariables() = 0;
 
     /// update the original variable connectivity for the adjoint state residuals in stateCon
     virtual void correctStateResidualModelCon(List<List<word>>& stateCon) const = 0;

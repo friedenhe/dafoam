@@ -71,7 +71,10 @@ public:
     virtual void calcResiduals(const dictionary& options);
 
     /// update any intermediate variables that are dependent on state variables and are used in calcResiduals
-    virtual void updateIntermediateVariables(const dictionary& options);
+    virtual void updateIntermediateVariables();
+
+    /// update the boundary condition for all the states in the selected solver
+    virtual void correctBoundaryConditions();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

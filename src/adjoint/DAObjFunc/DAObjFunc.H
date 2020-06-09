@@ -18,6 +18,8 @@
 #include "DAIndex.H"
 #include "topoSetSource.H"
 #include "topoSet.H"
+#include "DAField.H"
+#include "DAResidual.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,6 +53,9 @@ protected:
     /// DAIndex object
     const DAIndex& daIndex_;
 
+    /// DAResidual object
+    const DAResidual& daResidual_;
+
     /// the name of the objective function
     word objFuncName_;
 
@@ -62,6 +67,9 @@ protected:
 
     /// dictionary containing the information for the objective function
     const dictionary& objFuncDict_;
+
+    /// DAField object
+    DAField daField_;
 
     /// a sorted list of all face sources for the objective function
     labelList objFuncFaceSources_;
@@ -98,6 +106,7 @@ public:
             const DAOption& daOption,
             const DAModel& daModel,
             const DAIndex& daIndex,
+            const DAResidual& daResidual,
             const word objFuncName,
             const word objFuncPart,
             const dictionary& objFuncDict),
@@ -106,6 +115,7 @@ public:
             daOption,
             daModel,
             daIndex,
+            daResidual,
             objFuncName,
             objFuncPart,
             objFuncDict));
@@ -118,6 +128,7 @@ public:
         const DAOption& daOption,
         const DAModel& daModel,
         const DAIndex& daIndex,
+        const DAResidual& daResidual,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);
@@ -130,6 +141,7 @@ public:
         const DAOption& daOption,
         const DAModel& daModel,
         const DAIndex& daIndex,
+        const DAResidual& daResidual,
         const word objFuncName,
         const word objFuncPart,
         const dictionary& objFuncDict);
@@ -153,19 +165,13 @@ public:
         scalar& objFuncValue) = 0;
 
     /// calcluate the value of objective function
-    virtual scalar getObjFuncValue()
-    {
-        // calculate
-        this->calcObjFunc(
-            objFuncFaceSources_,
-            objFuncCellSources_,
-            objFuncFaceValues_,
-            objFuncCellValues_,
-            objFuncValue_);
+    scalar getObjFuncValue();
 
-        // return
-        return objFuncValue_;
-    }
+    /// the master function to compute objective function given the state and point vectors
+    scalar masterFunction(
+        const dictionary& options,
+        const Vec wVec,
+        const Vec xvVec);
 
     /// return the name of objective function
     word getObjFuncName()
