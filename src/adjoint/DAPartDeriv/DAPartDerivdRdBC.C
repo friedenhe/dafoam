@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAPartDerivdRdW.H"
+#include "DAPartDerivdRdBC.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAPartDerivdRdW, 0);
-addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdRdW, dictionary);
+defineTypeNameAndDebug(DAPartDerivdRdBC, 0);
+addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdRdBC, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAPartDerivdRdW::DAPartDerivdRdW(
+DAPartDerivdRdBC::DAPartDerivdRdBC(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -37,53 +37,41 @@ DAPartDerivdRdW::DAPartDerivdRdW(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void DAPartDerivdRdW::initializePartDerivMat(
+void DAPartDerivdRdBC::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
-    label transposed = 0;
-    options.readEntry<label>("transposed", transposed);
-
     // now initialize the memory for the jacobian itself
     label localSize = daIndex_.nLocalAdjointStates;
 
-    // create dRdWT
+    // create dRdBCT
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
         *jacMat,
         localSize,
-        localSize,
+        PETSC_DECIDE,
         PETSC_DETERMINE,
-        PETSC_DETERMINE);
+        1);
     MatSetFromOptions(*jacMat);
-    daJacCon_.preallocatedRdW(*jacMat, transposed);
+    MatMPIAIJSetPreallocation(*jacMat, 1, NULL, 1, NULL);
+    MatSeqAIJSetPreallocation(*jacMat, 1, NULL);
     //MatSetOption(jacMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
-    MatSetUp(*jacMat); 
+    MatSetUp(*jacMat);
     MatZeroEntries(*jacMat);
     Info << "Partial deriative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
 
-void DAPartDerivdRdW::calcPartDerivMat(
+void DAPartDerivdRdBC::calcPartDerivMat(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec,
     Mat jacMat)
 {
-    label transposed = 1;
-
-    // initialize coloredColumn vector
-    Vec coloredColumn;
-    VecDuplicate(wVec, &coloredColumn);
-    VecZeroEntries(coloredColumn);
 
     DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);
 
     // zero all the matrices
     MatZeroEntries(jacMat);
-
-    Vec wVecNew;
-    VecDuplicate(wVec, &wVecNew);
-    VecCopy(wVec, wVecNew);
 
     // initialize residual vectors
     Vec resVecRef, resVec;
@@ -98,48 +86,40 @@ void DAPartDerivdRdW::calcPartDerivMat(
     mOptions.set("setResVec", 1);
     daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivState");
+    scalar delta = daOption_.getOption<scalar>("adjEpsDerivBC");
     scalar rDelta = 1.0 / delta;
 
-    label nColors = daJacCon_.getNJacConColors();
+    // perturb BC
+    this->perturbBC(options, delta);
 
-    for (label color = 0; color < nColors; color++)
+    // compute residual
+    daResidual.masterFunction(mOptions, xvVec, wVec, resVec);
+
+    // reset perturbation
+    this->perturbBC(options, -1.0 * delta);
+
+    // compute residual partial using finite-difference
+    VecAXPY(resVec, -1.0, resVecRef);
+    VecScale(resVec, rDelta);
+
+    // assign resVec to jacMat
+    PetscInt Istart, Iend;
+    VecGetOwnershipRange(resVec, &Istart, &Iend);
+
+    const PetscScalar* resVecArray;
+    VecGetArrayRead(resVec, &resVecArray);
+    for (label i = Istart; i < Iend; i++)
     {
-        label eTime = mesh_.time().elapsedClockTime();
-        // print progress
-        if (color % 100 == 0 or color == nColors - 1)
-        {
-            Info << "JacMat: " << color << " of " << nColors << ", ExecutionTime: " << eTime << " s" << endl;
-        }
-
-        // perturb states
-        this->perturbStates(
-            daJacCon_.getJacConColor(),
-            color,
-            delta,
-            wVecNew);
-
-        // compute residual
-        daResidual.masterFunction(mOptions, xvVec, wVecNew, resVec);
-
-        // reset state perburbation
-        VecCopy(wVec, wVecNew);
-
-        // compute residual partial using finite-difference
-        VecAXPY(resVec, -1.0, resVecRef);
-        VecScale(resVec, rDelta);
-
-        // compute the colored coloumn and assign resVec to jacMat
-        daJacCon_.calcColoredColumns(color, coloredColumn);
-        this->setPartDerivMat(resVec, coloredColumn, transposed, jacMat);
+        label relIdx = i - Istart;
+        scalar val = resVecArray[relIdx];
+        MatSetValue(jacMat, i, 0, val, INSERT_VALUES);
     }
+    VecRestoreArrayRead(resVec, &resVecArray);
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
 
-    daIndex_.printMatChars(jacMat);
-
-    DAUtility::writeMatrixASCII(jacMat, "dRdWT");
+    DAUtility::writeMatrixASCII(jacMat, "dRdBC");
 }
 
 } // End namespace Foam

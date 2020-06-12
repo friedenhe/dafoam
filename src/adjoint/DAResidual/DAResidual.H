@@ -111,8 +111,8 @@ public:
     /// the master function that compute the residual vector given the state and point vectors
     void masterFunction(
         const dictionary& options,
-        const Vec wVec,
         const Vec xvVec,
+        const Vec wVec,
         Vec resVec);
 };
 

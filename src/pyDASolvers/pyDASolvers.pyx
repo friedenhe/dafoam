@@ -21,8 +21,8 @@ cdef extern from "DASolvers.H" namespace "Foam":
         DASolvers(char *, object) except +
         void initSolver()
         int solvePrimal(PetscVec, PetscVec)
-        void solveAdjoint()
-        void calcTotalDerivs()
+        int solveAdjoint(PetscVec, PetscVec, PetscVec)
+        int calcTotalDerivs(PetscVec, PetscVec, PetscVec, PetscVec)
         int getGlobalXvIndex(int, int)
         void ofField2StateVec(PetscVec)
         void stateVec2OFField(PetscVec)
@@ -76,11 +76,11 @@ cdef class pyDASolvers:
     def solvePrimal(self, Vec xvVec, Vec wVec):
         return self._thisptr.solvePrimal(xvVec.vec, wVec.vec)
     
-    def solveAdjoint(self):
-        self._thisptr.solveAdjoint()
+    def solveAdjoint(self, Vec xvVec, Vec wVec, Vec psiVec):
+        self._thisptr.solveAdjoint(xvVec.vec, wVec.vec, psiVec.vec)
     
-    def calcTotalDerivs(self):
-        self._thisptr.calcTotalDerivs()
+    def calcTotalDerivs(self, Vec xvVec, Vec wVec, Vec psiVec, Vec totalDerivVec):
+        return self._thisptr.calcTotalDerivs(xvVec.vec, wVec.vec, psiVec.vec, totalDerivVec.vec)
     
     def getGlobalXvIndex(self, pointI, coordI):
         return self._thisptr.getGlobalXvIndex(pointI, coordI)

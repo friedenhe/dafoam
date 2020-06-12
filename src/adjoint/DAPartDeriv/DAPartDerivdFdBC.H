@@ -4,12 +4,12 @@
     Version : v2
 
     Description:
-        Child class for dRdW
+        Child class for dFdBC
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAPartDerivdRdW_H
-#define DAPartDerivdRdW_H
+#ifndef DAPartDerivdFdBC_H
+#define DAPartDerivdFdBC_H
 
 #include "DAPartDeriv.H"
 #include "addToRunTimeSelectionTable.H"
@@ -20,20 +20,23 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAPartDerivdRdW Declaration
+      Class DAPartDerivdFdBC Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAPartDerivdRdW
+class DAPartDerivdFdBC
     : public DAPartDeriv
 {
 
 protected:
+    /// the number of objFunc discrete elements for local procs
+    label nLocalObjFuncGeoElements_;
+
 public:
-    TypeName("dRdW");
+    TypeName("dFdBC");
     // Constructors
 
     //- Construct from components
-    DAPartDerivdRdW(
+    DAPartDerivdFdBC(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
@@ -43,7 +46,7 @@ public:
         const DAResidual& daResidual);
 
     //- Destructor
-    virtual ~DAPartDerivdRdW()
+    virtual ~DAPartDerivdFdBC()
     {
     }
 

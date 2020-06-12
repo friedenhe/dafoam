@@ -86,9 +86,6 @@ public:
     /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
     virtual void setupJacCon(const dictionary& options);
 
-    /// get the number of JacCon colors
-    virtual label getNJacConColors() const;
-
     /// preallocate memory for dRdW using the computed preallocation vectors
     virtual void preallocatedRdW(
         Mat dRMat,

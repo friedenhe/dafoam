@@ -25,13 +25,15 @@ DAPartDeriv::DAPartDeriv(
     const DAOption& daOption,
     const DAModel& daModel,
     const DAIndex& daIndex,
-    const DAJacCon& daJacCon)
+    const DAJacCon& daJacCon,
+    const DAResidual& daResidual)
     : modelType_(modelType),
       mesh_(mesh),
       daOption_(daOption),
       daModel_(daModel),
-      daJacCon_(daJacCon),
       daIndex_(daIndex),
+      daJacCon_(daJacCon),
+      daResidual_(daResidual),
       allOptions_(daOption.getAllOptions())
 {
     // initialize stateInfo_
@@ -48,7 +50,8 @@ autoPtr<DAPartDeriv> DAPartDeriv::New(
     const DAOption& daOption,
     const DAModel& daModel,
     const DAIndex& daIndex,
-    const DAJacCon& daJacCon)
+    const DAJacCon& daJacCon,
+    const DAResidual& daResidual)
 {
 
     Info << "Selecting " << modelType << " for DAPartDeriv" << endl;
@@ -67,7 +70,8 @@ autoPtr<DAPartDeriv> DAPartDeriv::New(
             "    const DAOption&,"
             "    const DAModel&,"
             "    const DAIndex&,"
-            "    const DAJacCon&"
+            "    const DAJacCon&,"
+            "    const DAResidual&"
             ")")
             << "Unknown DAPartDeriv type "
             << modelType << nl << nl
@@ -78,129 +82,151 @@ autoPtr<DAPartDeriv> DAPartDeriv::New(
 
     // child class found
     return autoPtr<DAPartDeriv>(
-        cstrIter()(modelType, mesh, daOption, daModel, daIndex, daJacCon));
+        cstrIter()(modelType,
+                   mesh,
+                   daOption,
+                   daModel,
+                   daIndex,
+                   daJacCon,
+                   daResidual));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-/*
-void AdjointDerivative::perturbStates(
+
+void DAPartDeriv::perturbStates(
+    const Vec jacConColors,
     const label colorI,
-    const word mode)
+    const scalar delta,
+    Vec wVec)
 {
+    PetscInt Istart, Iend;
+    VecGetOwnershipRange(jacConColors, &Istart, &Iend);
 
-    // perturb volVectorStates
-    forAll(adjReg_.volVectorStates, idxI)
+    const PetscScalar* colorArray;
+    VecGetArrayRead(jacConColors, &colorArray);
+
+    PetscScalar* wVecArray;
+    VecGetArray(wVec, &wVecArray);
+
+    for (label i = Istart; i < Iend; i++)
     {
-        // create state and stateRef
-        makeState(volVectorStates, volVectorField, adjReg_);
-        makeStateRef(volVectorStates, volVectorField, adjReg_);
-
-        forAll(mesh_.cells(), cellI)
+        label relIdx = i - Istart;
+        label colorJ = colorArray[relIdx];
+        if (colorI == colorJ)
         {
-            // check if this state's color = coloI
-            for (label i = 0; i < 3; i++)
-            {
-                label color = adjCon_.getStateColor(mode, stateName, cellI, i);
-                if (color == colorI)
-                {
-                    scalar normScaling = this->getStateScaling(stateName);
-                    state[cellI][i] = stateRef[cellI][i] + adjIO_.epsDeriv * normScaling;
-                }
-            }
-        }
-        // correct BC
-        state.correctBoundaryConditions();
-    }
-
-    // perturb volScalarStates
-    forAll(adjReg_.volScalarStates, idxI)
-    {
-        // create state and stateRef
-        makeState(volScalarStates, volScalarField, adjReg_);
-        makeStateRef(volScalarStates, volScalarField, adjReg_);
-
-        forAll(mesh_.cells(), cellI)
-        {
-            // check if this state's color = coloI
-            label color = adjCon_.getStateColor(mode, stateName, cellI);
-            if (color == colorI)
-            {
-                scalar normScaling = this->getStateScaling(stateName);
-                state[cellI] = stateRef[cellI] + adjIO_.epsDeriv * normScaling;
-            }
-        }
-
-        // correct BC
-        state.correctBoundaryConditions();
-    }
-
-    // perturb turbStates
-    forAll(adjRAS_.turbStates, idxI)
-    {
-        // create state and stateRef
-        makeState(turbStates, volScalarField, adjRAS_);
-        makeStateRef(turbStates, volScalarField, adjRAS_);
-
-        forAll(mesh_.cells(), cellI)
-        {
-            // check if this state's color = coloI
-            label color = adjCon_.getStateColor(mode, stateName, cellI);
-            if (color == colorI)
-            {
-                scalar normScaling = this->getStateScaling(stateName);
-                state[cellI] = stateRef[cellI] + adjIO_.epsDeriv * normScaling;
-            }
-        }
-    }
-    // BC for turbStates are implemented in the AdjRAS class
-    adjRAS_.correctTurbBoundaryConditions();
-
-    // perturb surfaceScalarStates
-    forAll(adjReg_.surfaceScalarStates, idxI)
-    {
-        // create state and stateRef
-        makeState(surfaceScalarStates, surfaceScalarField, adjReg_);
-        makeStateRef(surfaceScalarStates, surfaceScalarField, adjReg_);
-
-        forAll(mesh_.faces(), faceI)
-        {
-            // check if this state's color = coloI
-            label color = adjCon_.getStateColor(mode, stateName, faceI);
-            if (color == colorI)
-            {
-                scalar normScaling = this->getStateScaling(stateName, faceI);
-                if (faceI < adjIdx_.nLocalInternalFaces)
-                {
-                    state[faceI] = stateRef[faceI] + adjIO_.epsDeriv * normScaling;
-                }
-                else
-                {
-                    label relIdx = faceI - adjIdx_.nLocalInternalFaces;
-                    label patchIdx = adjIdx_.bFacePatchI[relIdx];
-                    label faceIdx = adjIdx_.bFaceFaceI[relIdx];
-                    state.boundaryFieldRef()[patchIdx][faceIdx] =
-                        stateRef.boundaryField()[patchIdx][faceIdx] + adjIO_.epsDeriv * normScaling;
-                }
-            }
+            wVecArray[relIdx] += delta;
         }
     }
 
-    // NOTE: we also need to update states that are related to the adjoint states but not
-    // perturbed here. For example, in buoyantBoussinesqFoam, p is related to p_rgh;
-    // however, we only perturb p_rgh in this function. To calculate the perturbed
-    // p due to the p_rgh perturbation for calculating force, we need to do p=p_rgh+rhok*gh
-    // Similar treatment is needed for rhok and alphat. Basically, any variables apprear in flow residual
-    // calculation or objection function calculation that are not state variables need to be updated.
-    // This function is implemented in child class
-    this->updateIntermediateVariables();
-
-    // for some special boundary conditions, e.g. pressureInletVelocity, the inlet U depends on
-    // rho and phi, so we need to call U.correctBoundaryConditions again
-    this->checkSpecialBCs();
+    VecRestoreArrayRead(jacConColors, &colorArray);
+    VecRestoreArray(wVec, &wVecArray);
 
     return;
 }
-*/
+
+void DAPartDeriv::setPartDerivMat(
+    const Vec resVec,
+    const Vec coloredColumn,
+    const label transposed,
+    Mat jacMat) const
+{
+    label rowI, colI;
+    scalar val;
+    PetscInt Istart, Iend;
+    const PetscScalar* resVecArray;
+    const PetscScalar* coloredColumnArray;
+
+    VecGetArrayRead(resVec, &resVecArray);
+    VecGetArrayRead(coloredColumn, &coloredColumnArray);
+
+    // get the local ownership range
+    VecGetOwnershipRange(resVec, &Istart, &Iend);
+
+    // Loop over the owned values of this row and set the corresponding
+    // Jacobian entries
+    for (PetscInt i = Istart; i < Iend; i++)
+    {
+        label relIdx = i - Istart;
+        colI = coloredColumnArray[relIdx];
+        if (colI >= 0)
+        {
+            rowI = i;
+            val = resVecArray[relIdx];
+
+            if (transposed)
+            {
+                MatSetValue(jacMat, colI, rowI, val, INSERT_VALUES);
+            }
+            else
+            {
+                MatSetValue(jacMat, rowI, colI, val, INSERT_VALUES);
+            }
+        }
+    }
+
+    VecRestoreArrayRead(resVec, &resVecArray);
+    VecRestoreArrayRead(coloredColumn, &coloredColumnArray);
+}
+
+void DAPartDeriv::perturbBC(
+    const dictionary options,
+    const scalar delta)
+{
+    word varName, patchName, fieldType, bcType;
+    label comp;
+    options.readEntry<word>("varName", varName);
+    options.readEntry<word>("patchName", patchName);
+    options.readEntry<word>("fieldType", fieldType);
+    options.readEntry<word>("bcType", bcType);
+    options.readEntry<label>("comp", comp);
+
+    label patchI = mesh_.boundaryMesh().findPatchID(patchName);
+
+    if (bcType == "fixedValue")
+    {
+        if (fieldType == "volVectorField")
+        {
+            volVectorField& var(
+                const_cast<volVectorField&>(
+                    mesh_.thisDb().lookupObject<volVectorField>(varName)));
+
+            if (mesh_.boundaryMesh()[patchI].size() > 0)
+            {
+                forAll(var.boundaryField()[patchI], faceI)
+                {
+                    var.boundaryFieldRef()[patchI][faceI][comp] += delta;
+                }
+            }
+        }
+        else if (fieldType == "volScalarField")
+        {
+            volScalarField& var(
+                const_cast<volScalarField&>(
+                    mesh_.thisDb().lookupObject<volScalarField>(varName)));
+
+            if (mesh_.boundaryMesh()[patchI].size() > 0)
+            {
+                forAll(var.boundaryField()[patchI], faceI)
+                {
+                    var.boundaryFieldRef()[patchI][faceI] += delta;
+                }
+            }
+        }
+        else
+        {
+            FatalErrorIn("") << "fieldType: "
+                             << fieldType << " not supported"
+                             << abort(FatalError);
+        }
+    }
+    else
+    {
+        FatalErrorIn("") << "bcType: "
+                         << bcType << " not supported"
+                         << abort(FatalError);
+    }
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

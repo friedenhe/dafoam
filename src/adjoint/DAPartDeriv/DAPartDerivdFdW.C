@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAPartDerivdRdW.H"
+#include "DAPartDerivdFdW.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAPartDerivdRdW, 0);
-addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdRdW, dictionary);
+defineTypeNameAndDebug(DAPartDerivdFdW, 0);
+addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdFdW, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAPartDerivdRdW::DAPartDerivdRdW(
+DAPartDerivdFdW::DAPartDerivdFdW(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -37,46 +37,67 @@ DAPartDerivdRdW::DAPartDerivdRdW(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void DAPartDerivdRdW::initializePartDerivMat(
+void DAPartDerivdFdW::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
-    label transposed = 0;
-    options.readEntry<label>("transposed", transposed);
+    labelList objFuncFaceSources;
+    labelList objFuncCellSources;
+    options.readEntry<labelList>("objFuncFaceSources", objFuncFaceSources);
+    options.readEntry<labelList>("objFuncCellSources", objFuncCellSources);
 
-    // now initialize the memory for the jacobian itself
-    label localSize = daIndex_.nLocalAdjointStates;
+    // nLocalObjFuncGeoElements: the number of objFunc discrete elements for local procs
+    nLocalObjFuncGeoElements_ = objFuncFaceSources.size() + objFuncCellSources.size();
 
-    // create dRdWT
+    // create dFdW
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
         *jacMat,
-        localSize,
-        localSize,
+        nLocalObjFuncGeoElements_,
+        daIndex_.nLocalAdjointStates,
         PETSC_DETERMINE,
         PETSC_DETERMINE);
     MatSetFromOptions(*jacMat);
-    daJacCon_.preallocatedRdW(*jacMat, transposed);
+    MatMPIAIJSetPreallocation(*jacMat, 200, NULL, 200, NULL);
+    MatSeqAIJSetPreallocation(*jacMat, 200, NULL);
     //MatSetOption(jacMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
-    MatSetUp(*jacMat); 
+    MatSetUp(*jacMat);
     MatZeroEntries(*jacMat);
     Info << "Partial deriative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
 
-void DAPartDerivdRdW::calcPartDerivMat(
+void DAPartDerivdFdW::calcPartDerivMat(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec,
     Mat jacMat)
 {
-    label transposed = 1;
+
+    label transposed = 0;
 
     // initialize coloredColumn vector
     Vec coloredColumn;
-    VecDuplicate(wVec, &coloredColumn);
+    VecCreate(PETSC_COMM_WORLD, &coloredColumn);
+    VecSetSizes(coloredColumn, nLocalObjFuncGeoElements_, PETSC_DECIDE);
+    VecSetFromOptions(coloredColumn);
     VecZeroEntries(coloredColumn);
 
-    DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);
+    word objFuncName, objFuncPart;
+    dictionary objFuncSubDictPart = options.subDict("objFuncSubDictPart");
+    options.readEntry<word>("objFuncName", objFuncName);
+    options.readEntry<word>("objFuncPart", objFuncPart);
+
+    autoPtr<DAObjFunc> daObjFunc(
+        DAObjFunc::New(
+            mesh_,
+            daOption_,
+            daModel_,
+            daIndex_,
+            daResidual_,
+            objFuncName,
+            objFuncPart,
+            objFuncSubDictPart)
+            .ptr());
 
     // zero all the matrices
     MatZeroEntries(jacMat);
@@ -85,18 +106,20 @@ void DAPartDerivdRdW::calcPartDerivMat(
     VecDuplicate(wVec, &wVecNew);
     VecCopy(wVec, wVecNew);
 
-    // initialize residual vectors
-    Vec resVecRef, resVec;
-    VecDuplicate(wVec, &resVec);
-    VecDuplicate(wVec, &resVecRef);
-    VecZeroEntries(resVec);
-    VecZeroEntries(resVecRef);
+    // initialize f vectors
+    Vec fVecRef, fVec;
+    VecDuplicate(coloredColumn, &fVec);
+    VecDuplicate(coloredColumn, &fVecRef);
+    VecZeroEntries(fVec);
+    VecZeroEntries(fVecRef);
 
     dictionary mOptions;
     mOptions.set("updateState", 1);
     mOptions.set("updateMesh", 0);
-    mOptions.set("setResVec", 1);
-    daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
+    daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    const scalarList& objFuncFaceValues = daObjFunc->getObjFuncFaceValues();
+    const scalarList& objFuncCellValues = daObjFunc->getObjFuncCellValues();
+    daJacCon_.setObjFuncVec(objFuncFaceValues, objFuncCellValues, fVecRef);
 
     scalar delta = daOption_.getOption<scalar>("adjEpsDerivState");
     scalar rDelta = 1.0 / delta;
@@ -119,19 +142,20 @@ void DAPartDerivdRdW::calcPartDerivMat(
             delta,
             wVecNew);
 
-        // compute residual
-        daResidual.masterFunction(mOptions, xvVec, wVecNew, resVec);
+        // compute object
+        daObjFunc->masterFunction(mOptions, xvVec, wVecNew);
+        daJacCon_.setObjFuncVec(objFuncFaceValues, objFuncCellValues, fVec);
 
         // reset state perburbation
         VecCopy(wVec, wVecNew);
 
         // compute residual partial using finite-difference
-        VecAXPY(resVec, -1.0, resVecRef);
-        VecScale(resVec, rDelta);
+        VecAXPY(fVec, -1.0, fVecRef);
+        VecScale(fVec, rDelta);
 
         // compute the colored coloumn and assign resVec to jacMat
         daJacCon_.calcColoredColumns(color, coloredColumn);
-        this->setPartDerivMat(resVec, coloredColumn, transposed, jacMat);
+        this->setPartDerivMat(fVec, coloredColumn, transposed, jacMat);
     }
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
@@ -139,7 +163,8 @@ void DAPartDerivdRdW::calcPartDerivMat(
 
     daIndex_.printMatChars(jacMat);
 
-    DAUtility::writeMatrixASCII(jacMat, "dRdWT");
+    word jacMatName = "dFdW_" + objFuncName + "_" + objFuncPart;
+    DAUtility::writeMatrixASCII(jacMat, jacMatName);
 }
 
 } // End namespace Foam

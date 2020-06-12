@@ -170,8 +170,8 @@ public:
     /// the master function to compute objective function given the state and point vectors
     scalar masterFunction(
         const dictionary& options,
-        const Vec wVec,
-        const Vec xvVec);
+        const Vec xvVec,
+        const Vec wVec);
 
     /// return the name of objective function
     word getObjFuncName()
@@ -201,6 +201,18 @@ public:
     const labelList& getObjFuncCellSources() const
     {
         return objFuncCellSources_;
+    }
+
+    /// return DAObjFunc::objFuncFaceValues_
+    const scalarList& getObjFuncFaceValues() const
+    {
+        return objFuncFaceValues_;
+    }
+
+    /// return DAObjFunc::objFuncCellValues_
+    const scalarList& getObjFuncCellValues() const
+    {
+        return objFuncCellValues_;
     }
 
     /// return DAObjFunc::objFuncConInfo_

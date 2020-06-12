@@ -60,7 +60,9 @@ class PYDAFOAM(object):
             "turbulenceModel": [str, "SpalartAllmaras"],
             # adjoint options
             "adjUseColoring": [bool, True],
-            "adjEpsDerivFFD": [float, 1.0e-6],
+            "adjEpsDerivState": [float, 1.0e-5],
+            "adjEpsDerivFFD": [float, 1.0e-4],
+            "adjEpsDerivBC": [float, 1.0e-2],
             "adjJacMatOrdering": [str, "state"],
             # system options
             "rootDir": [str, "./"],
@@ -155,7 +157,10 @@ class PYDAFOAM(object):
 
         # initialize the number of primal and adjoint calls
         self.nSolvePrimals = 0
-        self.nSolveAdjoint = 0
+        self.nSolveAdjoints = 0
+
+        self.primalFail = 0
+        self.adjointFail = 0
 
         if self.comm.rank == 0:
             print("Done Init.")
@@ -218,8 +223,6 @@ class PYDAFOAM(object):
         viewerW = PETSc.Viewer().createBinary("wVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
         viewerW(self.wVec)
 
-        self.nSolvePrimals += 1
-
         return
 
     def evalFunctions(self, funcs, evalFuncs=None, ignoreMissing=False):
@@ -269,6 +272,30 @@ class PYDAFOAM(object):
             funcs["fail"] = True
         else:
             funcs["fail"] = False
+
+        return
+    
+    def evalFunctionsSens(self, funcsSens, evalFuncs=None):
+        """
+        Evaluate the sensitivity of the desired functions given in
+        iterable object,'evalFuncs' and add them to the dictionary
+        'funcSens'.
+
+        Parameters
+        ----------
+        funcSens : dict
+        Dictionary into which the function derivatives are saved.
+
+        evalFuncs : iterable object containing strings
+            The functions the user wants the derivatives of
+
+        Examples
+        --------
+        >>> funcSens = {}
+        >>> CFDsolver.evalFunctionsSens(funcSens, ['CD', 'CL'])
+        """
+
+        pass
 
         return
 
@@ -572,6 +599,62 @@ class PYDAFOAM(object):
 
         self.primalFail = 0
         self.primalFail = self.solver.solvePrimal(xvVec, wVec)
+
+        self.nSolvePrimals += 1
+
+        return
+    
+    def solveAdjoint(self):
+        """
+        Run adjoint solver to compute the adjoint vector psiVec
+
+        Input:
+        ------
+        xvVec: vector that contains all the mesh point coordinates
+
+        wVec: vector that contains all the state variables
+
+        Output:
+        -------
+        psiVec: the adjoint vector
+
+        self.adjointFail: if the primal solution fails, assigns 1, otherwise 0
+        """
+
+        if self.comm.rank == 0:
+            print("Running adjoint Solver %03d" % self.nSolveAdjoints)
+
+        self.adjointFail = 0
+        self.adjointFail = self.solver.solveAdjoint(self.xvVec, self.wVec, self.psiVec)
+
+        self.nSolveAdjoints += 1
+
+        return
+
+    def calcTotalDerivs(self):
+        """
+        Compute total derivative
+
+        Input:
+        ------
+        xvVec: vector that contains all the mesh point coordinates
+
+        wVec: vector that contains all the state variables
+
+        psiVec: the adjoint vector
+
+        Output:
+        -------
+        totalDerivVec: the total derivative vector
+
+        self.adjointFail: if the total derivative computation fails, assigns 1, otherwise 0
+        """
+
+        if self.comm.rank == 0:
+            print("Computing total derivatives....")
+
+        self.adjointFail = 0
+        self.adjointFail = self.solver.calcTotalDerivs(self.xvVec, self.wVec, self.psiVec, self.totalDerivVec)
 
         return
 
@@ -990,6 +1073,17 @@ class PYDAFOAM(object):
 
         # viewer = PETSc.Viewer().createASCII("wVec", comm=PETSc.COMM_WORLD)
         # viewer(self.wVec)
+
+        # adjoint vector
+        self.psiVec = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
+        self.psiVec.setSizes((wSize, PETSc.DECIDE), bsize=1)
+        self.psiVec.setFromOptions()
+
+        # total deriv vector
+        # NOTE ***** need to change this!
+        self.totalDerivVec = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
+        self.totalDerivVec.setSizes((1, PETSc.DECIDE), bsize=1)
+        self.totalDerivVec.setFromOptions()
 
         return
 

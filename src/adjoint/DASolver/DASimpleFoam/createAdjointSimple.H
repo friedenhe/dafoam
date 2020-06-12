@@ -13,8 +13,8 @@ daModelPtr_.reset(new DAModel(mesh, daOptionPtr_()));
 
 // initialize stateInfo_
 word solverName = daOptionPtr_->getOption<word>("solverName");
-autoPtr<DAStateInfo> daStateInfo(DAStateInfo::New(solverName, mesh, daOptionPtr_(), daModelPtr_()));
-stateInfo_ = daStateInfo->getStateInfo();
+daStateInfoPtr_.reset(DAStateInfo::New(solverName, mesh, daOptionPtr_(), daModelPtr_()));
+stateInfo_ = daStateInfoPtr_->getStateInfo();
 
 daIndexPtr_.reset(new DAIndex(mesh, daOptionPtr_(), daModelPtr_()));
 

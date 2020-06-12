@@ -124,12 +124,6 @@ label DARhoSimpleFoam::solvePrimal(
 
     return 0;
 }
-void DARhoSimpleFoam::solveAdjoint()
-{
-}
-void DARhoSimpleFoam::calcTotalDerivs()
-{
-}
 
 } // End namespace Foam
 

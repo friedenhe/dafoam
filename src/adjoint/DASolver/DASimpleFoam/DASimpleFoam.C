@@ -123,12 +123,6 @@ label DASimpleFoam::solvePrimal(
 
     return 0;
 }
-void DASimpleFoam::solveAdjoint()
-{
-}
-void DASimpleFoam::calcTotalDerivs()
-{
-}
 
 } // End namespace Foam
 

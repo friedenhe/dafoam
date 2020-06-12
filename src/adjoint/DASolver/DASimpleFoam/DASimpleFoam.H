@@ -84,12 +84,6 @@ public:
         const Vec xvVec,
         Vec wVec);
 
-    /// solve the adjoint linear equations
-    virtual void solveAdjoint();
-
-    /// compute the total derivatives
-    virtual void calcTotalDerivs();
-
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

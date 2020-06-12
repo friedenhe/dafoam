@@ -86,11 +86,13 @@ autoPtr<DAResidual> DAResidual::New(
 
 void DAResidual::masterFunction(
     const dictionary& options,
-    const Vec wVec,
     const Vec xvVec,
+    const Vec wVec,
     Vec resVec)
 {
     // the master function that compute the residual vector given the state and point vectors
+
+    VecZeroEntries(resVec);
 
     DAModel& daModel = const_cast<DAModel&>(daModel_);
 

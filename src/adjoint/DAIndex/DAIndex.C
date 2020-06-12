@@ -143,40 +143,35 @@ DAIndex::DAIndex(
         nUndecomposedPoints = pointMaxIdx + 1;
     }
 
-    // initialize stuff for coloring
-    label useColoring = daOption_.getOption<label>("adjUseColoring");
-    if (useColoring)
+    // initialize stuff
+    // calculate nLocalCoupledBFaces and isCoupledFace
+    isCoupledFace.setSize(nLocalFaces);
+    for (label i = 0; i < nLocalFaces; i++)
     {
-        // calculate nLocalCoupledBFaces and isCoupledFace
-        isCoupledFace.setSize(nLocalFaces);
-        for (label i = 0; i < nLocalFaces; i++)
-        {
-            isCoupledFace[i] = 0;
-        }
-
-        nLocalCoupledBFaces = 0;
-        label faceIdx = nLocalInternalFaces;
-        forAll(mesh_.boundaryMesh(), patchI)
-        {
-            forAll(mesh_.boundaryMesh()[patchI], faceI)
-            {
-                if (mesh_.boundaryMesh()[patchI].coupled())
-                {
-                    // this is a coupled patch
-                    isCoupledFace[faceIdx] = 1;
-                    nLocalCoupledBFaces++;
-                }
-                faceIdx++;
-            }
-        }
-
-        globalCoupledBFaceNumbering = DAUtility::genGlobalIndex(nLocalCoupledBFaces);
-        nGlobalCoupledBFaces = globalCoupledBFaceNumbering.size();
+        isCoupledFace[i] = 0;
     }
+
+    nLocalCoupledBFaces = 0;
+    label faceIdx = nLocalInternalFaces;
+    forAll(mesh_.boundaryMesh(), patchI)
+    {
+        forAll(mesh_.boundaryMesh()[patchI], faceI)
+        {
+            if (mesh_.boundaryMesh()[patchI].coupled())
+            {
+                // this is a coupled patch
+                isCoupledFace[faceIdx] = 1;
+                nLocalCoupledBFaces++;
+            }
+            faceIdx++;
+        }
+    }
+
+    globalCoupledBFaceNumbering = DAUtility::genGlobalIndex(nLocalCoupledBFaces);
+    nGlobalCoupledBFaces = globalCoupledBFaceNumbering.size();
 
     this->calcLocalIdxLists(adjStateName4LocalAdjIdx, cellIFaceI4LocalAdjIdx);
 }
-
 
 void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
 {
@@ -738,7 +733,6 @@ label DAIndex::getLocalXvIndex(
     return localXvIdx;
 }
 
-
 void DAIndex::calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) const
 {
     /*
@@ -832,6 +826,271 @@ void DAIndex::calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) co
     VecRestoreArray(vout, &stateIVecArray);
     VecScatterDestroy(&ctx);
     VecDestroy(&vout);
+
+    return;
+}
+
+void DAIndex::printMatChars(const Mat matIn) const
+{
+
+    PetscInt nCols, Istart, Iend;
+    const PetscInt* cols;
+    const PetscScalar* vals;
+    scalar maxRatio = 0.0;
+    label maxRatioRow = -1;
+    scalar diagV = -1.0;
+    scalar maxNonDiagV = -1.0;
+    label maxNonDiagCol = -1;
+    scalar small = 1e-12;
+    scalar allNonZeros = 0.0;
+    label maxCols = -1;
+
+    this->getMatNonZeros(matIn, maxCols, allNonZeros);
+
+    MatGetOwnershipRange(matIn, &Istart, &Iend);
+    for (label i = Istart; i < Iend; i++)
+    {
+        scalar diag = 0;
+        scalar nonDiagSum = 0;
+        scalar maxV = 0.0;
+        label maxVIdx = -1;
+        MatGetRow(matIn, i, &nCols, &cols, &vals);
+        for (label n = 0; n < nCols; n++)
+        {
+            if (i == cols[n])
+            {
+                diag = vals[n];
+            }
+            if (vals[n] != 0)
+            {
+                if (i != cols[n])
+                {
+                    nonDiagSum = nonDiagSum + fabs(vals[n]);
+                }
+                if (fabs(vals[n]) > maxV)
+                {
+                    maxV = fabs(vals[n]);
+                    maxVIdx = cols[n];
+                }
+            }
+        }
+
+        if (fabs(nonDiagSum / (diag + small)) > maxRatio)
+        {
+            maxRatio = fabs(nonDiagSum / (diag + small));
+            maxRatioRow = i;
+            maxNonDiagCol = maxVIdx;
+            diagV = diag;
+            maxNonDiagV = maxV;
+        }
+
+        MatRestoreRow(matIn, i, &nCols, &cols, &vals);
+    }
+
+    label rowStateID = -1;
+    label colStateID = -1;
+    vector rowCoord(0, 0, 0), colCoord(0, 0, 0);
+
+    forAll(stateInfo_["volVectorStates"], idx)
+    {
+        const word& stateName = stateInfo_["volVectorStates"][idx];
+        forAll(mesh_.cells(), cellI)
+        {
+            for (label i = 0; i < 3; i++)
+            {
+                label idxJ = getGlobalAdjointStateIndex(stateName, cellI, i);
+                if (idxJ == maxRatioRow)
+                {
+                    rowStateID = adjStateID[stateName];
+                    rowCoord = mesh_.C()[cellI];
+                }
+                if (idxJ == maxNonDiagCol)
+                {
+                    colStateID = adjStateID[stateName];
+                    colCoord = mesh_.C()[cellI];
+                }
+            }
+        }
+    }
+
+    forAll(stateInfo_["volScalarStates"], idx)
+    {
+        const word& stateName = stateInfo_["volScalarStates"][idx];
+        forAll(mesh_.cells(), cellI)
+        {
+
+            label idxJ = getGlobalAdjointStateIndex(stateName, cellI);
+            if (idxJ == maxRatioRow)
+            {
+                rowStateID = adjStateID[stateName];
+                rowCoord = mesh_.C()[cellI];
+            }
+            if (idxJ == maxNonDiagCol)
+            {
+                colStateID = adjStateID[stateName];
+                colCoord = mesh_.C()[cellI];
+            }
+        }
+    }
+
+    forAll(stateInfo_["modelStates"], idx)
+    {
+        const word& stateName = stateInfo_["modelStates"][idx];
+        forAll(mesh_.cells(), cellI)
+        {
+
+            label idxJ = getGlobalAdjointStateIndex(stateName, cellI);
+            if (idxJ == maxRatioRow)
+            {
+                rowStateID = adjStateID[stateName];
+                rowCoord = mesh_.C()[cellI];
+            }
+            if (idxJ == maxNonDiagCol)
+            {
+                colStateID = adjStateID[stateName];
+                colCoord = mesh_.C()[cellI];
+            }
+        }
+    }
+
+    forAll(stateInfo_["surfaceScalarStates"], idx)
+    {
+        const word& stateName = stateInfo_["surfaceScalarStates"][idx];
+        forAll(mesh_.faces(), faceI)
+        {
+
+            label idxJ = getGlobalAdjointStateIndex(stateName, faceI);
+
+            if (idxJ == maxRatioRow)
+            {
+                rowStateID = adjStateID[stateName];
+                if (faceI < nLocalInternalFaces)
+                {
+                    rowCoord = mesh_.Cf()[faceI];
+                }
+                else
+                {
+                    label relIdx = faceI - nLocalInternalFaces;
+                    label patchIdx = bFacePatchI[relIdx];
+                    label faceIdx = bFaceFaceI[relIdx];
+                    rowCoord = mesh_.Cf().boundaryField()[patchIdx][faceIdx];
+                }
+            }
+            if (idxJ == maxNonDiagCol)
+            {
+                colStateID = adjStateID[stateName];
+                if (faceI < nLocalInternalFaces)
+                {
+                    colCoord = mesh_.Cf()[faceI];
+                }
+                else
+                {
+                    label relIdx = faceI - nLocalInternalFaces;
+                    label patchIdx = bFacePatchI[relIdx];
+                    label faceIdx = bFaceFaceI[relIdx];
+                    colCoord = mesh_.Cf().boundaryField()[patchIdx][faceIdx];
+                }
+            }
+        }
+    }
+
+    // create a list to store the info
+    List<scalar> matCharInfo(13);
+    matCharInfo[0] = maxRatio;
+    matCharInfo[1] = diagV;
+    matCharInfo[2] = maxNonDiagV;
+    matCharInfo[3] = maxRatioRow;
+    matCharInfo[4] = rowStateID;
+    matCharInfo[5] = rowCoord.x();
+    matCharInfo[6] = rowCoord.y();
+    matCharInfo[7] = rowCoord.z();
+    matCharInfo[8] = maxNonDiagCol;
+    matCharInfo[9] = colStateID;
+    matCharInfo[10] = colCoord.x();
+    matCharInfo[11] = colCoord.y();
+    matCharInfo[12] = colCoord.z();
+
+    // now gather all the info
+    label myProc = Pstream::myProcNo();
+    label nProcs = Pstream::nProcs();
+    // create listlist for gathering
+    List<List<scalar>> gatheredList(nProcs);
+    // assign values for the listlists
+    gatheredList[myProc] = matCharInfo;
+    // gather all info to the master proc
+    Pstream::gatherList(gatheredList);
+    // scatter all info to every procs
+    Pstream::scatterList(gatheredList);
+
+    scalar maxRatioGathered = -1.0;
+    label procI = -1;
+    for (label i = 0; i < nProcs; i++)
+    {
+        if (fabs(gatheredList[i][0]) > maxRatioGathered)
+        {
+            maxRatioGathered = fabs(gatheredList[i][0]);
+            procI = i;
+        }
+    }
+
+    Info << endl;
+    Info << "Jacobian Matrix Characteristics: " << endl;
+    Info << " Mat maxCols: " << maxCols << endl;
+    Info << " Mat allNonZeros: " << allNonZeros << endl;
+    Info << " Max nonDiagSum/Diag: " << gatheredList[procI][0]
+         << " Diag: " << gatheredList[procI][1] << " MaxNonDiag: " << gatheredList[procI][2] << endl;
+    Info << " MaxRatioRow: " << gatheredList[procI][3] << " RowState: " << gatheredList[procI][4]
+         << " RowCoord: (" << gatheredList[procI][5] << " " << gatheredList[procI][6]
+         << " " << gatheredList[procI][7] << ")" << endl;
+    Info << " MaxNonDiagCol: " << gatheredList[procI][8] << " ColState: " << gatheredList[procI][9]
+         << " ColCoord: (" << gatheredList[procI][10] << " " << gatheredList[procI][11]
+         << " " << gatheredList[procI][12] << ")" << endl;
+    Info << " Max nonDiagSum/Diag ProcI: " << procI << endl;
+    Info << endl;
+
+    return;
+}
+
+void DAIndex::getMatNonZeros(
+    const Mat matIn,
+    label& maxCols,
+    scalar& allNonZeros) const
+{
+    // get the max nonzeros per row, and all the nonzeros for this matrix
+
+    PetscInt nCols, Istart, Iend;
+    const PetscInt* cols;
+    const PetscScalar* vals;
+
+    // set the counter
+    maxCols = 0;
+    allNonZeros = 0.0;
+
+    // Determine which rows are on the current processor
+    MatGetOwnershipRange(matIn, &Istart, &Iend);
+
+    // loop over the matrix and find the largest number of cols
+    for (label i = Istart; i < Iend; i++)
+    {
+        MatGetRow(matIn, i, &nCols, &cols, &vals);
+        if (nCols < 0)
+        {
+            std::cout << "Warning! procI: " << Pstream::myProcNo() << " nCols <0 at rowI: " << i << std::endl;
+            std::cout << "Set nCols to zero " << std::endl;
+            nCols = 0;
+        }
+        if (nCols > maxCols) // perhaps actually check vals?
+        {
+            maxCols = nCols;
+        }
+        allNonZeros += nCols;
+        MatRestoreRow(matIn, i, &nCols, &cols, &vals);
+    }
+
+    //reduce the maxcols value so that all procs have the same size
+    reduce(maxCols, maxOp<label>());
+
+    reduce(allNonZeros, sumOp<scalar>());
 
     return;
 }

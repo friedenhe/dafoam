@@ -69,15 +69,22 @@ public:
     }
 
     /// solve the adjoint linear equations
-    void solveAdjoint()
+    label solveAdjoint(
+        const Vec xvVec,
+        const Vec wVec,
+        Vec psiVec)
     {
-        DASolverPtr_->solveAdjoint();
+        return DASolverPtr_->solveAdjoint(xvVec, wVec, psiVec);
     }
 
     /// compute the total derivatives
-    void calcTotalDerivs()
+    label calcTotalDerivs(
+        const Vec xvVec,
+        const Vec wVec,
+        const Vec psiVec,
+        Vec totalDerivVec)
     {
-        DASolverPtr_->calcTotalDerivs();
+        return DASolverPtr_->calcTotalDerivs(xvVec, wVec, psiVec, totalDerivVec);
     }
 
     /// basically, we call DAIndex::getGlobalXvIndex

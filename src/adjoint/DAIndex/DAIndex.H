@@ -319,6 +319,13 @@ public:
         Info << "Undecomposed points: " << nUndecomposedPoints << endl;
         Info << "Global Adjoint States: " << nGlobalAdjointStates << endl;
     }
+
+    void printMatChars(const Mat matIn) const;
+
+    void getMatNonZeros(
+        const Mat matIn,
+        label& maxCols,
+        scalar& allNonZeros) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -569,6 +569,291 @@ void DASolver::calcPrimalResidualStatistics(
     return;
 }
 
+/// solve the adjoint linear equations
+label DASolver::solveAdjoint(
+    const Vec xvVec,
+    const Vec wVec,
+    Vec psiVec)
+{
+
+    // now we can compute dRdW
+    Mat dRdWT;
+
+    DALinearEqn daLinearEqn(meshPtr_(), daOptionPtr_());
+
+    {
+
+        // initialize DAJacCon object
+        word modelType = "dRdW";
+        autoPtr<DAJacCon> daJacCon(DAJacCon::New(
+            modelType,
+            meshPtr_(),
+            daOptionPtr_(),
+            daModelPtr_(),
+            daIndexPtr_()));
+
+        dictionary options;
+        const HashTable<List<List<word>>>& stateResConInfo = daStateInfoPtr_->getStateResConInfo();
+        options.set("stateResConInfo", stateResConInfo);
+
+        // need to first setup preallocation vectors for the dRdWCon matrix
+        // because directly initializing the dRdWCon matrix will use too much memory
+        daJacCon->setupJacConPreallocation(options);
+
+        // now we can initilaize dRdWCon
+        daJacCon->initializeJacCon(options);
+
+        // setup dRdWCon
+        daJacCon->setupJacCon(options);
+        Info << "dRdWCon Created. " << runTimePtr_->elapsedClockTime() << " s" << endl;
+
+        // read the coloring
+        daJacCon->readJacConColoring();
+
+        autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+            modelType,
+            meshPtr_(),
+            daOptionPtr_(),
+            daModelPtr_(),
+            daIndexPtr_(),
+            daJacCon(),
+            daResidualPtr_()));
+
+        dictionary options1;
+        options1.set("transposed", 1);
+
+        daPartDeriv->initializePartDerivMat(options1, &dRdWT);
+        daPartDeriv->calcPartDerivMat(options1, xvVec, wVec, dRdWT);
+    }
+
+    // now do dFdW
+    const dictionary& allOptions = daOptionPtr_->getAllOptions();
+
+    dictionary objFuncDict = allOptions.subDict("objFunc");
+
+    // loop over all objFuncs
+    forAll(objFuncDict.toc(), idxI)
+    {
+        word objFuncName = objFuncDict.toc()[idxI];
+        dictionary objFuncSubDict = objFuncDict.subDict(objFuncName);
+        forAll(objFuncSubDict.toc(), idxJ)
+        {
+            word objFuncPart = objFuncSubDict.toc()[idxJ];
+            dictionary objFuncSubDictPart = objFuncSubDict.subDict(objFuncPart);
+
+            Mat dFdW;
+
+            // initialize DAJacCon object
+            word modelType = "dFdW";
+            autoPtr<DAJacCon> daJacCon(DAJacCon::New(
+                modelType,
+                meshPtr_(),
+                daOptionPtr_(),
+                daModelPtr_(),
+                daIndexPtr_()));
+
+            autoPtr<DAObjFunc> daObjFunc(DAObjFunc::New(
+                meshPtr_(),
+                daOptionPtr_(),
+                daModelPtr_(),
+                daIndexPtr_(),
+                daResidualPtr_(),
+                objFuncName,
+                objFuncPart,
+                objFuncSubDictPart));
+
+            dictionary options;
+            const List<List<word>>& objFuncConInfo = daObjFunc->getObjFuncConInfo();
+            const labelList& objFuncFaceSources = daObjFunc->getObjFuncFaceSources();
+            const labelList& objFuncCellSources = daObjFunc->getObjFuncCellSources();
+            options.set("objFuncConInfo", objFuncConInfo);
+            options.set("objFuncFaceSources", objFuncFaceSources);
+            options.set("objFuncCellSources", objFuncCellSources);
+            options.set("objFuncName", objFuncName);
+            options.set("objFuncPart", objFuncPart);
+            options.set("objFuncSubDictPart", objFuncSubDictPart);
+
+            // now we can initilaize dFdWCon
+            daJacCon->initializeJacCon(options);
+
+            // setup dFdWCon
+            daJacCon->setupJacCon(options);
+            Info << "dFdWCon Created. " << meshPtr_->time().elapsedClockTime() << " s" << endl;
+
+            // read the coloring
+            word postFix = "_" + objFuncName + "_" + objFuncPart;
+            daJacCon->readJacConColoring(postFix);
+
+            autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+                modelType,
+                meshPtr_(),
+                daOptionPtr_(),
+                daModelPtr_(),
+                daIndexPtr_(),
+                daJacCon(),
+                daResidualPtr_()));
+
+            daPartDeriv->initializePartDerivMat(options, &dFdW);
+            daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdW);
+
+            Vec dFdWVec, oneVec;
+            label objGeoSize = objFuncFaceSources.size() + objFuncCellSources.size();
+            VecCreate(PETSC_COMM_WORLD, &oneVec);
+            VecSetSizes(oneVec, objGeoSize, PETSC_DETERMINE);
+            VecSetFromOptions(oneVec);
+            VecSet(oneVec, 1.0);
+
+            VecCreate(PETSC_COMM_WORLD, &dFdWVec);
+            VecSetSizes(dFdWVec, daIndexPtr_->nLocalAdjointStates, PETSC_DETERMINE);
+            VecSetFromOptions(dFdWVec);
+            VecZeroEntries(dFdWVec);
+
+            MatMultTranspose(dFdW, oneVec, dFdWVec);
+
+            DAUtility::writeVectorASCII(dFdWVec, "dFdWVec");
+
+            dictionary kspOptions;
+            kspOptions.add("GMRESRestart", 1000);
+            kspOptions.add("GlobalPCIters", 0);
+            kspOptions.add("ASMOverlap", 1);
+            kspOptions.add("LocalPCIters", 1);
+            kspOptions.add("JacMatReOrdering", "rcm");
+            kspOptions.add("PCFillLevel", 2);
+            kspOptions.add("GMRESMaxIters", 1000);
+            kspOptions.add("GMRESRelTol", 1.0e-6);
+            kspOptions.add("GMRESAbsTol", 1.0e-10);
+            kspOptions.add("printInfo", 1);
+
+            KSP ksp;
+            VecZeroEntries(psiVec);
+            daLinearEqn.createMLRKSP(kspOptions, dRdWT, dRdWT, &ksp);
+            daLinearEqn.solveLinearEqn(ksp, dFdWVec, psiVec);
+
+            DAUtility::writeVectorASCII(psiVec, "psiVec");
+        }
+    }
+
+    return 0;
+}
+
+/// compute the total derivatives
+label DASolver::calcTotalDerivs(
+    const Vec xvVec,
+    const Vec wVec,
+    const Vec psiVec,
+    Vec totalDerivVec)
+{
+    // dRdBC
+    Mat dRdBC;
+    {
+        // initialize DAJacCon object
+        word dummyType = "dummy";
+        autoPtr<DAJacCon> daJacCon(DAJacCon::New(
+            dummyType,
+            meshPtr_(),
+            daOptionPtr_(),
+            daModelPtr_(),
+            daIndexPtr_()));
+
+        word modelType = "dRdBC";
+        autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+            modelType,
+            meshPtr_(),
+            daOptionPtr_(),
+            daModelPtr_(),
+            daIndexPtr_(),
+            daJacCon(),
+            daResidualPtr_()));
+
+        dictionary options;
+        word varName = "U", patchName = "inlet", fieldType = "volVectorField", bcType = "fixedValue";
+        label comp = 0;
+        options.set("varName", varName);
+        options.set("patchName", patchName);
+        options.set("fieldType", fieldType);
+        options.set("bcType", bcType);
+        options.set("comp", comp);
+
+        daPartDeriv->initializePartDerivMat(options, &dRdBC);
+        daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dRdBC);
+
+        DAUtility::writeMatrixASCII(dRdBC, "dRdBC");
+    }
+
+    // dFdBC
+    const dictionary& allOptions = daOptionPtr_->getAllOptions();
+
+    dictionary objFuncDict = allOptions.subDict("objFunc");
+
+    // loop over all objFuncs
+    forAll(objFuncDict.toc(), idxI)
+    {
+        word objFuncName = objFuncDict.toc()[idxI];
+        dictionary objFuncSubDict = objFuncDict.subDict(objFuncName);
+        forAll(objFuncSubDict.toc(), idxJ)
+        {
+            word objFuncPart = objFuncSubDict.toc()[idxJ];
+            dictionary objFuncSubDictPart = objFuncSubDict.subDict(objFuncPart);
+
+            Mat dFdBC;
+
+            // initialize DAJacCon object
+            word dummyType = "dummy";
+            autoPtr<DAJacCon> daJacCon(DAJacCon::New(
+                dummyType,
+                meshPtr_(),
+                daOptionPtr_(),
+                daModelPtr_(),
+                daIndexPtr_()));
+
+            word modelType = "dFdBC";
+            autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+                modelType,
+                meshPtr_(),
+                daOptionPtr_(),
+                daModelPtr_(),
+                daIndexPtr_(),
+                daJacCon(),
+                daResidualPtr_()));
+
+            dictionary options;
+            options.set("objFuncName", objFuncName);
+            options.set("objFuncPart", objFuncPart);
+            options.set("objFuncSubDictPart", objFuncSubDictPart);
+            word varName = "U", patchName = "inlet", fieldType = "volVectorField", bcType = "fixedValue";
+            label comp = 0;
+            options.set("varName", varName);
+            options.set("patchName", patchName);
+            options.set("fieldType", fieldType);
+            options.set("bcType", bcType);
+            options.set("comp", comp);
+
+            daPartDeriv->initializePartDerivMat(options, &dFdBC);
+            daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdBC);
+
+            Vec dFdBCVec, oneVec;
+            VecCreate(PETSC_COMM_WORLD, &oneVec);
+            VecSetSizes(oneVec, PETSC_DETERMINE, 1);
+            VecSetFromOptions(oneVec);
+            VecSet(oneVec, 1.0);
+            VecDuplicate(oneVec, &dFdBCVec);
+            VecZeroEntries(dFdBCVec);
+            MatMultTranspose(dFdBC, oneVec, dFdBCVec);
+
+            DAUtility::writeVectorASCII(dFdBCVec, "dFdBCVec");
+
+            VecZeroEntries(totalDerivVec);
+            MatMultTranspose(dRdBC, psiVec, totalDerivVec);
+            VecAXPY(totalDerivVec, -1.0, dFdBCVec);
+            VecScale(totalDerivVec, -1.0);
+
+            DAUtility::writeVectorASCII(totalDerivVec, "totalDerivVec");
+        }
+    }
+
+    return 0;
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

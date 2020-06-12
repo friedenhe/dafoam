@@ -45,19 +45,11 @@ protected:
     /// Foam::DAOption object
     const DAOption& daOption_;
 
-    /// DAModel object
-    const DAModel& daModel_;
-
-    /// DAIndex object
-    const DAIndex& daIndex_;
-
 public:
     /// Constructors
     DALinearEqn(
         const fvMesh& mesh,
-        const DAOption& daOption,
-        const DAModel& daModel,
-        const DAIndex& daIndex);
+        const DAOption& daOption);
 
     /// Destructor
     virtual ~DALinearEqn()
@@ -65,6 +57,27 @@ public:
     }
 
     // Members
+
+    void createMLRKSP(
+        const dictionary options,
+        const Mat jacMat,
+        const Mat jacPCMat,
+        KSP* genksp);
+
+    label solveLinearEqn(
+        const KSP ksp,
+        const Vec rhsVec,
+        Vec solVec);
+
+    /// ksp monitor function
+    static PetscErrorCode myKSPMonitor(
+        KSP,
+        PetscInt,
+        PetscReal,
+        void*);
+
+    /// return the runtime for the adjoint solver
+    label getRunTime();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

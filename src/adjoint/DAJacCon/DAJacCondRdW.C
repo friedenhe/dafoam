@@ -24,13 +24,8 @@ DAJacCondRdW::DAJacCondRdW(
     const DAIndex& daIndex)
     : DAJacCon(modelType, mesh, daOption, daModel, daIndex)
 {
-
-    if (daOption_.getOption<label>("adjUseColoring"))
-    {
-
-        this->initializeStateBoundaryCon();
-        this->initializePetscVecs();
-    }
+    this->initializeStateBoundaryCon();
+    this->initializePetscVecs();
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -54,7 +49,6 @@ void DAJacCondRdW::initializePetscVecs()
     VecCreate(PETSC_COMM_WORLD, &jacConColors_);
     VecSetSizes(jacConColors_, daIndex_.nLocalAdjointStates, PETSC_DECIDE);
     VecSetFromOptions(jacConColors_);
-    VecDuplicate(jacConColors_, &jacConColoredColumns_);
 
     return;
 }
@@ -837,29 +831,6 @@ void DAJacCondRdW::preallocatedRdW(
     {
         this->preallocateJacobianMatrix(dRMat, dRdWPreallocOn_, dRdWPreallocOff_);
     }
-}
-
-label DAJacCondRdW::getNJacConColors() const
-{
-    /*
-    Return the number of colors
-
-    Output:
-    ------
-    nJacConColors_: the number of colors depends on 
-    whether the coloring is used
-    */
-
-    if (daOption_.getOption<label>("adjUseColoring"))
-    {
-        return nJacConColors_;
-    }
-    else
-    {
-        return daIndex_.nGlobalAdjointStates;
-    }
-
-    return -1;
 }
 
 } // End namespace Foam

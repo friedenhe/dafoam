@@ -4,12 +4,12 @@
     Version : v2
 
     Description:
-        Child class for dRdW
+        Child class for dRdBC
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAPartDerivdRdW_H
-#define DAPartDerivdRdW_H
+#ifndef DAPartDerivdRdBC_H
+#define DAPartDerivdRdBC_H
 
 #include "DAPartDeriv.H"
 #include "addToRunTimeSelectionTable.H"
@@ -20,20 +20,20 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAPartDerivdRdW Declaration
+      Class DAPartDerivdRdBC Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAPartDerivdRdW
+class DAPartDerivdRdBC
     : public DAPartDeriv
 {
 
 protected:
 public:
-    TypeName("dRdW");
+    TypeName("dRdBC");
     // Constructors
 
     //- Construct from components
-    DAPartDerivdRdW(
+    DAPartDerivdRdBC(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
@@ -43,7 +43,7 @@ public:
         const DAResidual& daResidual);
 
     //- Destructor
-    virtual ~DAPartDerivdRdW()
+    virtual ~DAPartDerivdRdBC()
     {
     }
 

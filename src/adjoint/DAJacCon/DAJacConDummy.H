@@ -4,12 +4,15 @@
     Version : v2
 
     Description:
-        Child class for dFdW
+        Child class for dummy Jacobian connectivity. This is for initializing 
+        a DAPartDeriv child class that does not need coloring, e.g., dRdBC
+        Basically, we implement nothing here because DAPartDeriv-dRdBC will
+        call none of the methods from this dummy child class.
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAJacCondFdW_H
-#define DAJacCondFdW_H
+#ifndef DAJacConDummy_H
+#define DAJacConDummy_H
 
 #include "DAJacCon.H"
 #include "addToRunTimeSelectionTable.H"
@@ -20,38 +23,21 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAJacCondFdW Declaration
+      Class DAJacConDummy Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAJacCondFdW
+class DAJacConDummy
     : public DAJacCon
 {
 
 protected:
-    /// initialize petsc vectors
-    void initializePetscVecs();
-
-    /// the global numbering for the discrete source of objective function
-    globalIndex globalObjFuncGeoNumbering_;
-
-    label getLocalObjFuncGeoIndex(
-        const word idxType,
-        const label idxI) const;
-    
-    label getGlobalObjFuncGeoIndex(
-        const word idxType,
-        const label idxI) const;
-    
-    label objFuncFaceSize_ = 0;
-
-    label objFuncCellSize_ = 0;
 
 public:
-    TypeName("dFdW");
+    TypeName("dummy");
     // Constructors
 
     //- Construct from components
-    DAJacCondFdW(
+    DAJacConDummy(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
@@ -59,23 +45,18 @@ public:
         const DAIndex& daIndex);
 
     //- Destructor
-    virtual ~DAJacCondFdW()
+    virtual ~DAJacConDummy()
     {
     }
 
     // Member functions
 
-    /// calculate the
     /// initialize the state Jacobian connectivity matrix
     virtual void initializeJacCon(const dictionary& options);
 
     /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
     virtual void setupJacCon(const dictionary& options);
 
-    virtual void setObjFuncVec(
-        scalarList objFuncFaceValues,
-        scalarList objFuncCellValues,
-        Vec objFuncVec) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

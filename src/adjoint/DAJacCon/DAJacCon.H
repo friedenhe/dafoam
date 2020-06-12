@@ -78,9 +78,6 @@ protected:
     /// jacCon matrix colors
     Vec jacConColors_;
 
-    /// jacCon colored columns. It contains the global column index of perturbed state for the current color
-    Vec jacConColoredColumns_;
-
     /// number of jacCon colors
     label nJacConColors_;
 
@@ -217,20 +214,23 @@ public:
     virtual void setupJacCon(const dictionary& options) = 0;
 
     /// get the number of JacCon colors
-    virtual label getNJacConColors() const = 0;
+    label getNJacConColors() const
+    {
+        return nJacConColors_;
+    }
 
     virtual void preallocatedRdW(
         Mat dRMat,
         const label transposed) const;
 
     /// compute graph coloring for Jacobian connectivity matrix
-    void calcJacConColoring(const word postFix="");
+    void calcJacConColoring(const word postFix = "");
 
     /// read colors for JacCon
-    void readJacConColoring(const word postFix="");
+    void readJacConColoring(const word postFix = "");
 
     /// whether the coloring file exists
-    label coloringExists(const word postFix="") const;
+    label coloringExists(const word postFix = "") const;
 
     /// delete the JacCon matrix to free the memory
     void deleteJacCon()
@@ -238,13 +238,21 @@ public:
         MatDestroy(&jacCon_);
     }
 
-    /// return DAJacCon::jacConColoredColumns_
-    Vec getJacConColoredColumns() const
+    /// return DAJacCon::jacConColors_
+    Vec getJacConColor() const
     {
-        return jacConColoredColumns_;
+        return jacConColors_;
     }
 
-    
+    /// calculate the colored column vector
+    void calcColoredColumns(
+        const label colorI,
+        Vec coloredColumn) const;
+
+    virtual void setObjFuncVec(
+        scalarList objFuncFaceValues,
+        scalarList objFuncCellValues,
+        Vec objFuncVec) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -28,6 +28,8 @@
 #include "DAColoring.H"
 #include "DAResidual.H"
 #include "DAField.H"
+#include "DAPartDeriv.H"
+#include "DALinearEqn.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -85,11 +87,11 @@ protected:
     /// DACheckMesh object pointer
     autoPtr<DACheckMesh> daCheckMeshPtr_;
 
-    /// DAJacCon pointer
-    autoPtr<DAJacCon> daJacConPtr_;
-
     /// DAResidual pointer
     autoPtr<DAResidual> daResidualPtr_;
+
+    /// DAStateInfo pointer
+    autoPtr<DAStateInfo> daStateInfoPtr_;
 
     /// the stateInfo_ list from DAStateInfo object
     HashTable<wordList> stateInfo_;
@@ -138,10 +140,17 @@ public:
         Vec wVec) = 0;
 
     /// solve the adjoint linear equations
-    virtual void solveAdjoint() = 0;
+    label solveAdjoint(
+        const Vec xvVec,
+        const Vec wVec,
+        Vec psiVec);
 
     /// compute the total derivatives
-    virtual void calcTotalDerivs() = 0;
+    label calcTotalDerivs(
+        const Vec xvVec,
+        const Vec wVec,
+        const Vec psiVec,
+        Vec totalDerivVec);
 
     /// return whether to loop the primal solution, similar to runTime::loop() except we don't do file IO
     label loop(Time& runTime);

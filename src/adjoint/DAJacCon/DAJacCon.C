@@ -1793,22 +1793,31 @@ void DAJacCon::calcJacConColoring(const word postFix)
     Info << "Calculating " << modelType_ << " Coloring.." << endl;
     label nProcs = Pstream::nProcs();
     word fileName = modelType_ + "Coloring" + postFix + "_" + Foam::name(nProcs);
-    /*
-    word checkFile = fileName + ".bin";
-    std::ifstream fIn(checkFile);
-    if (!fIn.fail())
-    {
-        Info << checkFile << " exists. Skip coloring computation..." << endl;
-        return;
-    }
-    */
 
-    // if the coloring does not exist, compute it
     VecZeroEntries(jacConColors_);
-    daColoring_.parallelD2Coloring(jacCon_, jacConColors_, nJacConColors_);
+    if (daOption_.getOption<label>("adjUseColoring"))
+    {
+        // use parallelD2 coloring to compute colors
+        daColoring_.parallelD2Coloring(jacCon_, jacConColors_, nJacConColors_);
+    }
+    else
+    {
+        // use brute force to compute colors, basically, we assign
+        // color to its global index
+        PetscScalar* jacConColorsArray;
+        VecGetArray(jacConColors_, &jacConColorsArray);
+        label Istart, Iend;
+        VecGetOwnershipRange(jacConColors_, &Istart, &Iend);
+        for (label i = Istart; i < Iend; i++)
+        {
+            label relIdx = i - Istart;
+            jacConColorsArray[relIdx] = i * 1.0;
+        }
+        VecRestoreArray(jacConColors_, &jacConColorsArray);
+    }
+
     daColoring_.validateColoring(jacCon_, jacConColors_);
     Info << " nJacConColors: " << nJacConColors_ << endl;
-
     // write jacCon colors
     Info << "Writing Colors to " << fileName << endl;
     DAUtility::writeVectorBinary(jacConColors_, fileName);
@@ -1880,6 +1889,138 @@ void DAJacCon::preallocatedRdW(
     FatalErrorIn("") << "preallocatedRdW not implemented " << endl
                      << " in the child class for " << modelType_
                      << abort(FatalError);
+}
+
+void DAJacCon::setObjFuncVec(
+    scalarList objFuncFaceValues,
+    scalarList objFuncCellValues,
+    Vec objFuncVec) const
+{
+    FatalErrorIn("") << "setObjFuncVec not implemented " << endl
+                     << " in the child class for " << modelType_
+                     << abort(FatalError);
+}
+
+void DAJacCon::calcColoredColumns(
+    const label colorI,
+    Vec coloredColumn) const
+{
+    /*
+    Compute the colored column vector: coloredColumn. This vector will then
+    be used to assign resVec to dRdW in DAPartDeriv::calcPartDeriv
+
+    Input:
+    -----
+    colorI: the ith color index
+
+    Output:
+    ------
+    coloredColumn: For a given colorI, coloredColumn vector contains the column 
+    index for non-zero elements in the DAJacCon::jacCon_ matrix. If there is 
+    no non-zero element for this color, set the value to -1
+
+    Example:
+    -------
+
+    If the DAJacCon::jacCon_ matrix reads,
+
+           color0  color1
+             |     |
+             1  0  0  0
+    jacCon = 0  1  1  0
+             0  0  1  0
+             0  0  0  1
+                |     | 
+            color0   color0
+
+    and the coloring vector DAJacCon::jacConColors_ = {0, 0, 1, 0}.
+    
+    **************************
+    ***** If colorI = 0 ******
+    **************************
+    Calling calcColoredColumns(0, coloredColumn) will return 
+
+    coloredColumn = {0, 1, -1, 3}
+
+    In this case, we have three columns (0, 1, and 3) for color=0, the nonzero pattern is:
+
+           color0  
+             |     
+             1  0  0  0
+    jacCon = 0  1  0  0
+             0  0  0  0
+             0  0  0  1
+                |     | 
+            color0   color0
+    
+    So for the 0th, 1th, and 3th rows, the non-zero elements in the jacCon matrix are at the 
+    0th, 1th, and 3th columns, respectively, which gives coloredColumn = {0, 1, -1, 3}
+
+    **************************
+    ***** If colorI = 1 ******
+    **************************
+    Calling calcColoredColumns(1, coloredColumn) will return 
+
+    coloredColumn = {-1, 2, 2, -1}
+
+    In this case, we have one column (2) for color=1, , the nonzero pattern is:
+
+                 color1
+                   |
+             0  0  0  0
+    jacCon = 0  0  1  0
+             0  0  1  0
+             0  0  0  0
+
+    So for the 1th and 2th rows, the non-zero elements in the jacCon matrix are at the 
+    2th and 2th columns, respectively, which gives coloredColumn = {-1, 2, 2, -1}
+
+    */
+
+    Vec colorIdx;
+    label Istart, Iend;
+
+    /* for the current color, determine which row/column pairs match up. */
+
+    // create a vector to hold the column indices associated with this color
+    VecDuplicate(jacConColors_, &colorIdx);
+    VecZeroEntries(colorIdx);
+
+    // Start by looping over the color vector. Set each column index associated
+    // with the current color to its own value in the color idx vector
+    // get the values on this proc
+    VecGetOwnershipRange(jacConColors_, &Istart, &Iend);
+
+    // create the arrays to access them directly
+    const PetscScalar* jacConColorsArray;
+    PetscScalar* colorIdxArray;
+    VecGetArrayRead(jacConColors_, &jacConColorsArray);
+    VecGetArray(colorIdx, &colorIdxArray);
+
+    // loop over the entries to find the ones that match this color
+    for (label j = Istart; j < Iend; j++)
+    {
+        label idx = j - Istart;
+        if (DAUtility::isValueCloseToRef(jacConColorsArray[idx], colorI * 1.0))
+        {
+            // use 1 based indexing here and then subtract 1 from all values in
+            // the mat mult. This will handle the zero index case in the first row
+            colorIdxArray[idx] = j + 1;
+        }
+    }
+    VecRestoreArrayRead(jacConColors_, &jacConColorsArray);
+    VecRestoreArray(colorIdx, &colorIdxArray);
+
+    //VecAssemblyBegin(colorIdx);
+    //VecAssemblyEnd(colorIdx);
+
+    //Set coloredColumn to -1 to account for the 1 based indexing in the above loop
+    VecSet(coloredColumn, -1);
+    // Now do a MatVec with the conMat to get the row coloredColumn pairs.
+    MatMultAdd(jacCon_, colorIdx, coloredColumn, coloredColumn);
+
+    // destroy the temporary vector
+    VecDestroy(&colorIdx);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

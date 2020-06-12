@@ -70,8 +70,11 @@ void DAJacCondFdW::initializeJacCon(const dictionary& options)
     options.readEntry<labelList>("objFuncFaceSources", objFuncFaceSources);
     options.readEntry<labelList>("objFuncCellSources", objFuncCellSources);
 
+    objFuncFaceSize_ = objFuncFaceSources.size();
+    objFuncCellSize_ = objFuncCellSources.size();
+
     // nLocalObjFuncGeoElements: the number of objFunc discrete elements for local procs
-    label nLocalObjFuncGeoElements = objFuncFaceSources.size() + objFuncCellSources.size();
+    label nLocalObjFuncGeoElements = objFuncFaceSize_ + objFuncCellSize_;
 
     globalObjFuncGeoNumbering_ = DAUtility::genGlobalIndex(nLocalObjFuncGeoElements);
 
@@ -88,15 +91,6 @@ void DAJacCondFdW::initializeJacCon(const dictionary& options)
     //MatSetOption(jacCon_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     MatSetUp(jacCon_);
     MatZeroEntries(jacCon_);
-
-    // initilialize jacConColoredColumns_
-    VecCreate(PETSC_COMM_WORLD, &jacConColoredColumns_);
-    VecSetSizes(
-        jacConColoredColumns_,
-        nLocalObjFuncGeoElements,
-        PETSC_DECIDE);
-    VecSetFromOptions(jacConColoredColumns_);
-    VecZeroEntries(jacConColoredColumns_);
 
     Info << "dFdWCon Created!" << endl;
 }
@@ -202,36 +196,75 @@ void DAJacCondFdW::setupJacCon(const dictionary& options)
                 addFace);
         }
 
-        label glbRowI = globalObjFuncGeoNumbering_.toGlobal(idxI);
+        label glbRowI = this->getGlobalObjFuncGeoIndex("face", idxI);
 
         this->setupJacobianConnections(jacCon_, connectedStatesP, glbRowI);
+    }
+
+    forAll(objFuncCellSources, idxI)
+    {
+        // TODO: need to implemnt this!
+        FatalErrorIn("") << "not implemented!"
+                         << abort(FatalError);
     }
 
     MatAssemblyBegin(jacCon_, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacCon_, MAT_FINAL_ASSEMBLY);
 }
 
-label DAJacCondFdW::getNJacConColors() const
+label DAJacCondFdW::getLocalObjFuncGeoIndex(
+    const word idxType,
+    const label idxI) const
 {
-    /*
-    Return the number of colors
-
-    Output:
-    ------
-    nJacConColors_: the number of colors depends on 
-    whether the coloring is used
-    */
-
-    if (daOption_.getOption<label>("adjUseColoring"))
+    label localIdx = -9999;
+    if (idxType == "face")
     {
-        return nJacConColors_;
+        localIdx = idxI;
+    }
+    else if (idxType == "cell")
+    {
+        localIdx = objFuncFaceSize_ + idxI;
     }
     else
     {
-        return daIndex_.nGlobalAdjointStates;
+        FatalErrorIn("") << "idxType: " << idxType << "not supported!"
+                         << abort(FatalError);
+    }
+    return localIdx;
+}
+
+label DAJacCondFdW::getGlobalObjFuncGeoIndex(
+    const word idxType,
+    const label idxI) const
+{
+    label localIdx = this->getLocalObjFuncGeoIndex(idxType, idxI);
+
+    return globalObjFuncGeoNumbering_.toGlobal(localIdx);
+}
+
+void DAJacCondFdW::setObjFuncVec(
+    scalarList objFuncFaceValues,
+    scalarList objFuncCellValues,
+    Vec objFuncVec) const
+{
+    PetscScalar* objFuncVecArray;
+    VecGetArray(objFuncVec, &objFuncVecArray);
+
+    forAll(objFuncFaceValues, idxI)
+    {
+        scalar val = objFuncFaceValues[idxI];
+        label localIdx = getLocalObjFuncGeoIndex("face", idxI);
+        objFuncVecArray[localIdx] = val;
     }
 
-    return -1;
+    forAll(objFuncCellValues, idxI)
+    {
+        scalar val = objFuncCellValues[idxI];
+        label localIdx = getLocalObjFuncGeoIndex("cell", idxI);
+        objFuncVecArray[localIdx] = val;
+    }
+
+    VecRestoreArray(objFuncVec, &objFuncVecArray);
 }
 
 } // End namespace Foam

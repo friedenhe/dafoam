@@ -55,11 +55,14 @@ protected:
     /// DAModel object
     const DAModel& daModel_;
 
+    /// DAIndex object
+    const DAIndex& daIndex_;
+
     /// DAJacCon object
     const DAJacCon& daJacCon_;
 
-    /// DAIndex object
-    const DAIndex& daIndex_;
+    /// DAResidual object
+    const DAResidual& daResidual_;
 
     /// all the DAFoam option
     const dictionary& allOptions_;
@@ -69,8 +72,20 @@ protected:
 
     /// perturb state variables given a color index
     void perturbStates(
+        const Vec jacConColors,
         const label colorI,
-        const word mode);
+        const scalar delta,
+        Vec wVec);
+
+    void perturbBC(
+        const dictionary options,
+        const scalar delta);
+
+    void setPartDerivMat(
+        const Vec resVec,
+        const Vec coloredColumn,
+        const label transposed,
+        Mat jacMat) const;
 
 public:
     /// Runtime type information
@@ -86,13 +101,15 @@ public:
          const DAOption& daOption,
          const DAModel& daModel,
          const DAIndex& daIndex,
-         const DAJacCon& daJacCon),
+         const DAJacCon& daJacCon,
+         const DAResidual& daResidual),
         (modelType,
          mesh,
          daOption,
          daModel,
          daIndex,
-         daJacCon));
+         daJacCon,
+         daResidual));
 
     // Constructors
 
@@ -103,7 +120,8 @@ public:
         const DAOption& daOption,
         const DAModel& daModel,
         const DAIndex& daIndex,
-        const DAJacCon& daJacCon);
+        const DAJacCon& daJacCon,
+        const DAResidual& daResidual);
 
     // Selectors
 
@@ -114,7 +132,8 @@ public:
         const DAOption& daOption,
         const DAModel& daModel,
         const DAIndex& daIndex,
-        const DAJacCon& daJacCon);
+        const DAJacCon& daJacCon,
+        const DAResidual& daResidual);
 
     //- Destructor
     virtual ~DAPartDeriv()
@@ -123,18 +142,17 @@ public:
 
     // Member functions
 
-    label getRunTime()
-    {
-        return mesh_.time().elapsedClockTime();
-    }
-
     /// initialize partial derivative matrix
-    virtual void initializePartDeriv(
-        Mat* jacMat,
-        const dictionary& options) = 0;
+    virtual void initializePartDerivMat(
+        const dictionary& options,
+        Mat* jacMat) = 0;
 
     /// compute the partial derivative matrix
-    virtual void calcPartDeriv(const dictionary& options) = 0;
+    virtual void calcPartDerivMat(
+        const dictionary& options,
+        const Vec xvVec,
+        const Vec wVec,
+        Mat jacMat) = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -8,10 +8,10 @@
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAJacCondFdW_H
-#define DAJacCondFdW_H
+#ifndef DAPartDerivdFdW_H
+#define DAPartDerivdFdW_H
 
-#include "DAJacCon.H"
+#include "DAPartDeriv.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -20,62 +20,50 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAJacCondFdW Declaration
+      Class DAPartDerivdFdW Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAJacCondFdW
-    : public DAJacCon
+class DAPartDerivdFdW
+    : public DAPartDeriv
 {
 
 protected:
-    /// initialize petsc vectors
-    void initializePetscVecs();
 
-    /// the global numbering for the discrete source of objective function
-    globalIndex globalObjFuncGeoNumbering_;
-
-    label getLocalObjFuncGeoIndex(
-        const word idxType,
-        const label idxI) const;
-    
-    label getGlobalObjFuncGeoIndex(
-        const word idxType,
-        const label idxI) const;
-    
-    label objFuncFaceSize_ = 0;
-
-    label objFuncCellSize_ = 0;
+    /// the number of objFunc discrete elements for local procs
+    label nLocalObjFuncGeoElements_;
 
 public:
     TypeName("dFdW");
     // Constructors
 
     //- Construct from components
-    DAJacCondFdW(
+    DAPartDerivdFdW(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
-        const DAIndex& daIndex);
+        const DAIndex& daIndex,
+        const DAJacCon& daJacCon,
+        const DAResidual& daResidual);
 
     //- Destructor
-    virtual ~DAJacCondFdW()
+    virtual ~DAPartDerivdFdW()
     {
     }
 
     // Member functions
 
-    /// calculate the
-    /// initialize the state Jacobian connectivity matrix
-    virtual void initializeJacCon(const dictionary& options);
+    /// initialize partial derivative matrix
+    virtual void initializePartDerivMat(
+        const dictionary& options,
+        Mat* jacMat);
 
-    /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
-    virtual void setupJacCon(const dictionary& options);
-
-    virtual void setObjFuncVec(
-        scalarList objFuncFaceValues,
-        scalarList objFuncCellValues,
-        Vec objFuncVec) const;
+    /// compute the partial derivative matrix
+    virtual void calcPartDerivMat(
+        const dictionary& options,
+        const Vec xvVec,
+        const Vec wVec,
+        Mat jacMat);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

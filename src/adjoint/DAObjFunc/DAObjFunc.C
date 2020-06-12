@@ -222,8 +222,8 @@ void DAObjFunc::calcObjFuncSources(
 /// the master function to compute objective function given the state and point vectors
 scalar DAObjFunc::masterFunction(
     const dictionary& options,
-    const Vec wVec,
-    const Vec xvVec)
+    const Vec xvVec,
+    const Vec wVec)
 {
     DAModel& daModel = const_cast<DAModel&>(daModel_);
     DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);
