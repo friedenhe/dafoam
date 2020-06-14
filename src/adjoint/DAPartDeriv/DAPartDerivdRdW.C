@@ -58,7 +58,7 @@ void DAPartDerivdRdW::initializePartDerivMat(
     MatSetFromOptions(*jacMat);
     daJacCon_.preallocatedRdW(*jacMat, transposed);
     //MatSetOption(jacMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
-    MatSetUp(*jacMat); 
+    MatSetUp(*jacMat);
     MatZeroEntries(*jacMat);
     Info << "Partial deriative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
@@ -139,7 +139,6 @@ void DAPartDerivdRdW::calcPartDerivMat(
 
     daIndex_.printMatChars(jacMat);
 
-    DAUtility::writeMatrixASCII(jacMat, "dRdWT");
 }
 
 } // End namespace Foam

@@ -161,8 +161,6 @@ void DAPartDerivdFdW::calcPartDerivMat(
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
 
-    word jacMatName = "dFdW_" + objFuncName + "_" + objFuncPart;
-    DAUtility::writeMatrixASCII(jacMat, jacMatName);
 }
 
 } // End namespace Foam

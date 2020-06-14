@@ -79,9 +79,10 @@ public:
     /// compute the total derivatives
     label calcTotalDeriv(
         const Vec xvVec,
-        const Vec wVec)
+        const Vec wVec,
+        const word designVarName)
     {
-        return DASolverPtr_->calcTotalDeriv(xvVec, wVec);
+        return DASolverPtr_->calcTotalDeriv(xvVec, wVec, designVarName);
     }
 
     /// basically, we call DAIndex::getGlobalXvIndex
@@ -135,6 +136,11 @@ public:
     void printAllOptions()
     {
         DASolverPtr_->printAllOptions();
+    }
+
+    void setdXvdFFDMat(const Mat dXvdFFDMat)
+    {
+        DASolverPtr_->setdXvdFFDMat(dXvdFFDMat);
     }
 };
 

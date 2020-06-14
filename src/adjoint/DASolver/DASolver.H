@@ -109,12 +109,14 @@ protected:
         const word objFuncName,
         const Vec psiVec,
         dictionary& psiVecDict);
-    
+
     void setTotalDerivDict(
         const word objFuncName,
         const word designVarName,
         const Vec totalDerivVec,
         dictionary& totalDerivDict);
+
+    Mat dXvdFFDMat_;
 
 public:
     /// Runtime type information
@@ -167,7 +169,8 @@ public:
     /// compute the total derivatives
     label calcTotalDeriv(
         const Vec xvVec,
-        const Vec wVec);
+        const Vec wVec,
+        const word designVarName);
 
     /// return whether to loop the primal solution, similar to runTime::loop() except we don't do file IO
     label loop(Time& runTime);
@@ -245,13 +248,13 @@ public:
     void getPsiVec(
         const word objFuncName,
         Vec psiVec);
-    
+
     scalar getTotalDerivVal(
         const word objFuncName,
         const word designVarName,
         const label idxI) const;
 
-    
+    void setdXvdFFDMat(const Mat dXvdFFDMat);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

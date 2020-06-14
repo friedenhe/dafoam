@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAPartDerivdFdBC.H"
+#include "DAPartDerivdFdFFD.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAPartDerivdFdBC, 0);
-addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdFdBC, dictionary);
+defineTypeNameAndDebug(DAPartDerivdFdFFD, 0);
+addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdFdFFD, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAPartDerivdFdBC::DAPartDerivdFdBC(
+DAPartDerivdFdFFD::DAPartDerivdFdFFD(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -37,35 +37,38 @@ DAPartDerivdFdBC::DAPartDerivdFdBC(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void DAPartDerivdFdBC::initializePartDerivMat(
+void DAPartDerivdFdFFD::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
-    // create dFdBC
+    label nDesignVars = options.getLabel("nDesignVars");
+
+    // create dFdFFD
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
         *jacMat,
         PETSC_DECIDE,
         PETSC_DECIDE,
         1,
-        1);
+        nDesignVars);
     MatSetFromOptions(*jacMat);
-    MatMPIAIJSetPreallocation(*jacMat, 1, NULL, 1, NULL);
-    MatSeqAIJSetPreallocation(*jacMat, 1, NULL);
+    MatMPIAIJSetPreallocation(*jacMat, nDesignVars, NULL, nDesignVars, NULL);
+    MatSeqAIJSetPreallocation(*jacMat, nDesignVars, NULL);
     //MatSetOption(jacMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     MatSetUp(*jacMat);
     MatZeroEntries(*jacMat);
     Info << "Partial deriative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
 
-void DAPartDerivdFdBC::calcPartDerivMat(
+void DAPartDerivdFdFFD::calcPartDerivMat(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec,
     Mat jacMat)
 {
-    // for dFdBC, we have only one column so we can do brute force finite-difference
-    // there is no need to do coloring
+    // for dFdFFD, we do brute force finite-difference
+
+    label nDesignVars = options.getLabel("nDesignVars");
 
     word objFuncName, objFuncPart;
     dictionary objFuncSubDictPart = options.subDict("objFuncSubDictPart");
@@ -89,28 +92,39 @@ void DAPartDerivdFdBC::calcPartDerivMat(
 
     dictionary mOptions;
     mOptions.set("updateState", 1);
-    mOptions.set("updateMesh", 0);
+    mOptions.set("updateMesh", 1);
     scalar fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivBC");
+    scalar delta = daOption_.getOption<scalar>("adjEpsDerivFFD");
     scalar rDelta = 1.0 / delta;
 
-    // perturb BC
-    this->perturbBC(options, delta);
+    Vec xvVecNew;
+    VecDuplicate(xvVec, &xvVecNew);
+    VecZeroEntries(xvVecNew);
 
-    // compute object
-    scalar fNew = daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    for (label i = 0; i < nDesignVars; i++)
+    {
 
-    // reset perturbation
-    this->perturbBC(options, -1.0 * delta);
+        // perturb FFD
+        VecZeroEntries(xvVecNew);
+        MatGetColumnVector(dXvdFFDMat_, xvVecNew, i);
+        VecAXPY(xvVecNew, 1.0, xvVec);
 
-    scalar partDeriv = (fNew - fRef) * rDelta;
+        // compute object
+        scalar fNew = daObjFunc->masterFunction(mOptions, xvVecNew, wVec);
 
-    MatSetValue(jacMat, 0, 0, partDeriv, INSERT_VALUES);
+        // no need to reset FFD here
+
+        scalar partDeriv = (fNew - fRef) * rDelta;
+
+        MatSetValue(jacMat, 0, i, partDeriv, INSERT_VALUES);
+    }
+
+    // reset the perturbation to the original pointsField in OpenFOAM
+    daObjFunc->masterFunction(mOptions, xvVec, wVec);
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
-
 }
 
 } // End namespace Foam

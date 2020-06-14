@@ -87,6 +87,8 @@ protected:
         const label transposed,
         Mat jacMat) const;
 
+    Mat dXvdFFDMat_;
+
 public:
     /// Runtime type information
     TypeName("DAPartDeriv");
@@ -153,6 +155,8 @@ public:
         const Vec xvVec,
         const Vec wVec,
         Mat jacMat) = 0;
+
+    void setdXvdFFDMat(const Mat dXvdFFDMat);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

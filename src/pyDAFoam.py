@@ -61,7 +61,7 @@ class PYDAFOAM(object):
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivState": [float, 1.0e-5],
-            "adjEpsDerivFFD": [float, 1.0e-4],
+            "adjEpsDerivFFD": [float, 1.0e-3],
             "adjEpsDerivBC": [float, 1.0e-2],
             "adjJacMatOrdering": [str, "state"],
             "adjEqnOption": [
@@ -687,7 +687,11 @@ class PYDAFOAM(object):
         if self.comm.rank == 0:
             print("Computing total derivatives....")
 
-        self.solver.calcTotalDeriv(self.xvVec, self.wVec)
+        designVarDict = self.getOption("designVar")
+        for key in designVarDict:
+            if designVarDict[key]["designVarType"] == "FFD":
+                self.setdXvdFFDMat(key)
+            self.solver.calcTotalDeriv(self.xvVec, self.wVec, key.encode())
 
         return
 
@@ -784,6 +788,118 @@ class PYDAFOAM(object):
                 # raise Error('pyDAFoam: status %d: Unable to run decomposePar'%status)
                 print("\nUnable to run decomposePar, the domain has been already decomposed?\n")
         self.comm.Barrier()
+
+        return
+
+    def setdXvdFFDMat(self, designVarName, deltaVPointThreshold=1.0e-16):
+        """
+        Perturb each design variable and save the delta volume point coordinates
+        to a mat, this will be used to calculate dRdFFD and dFdFFD in DAFoam
+
+        Parameters
+        ----------
+        deltaVPointThreshold: float
+            A threshold, any delta volume coordinates smaller than this value will be ignored
+
+        """
+
+        if self.DVGeo is None:
+            raise Error("DVGeo not set!")
+
+        # Get the FFD size
+        nDVs = -9999
+        xDV = self.DVGeo.getValues()
+        for key in xDV:
+            if key == designVarName:
+                try:
+                    nDVs = len(xDV[key])
+                except Exception:  # if xDV[key] is just a number
+                    nDVs = 1
+
+        # get the size of xv, it is the number of points * 3
+        nXvs = len(self.xv) * 3
+        # get eps
+        epsFFD = self.getOption("adjEpsDerivFFD")
+        if self.comm.rank == 0:
+            print("epsFFD: " + str(epsFFD))
+
+        # ************** perturb +epsFFD ****************
+        dXvdFFDMat = PETSc.Mat().create(PETSc.COMM_WORLD)
+        dXvdFFDMat.setSizes(((nXvs, None), (None, nDVs)))
+        dXvdFFDMat.setFromOptions()
+        dXvdFFDMat.setPreallocationNNZ((nDVs, nDVs))
+        dXvdFFDMat.setUp()
+        Istart, Iend = dXvdFFDMat.getOwnershipRange()
+
+        oldVolPoints = self.mesh.getSolverGrid()
+
+        # for each DV, perturb epsFFD and save the delta vol point coordinates
+        for key in xDV:
+            if key == designVarName:
+                # loop over all the dvs in this key and perturb
+                for i in range(nDVs):
+                    # perturb
+                    try:
+                        xDV[key][i] += epsFFD
+                    except Exception:
+                        xDV[key] += epsFFD
+                    self.DVGeo.setDesignVars(xDV)
+                    # update the vol points according to the new DV values
+                    self.updateVolumePoints()
+                    # get the new vol points
+                    newVolPoints = self.mesh.getSolverGrid()
+                    # assign the delta vol coords to the mat
+                    for idx in range(Istart, Iend):
+                        idxRel = idx - Istart
+                        deltaVal = newVolPoints[idxRel] - oldVolPoints[idxRel]
+                        if abs(deltaVal) > deltaVPointThreshold:  # a threshold
+                            dXvdFFDMat[idx, i] = deltaVal
+                    try:
+                        xDV[key][i] -= epsFFD
+                    except Exception:
+                        xDV[key] -= epsFFD
+
+        self.DVGeo.setDesignVars(xDV)
+        self.updateVolumePoints()
+
+        # assemble
+        dXvdFFDMat.assemblyBegin()
+        dXvdFFDMat.assemblyEnd()
+
+        # viewer = PETSc.Viewer().createASCII("dXvdFFDMat_%s_%s.dat" % (designVarName, self.comm.size), "w")
+        # viewer(dXvdFFDMat)
+
+        self.solver.setdXvdFFDMat(dXvdFFDMat)
+
+        return
+
+    def updateVolumePoints(self):
+        """
+        Update the vol mesh point coordinates based on the current values of design variables
+        """
+
+        # update the CFD Coordinates
+        self.ptSetName = self.getPointSetName("dummy")
+        ptSetName = self.ptSetName
+        if self.DVGeo is not None:
+            if ptSetName not in self.DVGeo.points:
+                coords0 = self.mapVector(self.coords0, self.allFamilies, self.designFamilyGroup)
+                self.DVGeo.addPointSet(coords0, self.ptSetName)
+                self.pointsSet = True
+
+            # set the surface coords
+            # if self.comm.rank == 0:
+            #     print ('DVGeo PointSet UpToDate: '+str(self.DVGeo.pointSetUpToDate(ptSetName)))
+            if not self.DVGeo.pointSetUpToDate(ptSetName):
+                # if self.comm.rank == 0:
+                #     print 'Updating DVGeo PointSet....'
+                coords = self.DVGeo.update(ptSetName, config=None)
+                self.setSurfaceCoordinates(coords, self.designFamilyGroup)
+                # if self.comm.rank == 0:
+                #     print ('DVGeo PointSet UpToDate: '+str(self.DVGeo.pointSetUpToDate(ptSetName)))
+
+            # warp the mesh
+            self.mesh.warpMesh()
 
         return
 

@@ -227,6 +227,20 @@ void DAPartDeriv::perturbBC(
     }
 }
 
+void DAPartDeriv::setdXvdFFDMat(const Mat dXvdFFDMat)
+{
+    
+    MatConvert(dXvdFFDMat, MATSAME, MAT_INITIAL_MATRIX, &dXvdFFDMat_);
+    //MatDuplicate(dXvdFFDMat, MAT_COPY_VALUES, &dXvdFFDMat_);
+    MatAssemblyBegin(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
+    
+/*
+    MatZeroEntries(dXvdFFDMat_);
+    MatAssemblyBegin(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
+    */
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

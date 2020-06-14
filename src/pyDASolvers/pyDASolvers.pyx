@@ -13,7 +13,7 @@
 """
 
 # for using Petsc
-from petsc4py.PETSc cimport Vec, PetscVec
+from petsc4py.PETSc cimport Vec, PetscVec, Mat, PetscMat
 
 # declear cpp functions
 cdef extern from "DASolvers.H" namespace "Foam":
@@ -22,7 +22,8 @@ cdef extern from "DASolvers.H" namespace "Foam":
         void initSolver()
         int solvePrimal(PetscVec, PetscVec)
         int solveAdjoint(PetscVec, PetscVec)
-        int calcTotalDeriv(PetscVec, PetscVec)
+        int calcTotalDeriv(PetscVec, PetscVec, char *)
+        void setdXvdFFDMat(PetscMat)
         int getGlobalXvIndex(int, int)
         void ofField2StateVec(PetscVec)
         void stateVec2OFField(PetscVec)
@@ -80,8 +81,11 @@ cdef class pyDASolvers:
     def solveAdjoint(self, Vec xvVec, Vec wVec):
         self._thisptr.solveAdjoint(xvVec.vec, wVec.vec)
     
-    def calcTotalDeriv(self, Vec xvVec, Vec wVec):
-        return self._thisptr.calcTotalDeriv(xvVec.vec, wVec.vec)
+    def calcTotalDeriv(self, Vec xvVec, Vec wVec, designVarName):
+        return self._thisptr.calcTotalDeriv(xvVec.vec, wVec.vec, designVarName)
+    
+    def setdXvdFFDMat(self, Mat dXvdFFDMat):
+        self._thisptr.setdXvdFFDMat(dXvdFFDMat.mat)
     
     def getGlobalXvIndex(self, pointI, coordI):
         return self._thisptr.getGlobalXvIndex(pointI, coordI)

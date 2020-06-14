@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAPartDerivdRdBC.H"
+#include "DAPartDerivdRdFFD.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAPartDerivdRdBC, 0);
-addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdRdBC, dictionary);
+defineTypeNameAndDebug(DAPartDerivdRdFFD, 0);
+addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdRdFFD, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAPartDerivdRdBC::DAPartDerivdRdBC(
+DAPartDerivdRdFFD::DAPartDerivdRdFFD(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -37,36 +37,40 @@ DAPartDerivdRdBC::DAPartDerivdRdBC(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void DAPartDerivdRdBC::initializePartDerivMat(
+void DAPartDerivdRdFFD::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
+
+    label nDesignVars = options.getLabel("nDesignVars");
+
     // now initialize the memory for the jacobian itself
     label localSize = daIndex_.nLocalAdjointStates;
 
-    // create dRdBCT
+    // create dRdFFDT
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
         *jacMat,
         localSize,
         PETSC_DECIDE,
         PETSC_DETERMINE,
-        1);
+        nDesignVars);
     MatSetFromOptions(*jacMat);
-    MatMPIAIJSetPreallocation(*jacMat, 1, NULL, 1, NULL);
-    MatSeqAIJSetPreallocation(*jacMat, 1, NULL);
+    MatMPIAIJSetPreallocation(*jacMat, nDesignVars, NULL, nDesignVars, NULL);
+    MatSeqAIJSetPreallocation(*jacMat, nDesignVars, NULL);
     //MatSetOption(jacMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     MatSetUp(*jacMat);
     MatZeroEntries(*jacMat);
     Info << "Partial deriative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
 
-void DAPartDerivdRdBC::calcPartDerivMat(
+void DAPartDerivdRdFFD::calcPartDerivMat(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec,
     Mat jacMat)
 {
+    label nDesignVars = options.getLabel("nDesignVars");
 
     DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);
 
@@ -82,43 +86,51 @@ void DAPartDerivdRdBC::calcPartDerivMat(
 
     dictionary mOptions;
     mOptions.set("updateState", 1);
-    mOptions.set("updateMesh", 0);
+    mOptions.set("updateMesh", 1);
     mOptions.set("setResVec", 1);
     daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivBC");
+    scalar delta = daOption_.getOption<scalar>("adjEpsDerivFFD");
     scalar rDelta = 1.0 / delta;
 
-    // perturb BC
-    this->perturbBC(options, delta);
+    Vec xvVecNew;
+    VecDuplicate(xvVec, &xvVecNew);
+    VecZeroEntries(xvVecNew);
 
-    // compute residual
-    daResidual.masterFunction(mOptions, xvVec, wVec, resVec);
-
-    // reset perturbation
-    this->perturbBC(options, -1.0 * delta);
-
-    // compute residual partial using finite-difference
-    VecAXPY(resVec, -1.0, resVecRef);
-    VecScale(resVec, rDelta);
-
-    // assign resVec to jacMat
-    PetscInt Istart, Iend;
-    VecGetOwnershipRange(resVec, &Istart, &Iend);
-
-    const PetscScalar* resVecArray;
-    VecGetArrayRead(resVec, &resVecArray);
-    for (label i = Istart; i < Iend; i++)
+    for (label i = 0; i < nDesignVars; i++)
     {
-        label relIdx = i - Istart;
-        scalar val = resVecArray[relIdx];
-        MatSetValue(jacMat, i, 0, val, INSERT_VALUES);
+
+        // perturb FFD
+        VecZeroEntries(xvVecNew);
+        MatGetColumnVector(dXvdFFDMat_, xvVecNew, i);
+        VecAXPY(xvVecNew, 1.0, xvVec);
+
+        // compute residual
+        daResidual.masterFunction(mOptions, xvVecNew, wVec, resVec);
+
+        // no need to reset FFD here
+
+        // compute residual partial using finite-difference
+        VecAXPY(resVec, -1.0, resVecRef);
+        VecScale(resVec, rDelta);
+
+        // assign resVec to jacMat
+        PetscInt Istart, Iend;
+        VecGetOwnershipRange(resVec, &Istart, &Iend);
+
+        const PetscScalar* resVecArray;
+        VecGetArrayRead(resVec, &resVecArray);
+        for (label j = Istart; j < Iend; j++)
+        {
+            label relIdx = j - Istart;
+            scalar val = resVecArray[relIdx];
+            MatSetValue(jacMat, j, i, val, INSERT_VALUES);
+        }
+        VecRestoreArrayRead(resVec, &resVecArray);
     }
-    VecRestoreArrayRead(resVec, &resVecArray);
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
-
 }
 
 } // End namespace Foam
