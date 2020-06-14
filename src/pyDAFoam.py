@@ -64,6 +64,22 @@ class PYDAFOAM(object):
             "adjEpsDerivFFD": [float, 1.0e-4],
             "adjEpsDerivBC": [float, 1.0e-2],
             "adjJacMatOrdering": [str, "state"],
+            "adjEqnOption": [
+                dict,
+                {
+                    "globalPCIters": 0,
+                    "asmOverlap": 1,
+                    "localPCIters": 1,
+                    "jacMatReOrdering": "rcm",
+                    "pcFillLevel": 0,
+                    "gmresMaxIters": 1000,
+                    "gmresRestart": 1000,
+                    "gmresRelTol": 1.0e-6,
+                    "gmresAbsTol": 1.0e-14,
+                },
+            ],
+            # optimization options
+            "designVar": [dict, {}],
             # system options
             "rootDir": [str, "./"],
             "solverName": [str, "DASimpleFoam"],
@@ -212,7 +228,7 @@ class PYDAFOAM(object):
                 self.xvFlatten2XvVec(xvNew, self.xvVec)
 
         # solve the primal to get new state variables
-        self.solvePrimal(self.xvVec, self.wVec)
+        self.solvePrimal()
 
         # save the point vector and state vector to disk
         if self.comm.rank == 0:
@@ -274,7 +290,7 @@ class PYDAFOAM(object):
             funcs["fail"] = False
 
         return
-    
+
     def evalFunctionsSens(self, funcsSens, evalFuncs=None):
         """
         Evaluate the sensitivity of the desired functions given in
@@ -295,7 +311,25 @@ class PYDAFOAM(object):
         >>> CFDsolver.evalFunctionsSens(funcSens, ['CD', 'CL'])
         """
 
-        pass
+        if self.DVGeo is None:
+            raise Error("DVGeo not set!")
+
+        dvs = self.DVGeo.getValues()
+        print(dvs)
+
+        for funcName in evalFuncs:
+            funcsSens[funcName] = {}
+            for dvName in dvs:
+                nDVs = len(dvs[dvName])
+                funcsSens[funcName][dvName] = np.zeros(nDVs, self.dtype)
+                for i in range(nDVs):
+                    sensVal = self.solver.getTotalDerivVal(funcName.encode(), dvName.encode(), i)
+                    funcsSens[funcName][dvName][i] = sensVal
+
+        if self.adjointFail:
+            funcsSens["fail"] = True
+        else:
+            funcsSens["fail"] = False
 
         return
 
@@ -579,7 +613,7 @@ class PYDAFOAM(object):
 
         return
 
-    def solvePrimal(self, xvVec, wVec):
+    def solvePrimal(self):
         """
         Run primal solver to compute state variables and objectives
 
@@ -598,12 +632,12 @@ class PYDAFOAM(object):
             print("Running Primal Solver %03d" % self.nSolvePrimals)
 
         self.primalFail = 0
-        self.primalFail = self.solver.solvePrimal(xvVec, wVec)
+        self.primalFail = self.solver.solvePrimal(self.xvVec, self.wVec)
 
         self.nSolvePrimals += 1
 
         return
-    
+
     def solveAdjoint(self):
         """
         Run adjoint solver to compute the adjoint vector psiVec
@@ -625,13 +659,13 @@ class PYDAFOAM(object):
             print("Running adjoint Solver %03d" % self.nSolveAdjoints)
 
         self.adjointFail = 0
-        self.adjointFail = self.solver.solveAdjoint(self.xvVec, self.wVec, self.psiVec)
+        self.adjointFail = self.solver.solveAdjoint(self.xvVec, self.wVec)
 
         self.nSolveAdjoints += 1
 
         return
 
-    def calcTotalDerivs(self):
+    def calcTotalDeriv(self):
         """
         Compute total derivative
 
@@ -653,8 +687,7 @@ class PYDAFOAM(object):
         if self.comm.rank == 0:
             print("Computing total derivatives....")
 
-        self.adjointFail = 0
-        self.adjointFail = self.solver.calcTotalDerivs(self.xvVec, self.wVec, self.psiVec, self.totalDerivVec)
+        self.solver.calcTotalDeriv(self.xvVec, self.wVec)
 
         return
 

@@ -96,6 +96,26 @@ protected:
     /// the stateInfo_ list from DAStateInfo object
     HashTable<wordList> stateInfo_;
 
+    /// the list of objective function names that requires adjoint solution
+    wordList objFuncNames4Adj_;
+
+    /// the dictionary of adjoint vector (psi) values for all objectives
+    dictionary psiVecDict_;
+
+    dictionary totalDerivDict_;
+
+    /// assign the psiVec to psiVecArray_
+    void setPsiVecDict(
+        const word objFuncName,
+        const Vec psiVec,
+        dictionary& psiVecDict);
+    
+    void setTotalDerivDict(
+        const word objFuncName,
+        const word designVarName,
+        const Vec totalDerivVec,
+        dictionary& totalDerivDict);
+
 public:
     /// Runtime type information
     TypeName("DASolver");
@@ -142,15 +162,12 @@ public:
     /// solve the adjoint linear equations
     label solveAdjoint(
         const Vec xvVec,
-        const Vec wVec,
-        Vec psiVec);
+        const Vec wVec);
 
     /// compute the total derivatives
-    label calcTotalDerivs(
+    label calcTotalDeriv(
         const Vec xvVec,
-        const Vec wVec,
-        const Vec psiVec,
-        Vec totalDerivVec);
+        const Vec wVec);
 
     /// return whether to loop the primal solution, similar to runTime::loop() except we don't do file IO
     label loop(Time& runTime);
@@ -223,6 +240,18 @@ public:
     void calcPrimalResidualStatistics(
         const word mode,
         const label writeRes = 0);
+
+    /// assign the psiVecDict_ to psiVec
+    void getPsiVec(
+        const word objFuncName,
+        Vec psiVec);
+    
+    scalar getTotalDerivVal(
+        const word objFuncName,
+        const word designVarName,
+        const label idxI) const;
+
+    
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

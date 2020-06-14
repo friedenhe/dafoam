@@ -21,8 +21,8 @@ cdef extern from "DASolvers.H" namespace "Foam":
         DASolvers(char *, object) except +
         void initSolver()
         int solvePrimal(PetscVec, PetscVec)
-        int solveAdjoint(PetscVec, PetscVec, PetscVec)
-        int calcTotalDerivs(PetscVec, PetscVec, PetscVec, PetscVec)
+        int solveAdjoint(PetscVec, PetscVec)
+        int calcTotalDeriv(PetscVec, PetscVec)
         int getGlobalXvIndex(int, int)
         void ofField2StateVec(PetscVec)
         void stateVec2OFField(PetscVec)
@@ -30,6 +30,7 @@ cdef extern from "DASolvers.H" namespace "Foam":
         int checkMesh()
         double getObjFuncValue(char *)
         void printAllOptions()
+        double getTotalDerivVal(char *, char *, int)
 
 # create python wrappers that call cpp functions
 cdef class pyDASolvers:
@@ -76,11 +77,11 @@ cdef class pyDASolvers:
     def solvePrimal(self, Vec xvVec, Vec wVec):
         return self._thisptr.solvePrimal(xvVec.vec, wVec.vec)
     
-    def solveAdjoint(self, Vec xvVec, Vec wVec, Vec psiVec):
-        self._thisptr.solveAdjoint(xvVec.vec, wVec.vec, psiVec.vec)
+    def solveAdjoint(self, Vec xvVec, Vec wVec):
+        self._thisptr.solveAdjoint(xvVec.vec, wVec.vec)
     
-    def calcTotalDerivs(self, Vec xvVec, Vec wVec, Vec psiVec, Vec totalDerivVec):
-        return self._thisptr.calcTotalDerivs(xvVec.vec, wVec.vec, psiVec.vec, totalDerivVec.vec)
+    def calcTotalDeriv(self, Vec xvVec, Vec wVec):
+        return self._thisptr.calcTotalDeriv(xvVec.vec, wVec.vec)
     
     def getGlobalXvIndex(self, pointI, coordI):
         return self._thisptr.getGlobalXvIndex(pointI, coordI)
@@ -99,6 +100,9 @@ cdef class pyDASolvers:
     
     def getObjFuncValue(self, objFuncName):
         return self._thisptr.getObjFuncValue(objFuncName)
+    
+    def getTotalDerivVal(self, objFuncName, designVarName, idxI):
+        return self._thisptr.getTotalDerivVal(objFuncName, designVarName, idxI)
 
     def printAllOptions(self):
         self._thisptr.printAllOptions()

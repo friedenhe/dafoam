@@ -71,20 +71,17 @@ public:
     /// solve the adjoint linear equations
     label solveAdjoint(
         const Vec xvVec,
-        const Vec wVec,
-        Vec psiVec)
+        const Vec wVec)
     {
-        return DASolverPtr_->solveAdjoint(xvVec, wVec, psiVec);
+        return DASolverPtr_->solveAdjoint(xvVec, wVec);
     }
 
     /// compute the total derivatives
-    label calcTotalDerivs(
+    label calcTotalDeriv(
         const Vec xvVec,
-        const Vec wVec,
-        const Vec psiVec,
-        Vec totalDerivVec)
+        const Vec wVec)
     {
-        return DASolverPtr_->calcTotalDerivs(xvVec, wVec, psiVec, totalDerivVec);
+        return DASolverPtr_->calcTotalDeriv(xvVec, wVec);
     }
 
     /// basically, we call DAIndex::getGlobalXvIndex
@@ -123,6 +120,15 @@ public:
     scalar getObjFuncValue(const word objFuncName)
     {
         return DASolverPtr_->getObjFuncValue(objFuncName);
+    }
+
+    /// basically, we call DASolver::getTotalDerivVal
+    scalar getTotalDerivVal(
+        const word objFuncName,
+        const word designVarName,
+        const label idxI) const
+    {
+        return DASolverPtr_->getTotalDerivVal(objFuncName, designVarName, idxI);
     }
 
     /// call DASolver::printAllOptions

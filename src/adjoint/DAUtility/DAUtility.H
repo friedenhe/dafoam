@@ -47,6 +47,10 @@ public:
         PyObject* pyDict,
         dictionary& ofDict);
 
+    static void pyStrList2OFWordList(
+        PyObject* pyList,
+        wordList& ofList);
+
     /// check whether a value is in the list
     template<class classType>
     static label isInList(
@@ -220,6 +224,7 @@ label DAUtility::listDeleteVal(
 
     return foundVal;
 }
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
