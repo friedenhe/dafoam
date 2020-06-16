@@ -970,15 +970,15 @@ label DASolver::calcTotalDeriv(
                         daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdBC);
 
                         // now we need to add all the rows of dFdBC together to get dFdBCVec
-                        // NOTE: dFdBC is a 1 by 1 matrix but we just follow a similar
-                        // approach for other dFd calculation
+                        // NOTE: dFdBC is a 1 by 1 matrix but we just do a matrix-vector product
+                        // to convert dFdBC from a matrix to a vector
                         Vec dFdBCVec, oneVec;
                         VecDuplicate(dFdBCVecAllParts, &oneVec);
                         VecSet(oneVec, 1.0);
                         VecDuplicate(dFdBCVecAllParts, &dFdBCVec);
                         VecZeroEntries(dFdBCVec);
-                        // dFdBCVec = oneVec*dFdBC
-                        MatMultTranspose(dFdBC, oneVec, dFdBCVec);
+                        // dFdBCVec = dFdBC * oneVec
+                        MatMult(dFdBC, oneVec, dFdBCVec);
 
                         // we need to add dFdBCVec to dFdBCVecAllParts because we want to sum
                         // all dFdBCVec for all parts of this objFuncName.
@@ -1141,11 +1141,14 @@ label DASolver::calcTotalDeriv(
                         // calculate it
                         daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdFFD);
 
-                        // now we need to add all the rows of dFdFFD together to get dFdFFDVec
-                        // NOTE: dFdFFD is a 1 by nDesignVars matrix but we just follow a similar
-                        // approach for other dFd calculation
+                        // now we need to convert the dFdFFD mat to dFdFFDVec
+                        // NOTE: dFdFFD is a 1 by nDesignVars matrix but dFdFFDVec is
+                        // a nDesignVars by 1 vector, we need to do
+                        // dFdFFDVec = (dFdFFD)^T * oneVec
                         Vec dFdFFDVec, oneVec;
-                        VecDuplicate(dFdFFDVecAllParts, &oneVec);
+                        VecCreate(PETSC_COMM_WORLD, &oneVec);
+                        VecSetSizes(oneVec, PETSC_DETERMINE, 1);
+                        VecSetFromOptions(oneVec);
                         VecSet(oneVec, 1.0);
                         VecDuplicate(dFdFFDVecAllParts, &dFdFFDVec);
                         VecZeroEntries(dFdFFDVec);
@@ -1296,49 +1299,6 @@ void DASolver::setdXvdFFDMat(const Mat dXvdFFDMat)
     //MatDuplicate(dXvdFFDMat, MAT_COPY_VALUES, &dXvdFFDMat_);
     MatAssemblyBegin(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
-/*
-    MatZeroEntries(dXvdFFDMat_);
-    MatAssemblyBegin(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
-*/
-/*
-    label nCols;
-    MatGetSize(dXvdFFDMat, NULL, &nCols);
-
-    label Istart, Iend;
-    scalar val;
-
-    if (dXvdFFDList_.size() == 0)
-    {
-
-        MatGetOwnershipRange(dXvdFFDMat, &Istart, &Iend);
-        label rowLocalSize = Iend - Istart;
-        dXvdFFDList_.setSize(rowLocalSize);
-        for (label i = Istart; i < Iend; i++)
-        {
-            label relIdx = i - Istart;
-            dXvdFFDList_[relIdx].setSize(nCols);
-            for (label j = 0; j < nCols; j++)
-            {
-                MatGetValues(dXvdFFDMat, 1, &i, 1, &j, &val);
-                dXvdFFDList_[relIdx][j] = val;
-            }
-        }
-    }
-    else
-    {
-        MatGetOwnershipRange(dXvdFFDMat, &Istart, &Iend);
-        for (label i = Istart; i < Iend; i++)
-        {
-            label relIdx = i - Istart;
-            for (label j = 0; j < nCols; j++)
-            {
-                MatGetValues(dXvdFFDMat, 1, &i, 1, &j, &val);
-                dXvdFFDList_[relIdx][j] = val;
-            }
-        }
-    }
-    */
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
