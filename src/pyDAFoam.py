@@ -58,6 +58,7 @@ class PYDAFOAM(object):
             "primalVarBounds": [dict, {}],
             "flowCondition": [str, "Incompressible"],
             "turbulenceModel": [str, "SpalartAllmaras"],
+            "primalBC": [dict, {}],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivState": [float, 1.0e-5],
@@ -71,7 +72,7 @@ class PYDAFOAM(object):
                     "asmOverlap": 1,
                     "localPCIters": 1,
                     "jacMatReOrdering": "rcm",
-                    "pcFillLevel": 0,
+                    "pcFillLevel": 1,
                     "gmresMaxIters": 1000,
                     "gmresRestart": 1000,
                     "gmresRelTol": 1.0e-6,
@@ -809,21 +810,19 @@ class PYDAFOAM(object):
         # Get the FFD size
         nDVs = -9999
         xDV = self.DVGeo.getValues()
-        for key in xDV:
-            if key == designVarName:
-                try:
-                    nDVs = len(xDV[key])
-                except Exception:  # if xDV[key] is just a number
-                    nDVs = 1
+        nDVs = len(xDV[designVarName])
 
+        print("before", self.DVGeo.getValues())
+
+        # get the unperturbed point coordinates
+        oldVolPoints = self.mesh.getSolverGrid()
         # get the size of xv, it is the number of points * 3
-        nXvs = len(self.xv) * 3
+        nXvs = len(oldVolPoints)
         # get eps
         epsFFD = self.getOption("adjEpsDerivFFD")
         if self.comm.rank == 0:
-            print("epsFFD: " + str(epsFFD))
+            print("Caclculating the dXvdFFD matrix with epsFFD: " + str(epsFFD))
 
-        # ************** perturb +epsFFD ****************
         dXvdFFDMat = PETSc.Mat().create(PETSc.COMM_WORLD)
         dXvdFFDMat.setSizes(((nXvs, None), (None, nDVs)))
         dXvdFFDMat.setFromOptions()
@@ -831,36 +830,28 @@ class PYDAFOAM(object):
         dXvdFFDMat.setUp()
         Istart, Iend = dXvdFFDMat.getOwnershipRange()
 
-        oldVolPoints = self.mesh.getSolverGrid()
-
         # for each DV, perturb epsFFD and save the delta vol point coordinates
-        for key in xDV:
-            if key == designVarName:
-                # loop over all the dvs in this key and perturb
-                for i in range(nDVs):
-                    # perturb
-                    try:
-                        xDV[key][i] += epsFFD
-                    except Exception:
-                        xDV[key] += epsFFD
-                    self.DVGeo.setDesignVars(xDV)
-                    # update the vol points according to the new DV values
-                    self.updateVolumePoints()
-                    # get the new vol points
-                    newVolPoints = self.mesh.getSolverGrid()
-                    # assign the delta vol coords to the mat
-                    for idx in range(Istart, Iend):
-                        idxRel = idx - Istart
-                        deltaVal = newVolPoints[idxRel] - oldVolPoints[idxRel]
-                        if abs(deltaVal) > deltaVPointThreshold:  # a threshold
-                            dXvdFFDMat[idx, i] = deltaVal
-                    try:
-                        xDV[key][i] -= epsFFD
-                    except Exception:
-                        xDV[key] -= epsFFD
-
-        self.DVGeo.setDesignVars(xDV)
-        self.updateVolumePoints()
+        for i in range(nDVs):
+            # perturb
+            xDV[designVarName][i] += epsFFD
+            # set the dv to DVGeo
+            self.DVGeo.setDesignVars(xDV)
+            # update the vol points according to the new DV values
+            self.updateVolumePoints()
+            # get the new vol points
+            newVolPoints = self.mesh.getSolverGrid()
+            # assign the delta vol coords to the mat
+            for idx in range(Istart, Iend):
+                idxRel = idx - Istart
+                deltaVal = newVolPoints[idxRel] - oldVolPoints[idxRel]
+                if abs(deltaVal) > deltaVPointThreshold:  # a threshold
+                    dXvdFFDMat[idx, i] = deltaVal
+            # reset the perturbation of the dv
+            xDV[designVarName][i] -= epsFFD
+            self.DVGeo.setDesignVars(xDV)
+            self.updateVolumePoints()
+        
+        print("before", self.DVGeo.getValues())
 
         # assemble
         dXvdFFDMat.assemblyBegin()

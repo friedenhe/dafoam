@@ -134,6 +134,9 @@ void DAPartDerivdRdW::calcPartDerivMat(
         this->setPartDerivMat(resVec, coloredColumn, transposed, jacMat);
     }
 
+    // call masterFunction again to reset the wVec to OpenFOAM field
+    daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
+
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
 

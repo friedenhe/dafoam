@@ -19,6 +19,10 @@
 #include "DAModel.H"
 #include "DAIndex.H"
 #include "DAMacroFunctions.H"
+#include "mixedFvPatchFields.H" // for setPrimalBoundaryCondition
+#include "fixedGradientFvPatchField.H" // for setPrimalBoundaryCondition
+#include "wordRe.H"
+#include "wordRes.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -87,6 +91,9 @@ public:
 
     /// assign the residual vector based on the residual field in OpenFOAM
     void ofResField2ResVec(Vec resVec) const;
+
+    /// set the boundary conditions based on parameters defined in DAOption
+    void setPrimalBoundaryConditions();
 
 };
 

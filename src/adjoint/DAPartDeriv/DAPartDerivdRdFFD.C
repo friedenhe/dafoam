@@ -129,6 +129,9 @@ void DAPartDerivdRdFFD::calcPartDerivMat(
         VecRestoreArrayRead(resVec, &resVecArray);
     }
 
+    // call the master function again to reset the xvVec and wVec to OpenFOAM fields and points
+    daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
+
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
 }

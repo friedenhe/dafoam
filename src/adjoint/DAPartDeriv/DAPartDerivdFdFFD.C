@@ -120,7 +120,7 @@ void DAPartDerivdFdFFD::calcPartDerivMat(
         MatSetValue(jacMat, 0, i, partDeriv, INSERT_VALUES);
     }
 
-    // reset the perturbation to the original pointsField in OpenFOAM
+    // call the master function again to reset xvVec and wVec to OpenFOAM fields and points
     daObjFunc->masterFunction(mOptions, xvVec, wVec);
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);

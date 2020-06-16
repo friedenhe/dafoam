@@ -488,6 +488,443 @@ void DAField::resVec2OFResField(const Vec resVec) const
     VecRestoreArrayRead(resVec, &stateResVecArray);
 }
 
+void DAField::setPrimalBoundaryConditions()
+{
+    /*
+    A general function to read the inlet/outlet values from DAOption, and set
+    the corresponding values to the boundary field. It also setup turbulence 
+    wall boundary condition
+    Note: this function should be called before running the primal solver
+    If nothing is set, the BC will remain unchanged
+    Example
+    primalBC 
+    { 
+        bc1
+        {
+            patch inlet; 
+            variable U; 
+            value {10 0 0};
+        } 
+        bc2
+        {
+            patch outlet;
+            variable p;
+            value {0};
+        }
+        useWallFunction 1;
+    }
+    */
+
+    const objectRegistry& db = mesh_.thisDb();
+
+    label setTurbWallBCs = 0;
+    label useWallFunction = 0;
+
+    const dictionary& allOptions = daOption_.getAllOptions();
+    dictionary bcDict = allOptions.subDict("primalBC");
+
+    forAll(bcDict.toc(), idxI)
+    {
+        word bcKey = bcDict.toc()[idxI];
+
+        if (bcKey == "useWallFunction")
+        {
+            setTurbWallBCs = 1;
+            useWallFunction = bcDict.getLabel("useWallFunction");
+            continue;
+        }
+
+        dictionary bcSubDict = bcDict.subDict(bcKey);
+
+        word patch = bcSubDict.getWord("patch");
+        word variable = bcSubDict.getWord("variable");
+        scalarList value;
+        bcSubDict.readEntry<scalarList>("value", value);
+
+        // it should be a scalar
+        if (value.size() == 1)
+        {
+            if (!db.foundObject<volScalarField>(variable))
+            {
+                Info << variable << " not found, skip it." << endl;
+                continue;
+            }
+            // it is a scalar
+            volScalarField& state(const_cast<volScalarField&>(
+                db.lookupObject<volScalarField>(variable)));
+
+            Info << "Setting primal boundary conditions..." << endl;
+            Info << "Setting " << variable << " = " << value[0] << " at " << patch << endl;
+
+            label patchI = mesh_.boundaryMesh().findPatchID(patch);
+
+            // for decomposed domain, don't set BC if the patch is empty
+            if (mesh_.boundaryMesh()[patchI].size() > 0)
+            {
+                if (state.boundaryFieldRef()[patchI].type() == "fixedValue")
+                {
+                    forAll(state.boundaryFieldRef()[patchI], faceI)
+                    {
+                        state.boundaryFieldRef()[patchI][faceI] = value[0];
+                    }
+                }
+                else if (state.boundaryFieldRef()[patchI].type() == "inletOutlet"
+                         || state.boundaryFieldRef()[patchI].type() == "outletInlet")
+                {
+                    // set value
+                    forAll(state.boundaryFieldRef()[patchI], faceI)
+                    {
+                        state.boundaryFieldRef()[patchI][faceI] = value[0];
+                    }
+                    // set inletValue
+                    mixedFvPatchField<scalar>& inletOutletPatch =
+                        refCast<mixedFvPatchField<scalar>>(state.boundaryFieldRef()[patchI]);
+
+                    inletOutletPatch.refValue() = value[0];
+                }
+                else if (state.boundaryFieldRef()[patchI].type() == "fixedGradient")
+                {
+                    fixedGradientFvPatchField<scalar>& patchBC =
+                        refCast<fixedGradientFvPatchField<scalar>>(state.boundaryFieldRef()[patchI]);
+                    scalarField& grad = const_cast<scalarField&>(patchBC.gradient());
+                    forAll(grad, idxI)
+                    {
+                        grad[idxI] = value[0];
+                    }
+                }
+                else
+                {
+                    FatalErrorIn("") << "only support fixedValues, inletOutlet, "
+                                     << "outletInlet, fixedGradient!" << abort(FatalError);
+                }
+            }
+        }
+        else if (value.size() == 3)
+        {
+            if (!db.foundObject<volVectorField>(variable))
+            {
+                Info << variable << " not found, skip it." << endl;
+                continue;
+            }
+            // it is a vector
+            volVectorField& state(const_cast<volVectorField&>(
+                db.lookupObject<volVectorField>(variable)));
+
+            vector valVec = {value[0], value[1], value[2]};
+
+            Info << "Setting primal boundary conditions..." << endl;
+            Info << "Setting " << variable << " = (" << value[0] << " "
+                 << value[1] << " " << value[2] << ") at " << patch << endl;
+
+            label patchI = mesh_.boundaryMesh().findPatchID(patch);
+
+            // for decomposed domain, don't set BC if the patch is empty
+            if (mesh_.boundaryMesh()[patchI].size() > 0)
+            {
+                if (state.boundaryFieldRef()[patchI].type() == "fixedValue")
+                {
+                    forAll(state.boundaryFieldRef()[patchI], faceI)
+                    {
+                        state.boundaryFieldRef()[patchI][faceI] = valVec;
+                    }
+                }
+                else if (state.boundaryFieldRef()[patchI].type() == "inletOutlet"
+                         || state.boundaryFieldRef()[patchI].type() == "outletInlet")
+                {
+                    // set value
+                    forAll(state.boundaryFieldRef()[patchI], faceI)
+                    {
+                        state.boundaryFieldRef()[patchI][faceI] = valVec;
+                    }
+                    // set inletValue
+                    mixedFvPatchField<vector>& inletOutletPatch =
+                        refCast<mixedFvPatchField<vector>>(state.boundaryFieldRef()[patchI]);
+                    inletOutletPatch.refValue() = valVec;
+                }
+                else if (state.boundaryFieldRef()[patchI].type() == "fixedGradient")
+                {
+                    fixedGradientFvPatchField<vector>& patchBC =
+                        refCast<fixedGradientFvPatchField<vector>>(state.boundaryFieldRef()[patchI]);
+                    vectorField& grad = const_cast<vectorField&>(patchBC.gradient());
+                    forAll(grad, idxI)
+                    {
+                        grad[idxI][0] = value[0];
+                        grad[idxI][1] = value[1];
+                        grad[idxI][2] = value[2];
+                    }
+                }
+                else
+                {
+                    FatalErrorIn("") << "only support fixedValues, inletOutlet, "
+                                     << "fixedGradient, and tractionDisplacement!"
+                                     << abort(FatalError);
+                }
+            }
+        }
+        else
+        {
+            FatalErrorIn("") << "value should be a list of either 1 (scalar) "
+                             << "or 3 (vector) elements" << abort(FatalError);
+        }
+    }
+
+    // we also set wall boundary conditions for turbulence variables
+    if (setTurbWallBCs)
+    {
+        wordList turbVars = {"nut", "nuTilda", "k", "omega", "epsilon"};
+
+        IOdictionary turbDict(
+            IOobject(
+                "turbulenceProperties",
+                mesh_.time().constant(),
+                mesh_,
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE,
+                false));
+
+        dictionary coeffDict(turbDict.subDict("RAS"));
+        word turbModelType = word(coeffDict["RASModel"]);
+        //Info<<"turbModelType: "<<turbModelType<<endl;
+
+        // create word regular expression for SA model
+        wordReList SAModelWordReList {
+            {"SpalartAllmaras.*", wordRe::REGEX}};
+        wordRes SAModelWordRes(SAModelWordReList);
+
+        forAll(turbVars, idxI)
+        {
+            word turbVar = turbVars[idxI];
+
+            // ------ nut ----------
+            if (turbVar == "nut" && db.foundObject<volScalarField>("nut"))
+            {
+                volScalarField& nut(const_cast<volScalarField&>(
+                    db.lookupObject<volScalarField>("nut")));
+
+                forAll(nut.boundaryField(), patchI)
+                {
+                    if (mesh_.boundaryMesh()[patchI].type() == "wall")
+                    {
+                        Info << "Setting nut wall BC for "
+                             << mesh_.boundaryMesh()[patchI].name() << ". ";
+
+                        if (useWallFunction)
+                        {
+                            // wall function for SA
+                            if (SAModelWordRes(turbModelType))
+                            {
+                                nut.boundaryFieldRef().set(
+                                    patchI,
+                                    fvPatchField<scalar>::New(
+                                        "nutUSpaldingWallFunction",
+                                        mesh_.boundary()[patchI],
+                                        nut));
+                                Info << "BCType=nutUSpaldingWallFunction" << endl;
+                            }
+                            else // wall function for kOmega and kEpsilon
+                            {
+                                nut.boundaryFieldRef().set(
+                                    patchI,
+                                    fvPatchField<scalar>::New(
+                                        "nutkWallFunction",
+                                        mesh_.boundary()[patchI],
+                                        nut));
+                                Info << "BCType=nutkWallFunction" << endl;
+                            }
+
+                            // set boundary values
+                            // for decomposed domain, don't set BC if the patch is empty
+                            if (mesh_.boundaryMesh()[patchI].size() > 0)
+                            {
+                                scalar wallVal = nut[0];
+                                forAll(nut.boundaryFieldRef()[patchI], faceI)
+                                {
+                                    // assign uniform field
+                                    nut.boundaryFieldRef()[patchI][faceI] = wallVal;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            nut.boundaryFieldRef().set(
+                                patchI,
+                                fvPatchField<scalar>::New(
+                                    "nutLowReWallFunction",
+                                    mesh_.boundary()[patchI],
+                                    nut));
+                            Info << "BCType=nutLowReWallFunction" << endl;
+
+                            // set boundary values
+                            // for decomposed domain, don't set BC if the patch is empty
+                            if (mesh_.boundaryMesh()[patchI].size() > 0)
+                            {
+                                forAll(nut.boundaryFieldRef()[patchI], faceI)
+                                {
+                                    // assign uniform field
+                                    nut.boundaryFieldRef()[patchI][faceI] = 1e-14;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ------ k ----------
+            if (turbVar == "k" && db.foundObject<volScalarField>("k"))
+            {
+                volScalarField& k(const_cast<volScalarField&>(
+                    db.lookupObject<volScalarField>("k")));
+                forAll(k.boundaryField(), patchI)
+                {
+                    if (mesh_.boundaryMesh()[patchI].type() == "wall")
+                    {
+                        Info << "Setting k wall BC for "
+                             << mesh_.boundaryMesh()[patchI].name();
+
+                        if (useWallFunction)
+                        {
+                            k.boundaryFieldRef().set(
+                                patchI,
+                                fvPatchField<scalar>::New(
+                                    "kqRWallFunction",
+                                    mesh_.boundary()[patchI],
+                                    k));
+                            Info << "BCType=kqRWallFunction" << endl;
+
+                            // set boundary values
+                            // for decomposed domain, don't set BC if the patch is empty
+                            if (mesh_.boundaryMesh()[patchI].size() > 0)
+                            {
+                                scalar wallVal = k[0];
+                                forAll(k.boundaryFieldRef()[patchI], faceI)
+                                {
+                                    // assign uniform field
+                                    k.boundaryFieldRef()[patchI][faceI] = wallVal;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            k.boundaryFieldRef().set(
+                                patchI,
+                                fvPatchField<scalar>::New(
+                                    "fixedValue",
+                                    mesh_.boundary()[patchI],
+                                    k));
+                            Info << "BCType=fixedValue" << endl;
+
+                            // set boundary values
+                            // for decomposed domain, don't set BC if the patch is empty
+                            if (mesh_.boundaryMesh()[patchI].size() > 0)
+                            {
+                                forAll(k.boundaryFieldRef()[patchI], faceI)
+                                {
+                                    // assign uniform field
+                                    k.boundaryFieldRef()[patchI][faceI] = 1e-14;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ------ omega ----------
+            if (turbVar == "omega" && db.foundObject<volScalarField>("omega"))
+            {
+                volScalarField& omega(const_cast<volScalarField&>(
+                    db.lookupObject<volScalarField>("omega")));
+                forAll(omega.boundaryField(), patchI)
+                {
+                    if (mesh_.boundaryMesh()[patchI].type() == "wall")
+                    {
+                        Info << "Setting omega wall BC for "
+                             << mesh_.boundaryMesh()[patchI].name() << ". ";
+
+                        omega.boundaryFieldRef().set(
+                            patchI,
+                            fvPatchField<scalar>::New(
+                                "omegaWallFunction",
+                                mesh_.boundary()[patchI],
+                                omega));
+                        Info << "BCType=omegaWallFunction" << endl;
+
+                        // set boundary values
+                        // for decomposed domain, don't set BC if the patch is empty
+                        if (mesh_.boundaryMesh()[patchI].size() > 0)
+                        {
+                            scalar wallVal = omega[0];
+                            forAll(omega.boundaryFieldRef()[patchI], faceI)
+                            {
+                                // assign uniform field
+                                omega.boundaryFieldRef()[patchI][faceI] = wallVal;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ------ epsilon ----------
+            if (turbVar == "epsilon" && db.foundObject<volScalarField>("epsilon"))
+            {
+                volScalarField& epsilon(const_cast<volScalarField&>(
+                    db.lookupObject<volScalarField>("epsilon")));
+                forAll(epsilon.boundaryField(), patchI)
+                {
+                    if (mesh_.boundaryMesh()[patchI].type() == "wall")
+                    {
+                        Info << "Setting epsilon wall BC for "
+                             << mesh_.boundaryMesh()[patchI].name() << ". ";
+
+                        if (useWallFunction)
+                        {
+                            epsilon.boundaryFieldRef().set(
+                                patchI,
+                                fvPatchField<scalar>::New(
+                                    "epsilonWallFunction",
+                                    mesh_.boundary()[patchI],
+                                    epsilon));
+                            Info << "BCType=epsilonWallFunction" << endl;
+
+                            // set boundary values
+                            // for decomposed domain, don't set BC if the patch is empty
+                            if (mesh_.boundaryMesh()[patchI].size() > 0)
+                            {
+                                scalar wallVal = epsilon[0];
+                                forAll(epsilon.boundaryFieldRef()[patchI], faceI)
+                                {
+                                    // assign uniform field
+                                    epsilon.boundaryFieldRef()[patchI][faceI] = wallVal;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            epsilon.boundaryFieldRef().set(
+                                patchI,
+                                fvPatchField<scalar>::New(
+                                    "fixedValue",
+                                    mesh_.boundary()[patchI],
+                                    epsilon));
+                            Info << "BCType=fixedValue" << endl;
+
+                            // set boundary values
+                            // for decomposed domain, don't set BC if the patch is empty
+                            if (mesh_.boundaryMesh()[patchI].size() > 0)
+                            {
+                                forAll(epsilon.boundaryFieldRef()[patchI], faceI)
+                                {
+                                    // assign uniform field
+                                    epsilon.boundaryFieldRef()[patchI][faceI] = 1e-14;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
