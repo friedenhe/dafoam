@@ -114,7 +114,8 @@ void DAPartDerivdRdW::calcPartDerivMat(
         // print progress
         if (color % 100 == 0 or color == nColors - 1)
         {
-            Info << "JacMat: " << color << " of " << nColors << ", ExecutionTime: " << eTime << " s" << endl;
+            Info << modelType_ << ": " << color << " of " << nColors
+                 << ", ExecutionTime: " << eTime << " s" << endl;
         }
 
         // perturb states
@@ -147,7 +148,6 @@ void DAPartDerivdRdW::calcPartDerivMat(
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
 
     daIndex_.printMatChars(jacMat);
-
 }
 
 } // End namespace Foam

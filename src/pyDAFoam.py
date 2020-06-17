@@ -654,9 +654,9 @@ class PYDAFOAM(object):
         if self.comm.rank == 0:
             print("Saving the xvVec and wVec vectors to disk....")
         self.comm.Barrier()
-        viewerXv = PETSc.Viewer().createBinary("xvVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
+        viewerXv = PETSc.Viewer().createBinary("xvVec_%03d.bin" % self.nSolveAdjoints, mode="w", comm=PETSc.COMM_WORLD)
         viewerXv(self.xvVec)
-        viewerW = PETSc.Viewer().createBinary("wVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
+        viewerW = PETSc.Viewer().createBinary("wVec_%03d.bin" % self.nSolveAdjoints, mode="w", comm=PETSc.COMM_WORLD)
         viewerW(self.wVec)
 
         if self.comm.rank == 0:

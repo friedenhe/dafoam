@@ -73,7 +73,7 @@ def returnBlockPoints(corners,nx,ny,nz):
 ################ FFD ##############
 nBlocks = 1
 
-nx = [10]
+nx = [5]
 ny = [2]
 nz = [2]
 

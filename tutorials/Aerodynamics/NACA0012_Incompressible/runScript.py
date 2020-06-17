@@ -33,9 +33,9 @@ task = args.task
 outputDirectory = args.output
 gcomm = MPI.COMM_WORLD
 
-UmagIn = 35.0
+UmagIn = 10.0
 CL_star = 0.5
-twist0 = 5.0
+twist0 = 5.113547
 
 evalFuncs = ["CD", "CL"]
 
@@ -58,7 +58,7 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["wing"],
                 "direction": [1.0, 0.0, 0.0],
-                "scale": 0.0163265306122,
+                "scale": 0.2,
                 "addToAdjoint": True,
             }
         },
@@ -68,13 +68,13 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["wing"],
                 "direction": [0.0, 1.0, 0.0],
-                "scale": 0.0163265306122,
+                "scale": 0.2,
                 "addToAdjoint": True,
             }
         },
     },
     "designVar": {"shapey": {"designVarType": "FFD"}, "twist": {"designVarType": "FFD"},},
-    "normalizeStates": {"U": 10.0, "p": 50.0, "nuTilda": 0.001, "phi": 1.0},
+    "normalizeStates": {"U": UmagIn, "p": UmagIn*UmagIn/2.0, "nuTilda": 0.001, "phi": 1.0},
     "adjEpsDerivState": 1e-6,
     "adjEpsDerivFFD": 1e-3,
     "maxResConLv4JacPCMat": {"pRes": 2, "phiRes": 1, "URes": 2, "nuTildaRes": 2},
@@ -98,7 +98,7 @@ if args.opt == "snopt":
         "Minor feasibility tolerance": 1.0e-6,  # tolerance for constraint
         "Verify level": -1,
         "Function precision": 1.0e-6,
-        "Major iterations limit": 20,
+        "Major iterations limit": 50,
         "Nonderivative linesearch": None,
         "Major step limit": 2.0,
         "Penalty parameter": 0.0,  # initial penalty parameter
@@ -109,19 +109,19 @@ elif args.opt == "psqp":
     optOptions = {
         "TOLG": 1.0e-6,  # tolerance for gradient
         "TOLC": 1.0e-6,  # tolerance for constraint
-        "MIT": 20,  # max optimization iterations
+        "MIT": 50,  # max optimization iterations
         "IFILE": os.path.join(outPrefix + "_PSQP.out"),
     }
 elif args.opt == "slsqp":
     optOptions = {
         "ACC": 1.0e-6,  # convergence accuracy
-        "MAXIT": 20,  # max optimization iterations
+        "MAXIT": 50,  # max optimization iterations
         "IFILE": os.path.join(outPrefix + "_SLSQP.out"),
     }
 elif args.opt == "ipopt":
     optOptions = {
         "tol": 1.0e-6,  # convergence accuracy
-        "max_iter": 20,  # max optimization iterations
+        "max_iter": 50,  # max optimization iterations
         "output_file": os.path.join(outPrefix + "_IPOPT.out"),
     }
 else:
@@ -180,13 +180,14 @@ leList = [[1e-4, 0.0, 1e-4], [1e-4, 0.0, 0.1 - 1e-4]]
 teList = [[0.998 - 1e-4, 0.0, 1e-4], [0.998 - 1e-4, 0.0, 0.1 - 1e-4]]
 
 DVCon.addVolumeConstraint(leList, teList, nSpan=2, nChord=20, lower=1.0, upper=3, scaled=True)
-DVCon.addThicknessConstraints2D(leList, teList, nSpan=2, nChord=20, lower=0.8, upper=3.0, scaled=True)
+DVCon.addThicknessConstraints2D(leList, teList, nSpan=2, nChord=10, lower=0.8, upper=3.0, scaled=True)
 
 # Create a linear constraint so that the curvature at the symmetry plane is zero
+nFFDs_x = 5
 pts1 = DVGeo.getLocalIndex(0)
 indSetA = []
 indSetB = []
-for i in range(10):
+for i in range(nFFDs_x):
     for j in [0, 1]:
         indSetA.append(pts1[i, j, 1])
         indSetB.append(pts1[i, j, 0])
@@ -196,7 +197,7 @@ DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=-1.0, low
 pts1 = DVGeo.getLocalIndex(0)
 indSetA = []
 indSetB = []
-for i in [0, 9]:
+for i in [0, nFFDs_x-1]:
     for k in [0]:  # do not constrain k=1 because it is linked in the above symmetry constraint
         indSetA.append(pts1[i, 0, k])
         indSetB.append(pts1[i, 1, k])
@@ -213,9 +214,6 @@ def aeroFuncs(xDV):
         print("+--------------------------------------------------------------------------+")
         print("|                  Evaluating Objective Functions %03d                      |" % CFDSolver.nSolvePrimals)
         print("+--------------------------------------------------------------------------+")
-        print("Design Variables: ", xDV)
-
-    if gcomm.rank == 0:
         print("Design Variables: ", xDV)
 
     a = time.time()
@@ -296,7 +294,7 @@ def aeroFuncsSens(xDV, funcs):
 # =================================================================================================
 # Task
 # =================================================================================================
-if task.lower() == "opt":
+if task == "opt":
 
     CFDSolver.runColoring()
     optProb = Optimization("opt", aeroFuncs, comm=gcomm)
@@ -317,7 +315,7 @@ if task.lower() == "opt":
     if gcomm.rank == 0:
         print(sol)
 
-elif task.lower() == "run":
+elif task == "run":
 
     CFDSolver.runColoring()
     xDV = DVGeo.getValues()
@@ -325,36 +323,34 @@ elif task.lower() == "run":
     aeroFuncs(xDV)
     CFDSolver.solveAdjoint()
 
-elif task.lower() == "solvecl":
+elif task == "solveCL":
 
-    CFDSolver.setOption("usecoloring", False)
+    CFDSolver.setOption("adjUseColoring", False)
 
-    xDV0 = DVGeo.getValues()
-    twist0 = xDV0["twist"]
+    xDVs = DVGeo.getValues()
+    twist = xDVs["twist"]
 
     for i in range(10):
-        twist(twist0)
         # Solve the CFD problem
-        CFDSolver()
+        xDVs["twist"] = twist
         funcs = {}
-        CFDSolver.evalFunctions(funcs, evalFuncs=evalFuncs)
+        funcs, fail = aeroFuncs(xDVs)
         CL0 = funcs["CL"]
         if gcomm.rank == 0:
-            print("twist: %f, CL: %f" % (twist0.real, CL0))
+            print("twist: %f, CL: %f" % (twist.real, CL0))
         if abs(CL0 - CL_star) / CL_star < 1e-5:
             if gcomm.rank == 0:
-                print("Completed! twist = %f" % twist0.real)
+                print("Completed! twist = %f" % twist.real)
             break
         # compute sens
         eps = 1e-2
-        twistVal = twist0 + eps
-        twist(twistVal)
+        twistVal = twist + eps
+        xDVs["twist"] = twistVal
         funcsP = {}
-        CFDSolver()
-        CFDSolver.evalFunctions(funcsP, evalFuncs=evalFuncs)
+        funcsP, fail = aeroFuncs(xDVs)
         CLP = funcsP["CL"]
         deltatwist = (CL_star - CL0) * eps / (CLP - CL0)
-        twist0 += deltatwist
+        twist += deltatwist
 elif task == "testSensShape":
 
     CFDSolver.runColoring()
