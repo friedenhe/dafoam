@@ -95,6 +95,7 @@ autoPtr<DAPartDeriv> DAPartDeriv::New(
 
 void DAPartDeriv::perturbStates(
     const Vec jacConColors,
+    const Vec normStatePerturbVec,
     const label colorI,
     const scalar delta,
     Vec wVec)
@@ -105,6 +106,9 @@ void DAPartDeriv::perturbStates(
     const PetscScalar* colorArray;
     VecGetArrayRead(jacConColors, &colorArray);
 
+    const PetscScalar* normStateArray;
+    VecGetArrayRead(normStatePerturbVec, &normStateArray);
+
     PetscScalar* wVecArray;
     VecGetArray(wVec, &wVecArray);
 
@@ -114,12 +118,13 @@ void DAPartDeriv::perturbStates(
         label colorJ = colorArray[relIdx];
         if (colorI == colorJ)
         {
-            wVecArray[relIdx] += delta;
+            wVecArray[relIdx] += delta * normStateArray[relIdx];
         }
     }
 
     VecRestoreArrayRead(jacConColors, &colorArray);
     VecRestoreArray(wVec, &wVecArray);
+    VecRestoreArrayRead(normStatePerturbVec, &normStateArray);
 
     return;
 }
@@ -233,7 +238,94 @@ void DAPartDeriv::setdXvdFFDMat(const Mat dXvdFFDMat)
     //MatDuplicate(dXvdFFDMat, MAT_COPY_VALUES, &dXvdFFDMat_);
     MatAssemblyBegin(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
+}
 
+void DAPartDeriv::setNormStatePerturbVec(Vec* normStatePerturbVec)
+{
+    label localSize = daIndex_.nLocalAdjointStates;
+    VecCreate(PETSC_COMM_WORLD, normStatePerturbVec);
+    VecSetSizes(*normStatePerturbVec, localSize, PETSC_DETERMINE);
+    VecSetFromOptions(*normStatePerturbVec);
+    VecSet(*normStatePerturbVec, 1.0);
+
+    dictionary normStateDict = allOptions_.subDict("normalizeStates");
+
+    wordList normStateNames = normStateDict.toc();
+
+    forAll(stateInfo_["volVectorStates"], idxI)
+    {
+        word stateName = stateInfo_["volVectorStates"][idxI];
+        if (DAUtility::isInList<word>(stateName, normStateNames))
+        {
+            scalar scale = normStateDict.getScalar(stateName);
+            forAll(mesh_.cells(), idxI)
+            {
+                for (label comp = 0; comp < 3; comp++)
+                {
+                    label glbIdx = daIndex_.getGlobalAdjointStateIndex(stateName, idxI, comp);
+                    VecSetValue(*normStatePerturbVec, glbIdx, scale, INSERT_VALUES);
+                }
+            }
+        }
+    }
+
+    forAll(stateInfo_["volScalarStates"], idxI)
+    {
+        const word stateName = stateInfo_["volScalarStates"][idxI];
+        if (DAUtility::isInList<word>(stateName, normStateNames))
+        {
+            scalar scale = normStateDict.getScalar(stateName);
+            forAll(mesh_.cells(), idxI)
+            {
+                label glbIdx = daIndex_.getGlobalAdjointStateIndex(stateName, idxI);
+                VecSetValue(*normStatePerturbVec, glbIdx, scale, INSERT_VALUES);
+            }
+        }
+    }
+
+    forAll(stateInfo_["modelStates"], idxI)
+    {
+        const word stateName = stateInfo_["modelStates"][idxI];
+        if (DAUtility::isInList<word>(stateName, normStateNames))
+        {
+            scalar scale = normStateDict.getScalar(stateName);
+            forAll(mesh_.cells(), idxI)
+            {
+                label glbIdx = daIndex_.getGlobalAdjointStateIndex(stateName, idxI);
+                VecSetValue(*normStatePerturbVec, glbIdx, scale, INSERT_VALUES);
+            }
+        }
+    }
+
+    forAll(stateInfo_["surfaceScalarStates"], idxI)
+    {
+        const word stateName = stateInfo_["surfaceScalarStates"][idxI];
+        if (DAUtility::isInList<word>(stateName, normStateNames))
+        {
+            scalar scale = normStateDict.getScalar(stateName);
+
+            forAll(mesh_.faces(), faceI)
+            {
+                if (faceI < daIndex_.nLocalInternalFaces)
+                {
+                    scale = mesh_.magSf()[faceI];
+                }
+                else
+                {
+                    label relIdx = faceI - daIndex_.nLocalInternalFaces;
+                    label patchIdx = daIndex_.bFacePatchI[relIdx];
+                    label faceIdx = daIndex_.bFaceFaceI[relIdx];
+                    scale = mesh_.magSf().boundaryField()[patchIdx][faceIdx];
+                }
+
+                label glbIdx = daIndex_.getGlobalAdjointStateIndex(stateName, faceI);
+                VecSetValue(*normStatePerturbVec, glbIdx, scale, INSERT_VALUES);
+            }
+        }
+    }
+
+    VecAssemblyBegin(*normStatePerturbVec);
+    VecAssemblyEnd(*normStatePerturbVec);
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
