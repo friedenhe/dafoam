@@ -43,6 +43,13 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
 
     word divUScheme = "div(phi,U)";
 
+    label isPC = options.getLabel("isPC");
+
+    if (isPC) 
+    {
+        divUScheme = "div(pc)";
+    }
+
     tmp<fvVectorMatrix> tUEqn(
         fvm::div(phi_, U_, divUScheme)
         + daTurb_.divDevReff(U_));
@@ -51,8 +58,7 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
     UEqn.relax();
 
     URes_ = (UEqn & U_) + fvc::grad(p_);
-    //normalizeResiduals(URes);
-    //scaleResiduals(URes);
+    normalizeResiduals(URes);
 
     // ******** p Residuals **********
     // copied and modified from pEqn.H
@@ -90,15 +96,13 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
     pEqn.setReference(pRefCell, pRefValue);
 
     pRes_ = pEqn & p_;
-    //normalizeResiduals(pRes);
-    //scaleResiduals(pRes);
+    normalizeResiduals(pRes);
 
     // ******** phi Residuals **********
     // copied and modified from pEqn.H
     phiRes_ = phiHbyA - pEqn.flux() - phi_;
     // need to normalize phiRes
-    //normalizePhiResiduals(phiRes);
-    //scalePhiResiduals(phiRes);
+    normalizePhiResiduals(phiRes);
 }
 
 void DAResidualSimpleFoam::updateIntermediateVariables()

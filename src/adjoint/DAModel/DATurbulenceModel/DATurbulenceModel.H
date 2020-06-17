@@ -37,6 +37,7 @@
 #include "DAUtility.H"
 #include "DAOption.H"
 #include "DARegDbNearWallDist.H"
+#include "DAMacroFunctions.H"
 
 #ifdef IncompressibleFlow
 #include "singlePhaseTransportModel.H"

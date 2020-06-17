@@ -113,6 +113,10 @@ void DAPartDerivdFdW::calcPartDerivMat(
     VecZeroEntries(fVec);
     VecZeroEntries(fVecRef);
 
+    // set up state normalization vector
+    Vec normStatePerturbVec;
+    this->setNormStatePerturbVec(&normStatePerturbVec);
+
     dictionary mOptions;
     mOptions.set("updateState", 1);
     mOptions.set("updateMesh", 0);
@@ -138,6 +142,7 @@ void DAPartDerivdFdW::calcPartDerivMat(
         // perturb states
         this->perturbStates(
             daJacCon_.getJacConColor(),
+            normStatePerturbVec,
             color,
             delta,
             wVecNew);

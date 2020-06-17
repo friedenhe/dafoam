@@ -79,6 +79,9 @@ class PYDAFOAM(object):
                     "gmresAbsTol": 1.0e-14,
                 },
             ],
+            "normalizeStates": [dict, {}],
+            "normalizeResiduals": [list, ["URes", "pRes", "nuTildaRes", "phiRes"]],
+            "maxResConLv4JacPCMat": [dict, {}],
             # optimization options
             "designVar": [dict, {}],
             # system options
@@ -230,15 +233,6 @@ class PYDAFOAM(object):
 
         # solve the primal to get new state variables
         self.solvePrimal()
-
-        # save the point vector and state vector to disk
-        if self.comm.rank == 0:
-            print("Saving the xvVec and wVec vectors to disk....")
-        self.comm.Barrier()
-        viewerXv = PETSc.Viewer().createBinary("xvVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
-        viewerXv(self.xvVec)
-        viewerW = PETSc.Viewer().createBinary("wVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
-        viewerW(self.wVec)
 
         return
 
@@ -656,6 +650,15 @@ class PYDAFOAM(object):
         self.adjointFail: if the primal solution fails, assigns 1, otherwise 0
         """
 
+        # save the point vector and state vector to disk
+        if self.comm.rank == 0:
+            print("Saving the xvVec and wVec vectors to disk....")
+        self.comm.Barrier()
+        viewerXv = PETSc.Viewer().createBinary("xvVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
+        viewerXv(self.xvVec)
+        viewerW = PETSc.Viewer().createBinary("wVec_%03d.bin" % self.nSolvePrimals, mode="w", comm=PETSc.COMM_WORLD)
+        viewerW(self.wVec)
+
         if self.comm.rank == 0:
             print("Running adjoint Solver %03d" % self.nSolveAdjoints)
 
@@ -812,8 +815,6 @@ class PYDAFOAM(object):
         xDV = self.DVGeo.getValues()
         nDVs = len(xDV[designVarName])
 
-        print("before", self.DVGeo.getValues())
-
         # get the unperturbed point coordinates
         oldVolPoints = self.mesh.getSolverGrid()
         # get the size of xv, it is the number of points * 3
@@ -850,8 +851,6 @@ class PYDAFOAM(object):
             xDV[designVarName][i] -= epsFFD
             self.DVGeo.setDesignVars(xDV)
             self.updateVolumePoints()
-        
-        print("before", self.DVGeo.getValues())
 
         # assemble
         dXvdFFDMat.assemblyBegin()

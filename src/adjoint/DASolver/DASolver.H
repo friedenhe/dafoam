@@ -237,7 +237,7 @@ public:
 
     /// reduce the connectivity level for Jacobian connectivity mat
     void reduceStateResConLevel(
-        const HashTable<label> maxResConLv4JacPCMat,
+        const dictionary& maxResConLv4JacPCMat,
         HashTable<List<List<word>>>& stateResConInfo) const;
 
     void calcPrimalResidualStatistics(

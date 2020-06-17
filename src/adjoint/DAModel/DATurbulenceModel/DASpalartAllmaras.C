@@ -263,11 +263,20 @@ void DASpalartAllmaras::calcResiduals(const dictionary& options)
 
     word divNuTildaScheme = "div(phi,nuTilda)";
 
+    label isPC = 0;
+
     if (!solveTurbState_)
     {
         // we need to bound nuTilda before computing residuals
         // this will avoid having NaN residuals
         DAUtility::boundVar(allOptions_, nuTilda_);
+
+        isPC = options.getLabel("isPC");
+
+        if (isPC)
+        {
+            divNuTildaScheme = "div(pc)";
+        }
     }
 
     //eddyViscosity<RASModelAugmented<BasicTurbulenceModel> >::correct();
@@ -314,6 +323,8 @@ void DASpalartAllmaras::calcResiduals(const dictionary& options)
     {
         // calculate residuals
         nuTildaRes_ = nuTildaEqn.ref() & nuTilda_;
+        // need to normalize residuals
+        normalizeResiduals(nuTildaRes);
     }
 
     return;

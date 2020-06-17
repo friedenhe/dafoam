@@ -96,14 +96,11 @@ void DAResidual::masterFunction(
 
     DAModel& daModel = const_cast<DAModel&>(daModel_);
 
-    label updateState = 0;
-    options.readEntry<label>("updateState", updateState);
+    label updateState = options.getLabel("updateState");
 
-    label updateMesh = 0;
-    options.readEntry<label>("updateMesh", updateMesh);
+    label updateMesh = options.getLabel("updateMesh");
 
-    label setResVec = 0;
-    options.readEntry<label>("setResVec", setResVec);
+    label setResVec = options.getLabel("setResVec");
 
     if (updateMesh)
     {

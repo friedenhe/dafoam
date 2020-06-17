@@ -32,6 +32,31 @@
         const_cast<fieldType&>(                              \
             db.lookupObject<fieldType>(statePartDerivName)));
 
+#define normalizeResiduals(resName)                                                                \
+    if (!DAUtility::isInList<word>(#resName, daOption_.getOption<wordList>("normalizeResiduals"))) \
+    {                                                                                              \
+        forAll(resName##_, cellI)                                                                  \
+        {                                                                                          \
+            resName##_[cellI] *= mesh_.V()[cellI];                                                 \
+        }                                                                                          \
+    }
+
+#define normalizePhiResiduals(resName)                                                                        \
+    if (DAUtility::isInList<word>(#resName, daOption_.getOption<wordList>("normalizeResiduals")))             \
+    {                                                                                                         \
+        forAll(resName##_, faceI)                                                                             \
+        {                                                                                                     \
+            resName##_[faceI] /= mesh_.magSf()[faceI];                                                        \
+        }                                                                                                     \
+        forAll(resName##_.boundaryField(), patchI)                                                            \
+        {                                                                                                     \
+            forAll(resName##_.boundaryField()[patchI], faceI)                                                 \
+            {                                                                                                 \
+                resName##_.boundaryFieldRef()[patchI][faceI] /= mesh_.magSf().boundaryField()[patchI][faceI]; \
+            }                                                                                                 \
+        }                                                                                                     \
+    }
+
 #define setResidualClassMemberScalar(stateName, stateUnit)            \
     stateName##_(                                                     \
         const_cast<volScalarField&>(                                  \

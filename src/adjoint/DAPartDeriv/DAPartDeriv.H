@@ -73,6 +73,7 @@ protected:
     /// perturb state variables given a color index
     void perturbStates(
         const Vec jacConColors,
+        const Vec normStatePerturbVec,
         const label colorI,
         const scalar delta,
         Vec wVec);
@@ -157,6 +158,8 @@ public:
         Mat jacMat) = 0;
 
     void setdXvdFFDMat(const Mat dXvdFFDMat);
+
+    void setNormStatePerturbVec(Vec* normStatePerturbVec);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

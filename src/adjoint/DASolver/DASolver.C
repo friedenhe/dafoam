@@ -256,7 +256,7 @@ void DASolver::setDAObjFuncList()
 }
 
 void DASolver::reduceStateResConLevel(
-    const HashTable<label> maxResConLv4JacPCMat,
+    const dictionary& maxResConLv4JacPCMat,
     HashTable<List<List<word>>>& stateResConInfo) const
 {
     /*
@@ -310,7 +310,7 @@ void DASolver::reduceStateResConLevel(
     */
 
     // if no maxResConLv4JacPCMat is specified, just return;
-    if (maxResConLv4JacPCMat.size() == 0)
+    if (maxResConLv4JacPCMat.toc().size() == 0)
     {
         Info << "maxResConLv4JacPCMat is empty, just return" << endl;
         return;
@@ -328,7 +328,7 @@ void DASolver::reduceStateResConLevel(
             if (key == key1)
             {
                 keyFound = true;
-                label maxLv = maxResConLv4JacPCMat[key];
+                label maxLv = maxResConLv4JacPCMat.getLabel(key);
                 label maxLv1 = stateResConInfo[key1].size() - 1;
                 if (maxLv > maxLv1)
                 {
@@ -347,7 +347,7 @@ void DASolver::reduceStateResConLevel(
         }
     }
 
-    Info << "Reducing max connectivity level of Jacobian PC Mat to:";
+    Info << "Reducing max connectivity level of Jacobian PC Mat to : ";
     Info << maxResConLv4JacPCMat << endl;
 
     // assign stateResConInfo to stateResConInfoBK
@@ -365,7 +365,7 @@ void DASolver::reduceStateResConLevel(
     forAll(stateResConInfoBK.toc(), idxI)
     {
         word key = stateResConInfoBK.toc()[idxI];
-        label maxConLevel = maxResConLv4JacPCMat[key];
+        label maxConLevel = maxResConLv4JacPCMat.getLabel(key);
         label conSize = stateResConInfoBK[key].size();
         if (conSize > maxConLevel + 1)
         {
@@ -621,6 +621,7 @@ label DASolver::solveAdjoint(
         // we want transposed dRdW
         dictionary options1;
         options1.set("transposed", 1);
+        options1.set("isPC", 0);
 
         // initilalize dRdWT matrix
         daPartDeriv->initializePartDerivMat(options1, &dRdWT);
@@ -631,6 +632,73 @@ label DASolver::solveAdjoint(
         if (daOptionPtr_->getOption<label>("debug"))
         {
             DAUtility::writeMatrixBinary(dRdWT, "dRdWT");
+        }
+    }
+
+    // ********************** compute dRdWTPC **********************
+    Mat dRdWTPC;
+    {
+
+        // initialize DAJacCon object
+        word modelType = "dRdW";
+        autoPtr<DAJacCon> daJacCon(DAJacCon::New(
+            modelType,
+            meshPtr_(),
+            daOptionPtr_(),
+            daModelPtr_(),
+            daIndexPtr_()));
+        
+        // need to reduce the JacCon for PC to reduce memory usage
+        const HashTable<List<List<word>>>& stateResConInfo = daStateInfoPtr_->getStateResConInfo();
+
+        HashTable<List<List<word>>> stateResConInfoReduced = stateResConInfo;
+
+        dictionary maxResConLv4JacPCMat = daOptionPtr_->getAllOptions().subDict("maxResConLv4JacPCMat");
+
+        this->reduceStateResConLevel(maxResConLv4JacPCMat, stateResConInfoReduced);
+        
+        // Note we set stateResConInfoReduced for dRdWTPC
+        dictionary options;
+        options.set("stateResConInfo", stateResConInfoReduced);
+
+        // need to first setup preallocation vectors for the dRdWCon matrix
+        // because directly initializing the dRdWCon matrix will use too much memory
+        daJacCon->setupJacConPreallocation(options);
+
+        // now we can initilaize dRdWCon
+        daJacCon->initializeJacCon(options);
+
+        // setup dRdWCon
+        daJacCon->setupJacCon(options);
+        Info << "dRdWCon Created. " << runTimePtr_->elapsedClockTime() << " s" << endl;
+
+        // read the coloring
+        daJacCon->readJacConColoring();
+
+        // initialize partDeriv object
+        autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+            modelType,
+            meshPtr_(),
+            daOptionPtr_(),
+            daModelPtr_(),
+            daIndexPtr_(),
+            daJacCon(),
+            daResidualPtr_()));
+
+        // we want transposed dRdW
+        dictionary options1;
+        options1.set("transposed", 1);
+        options1.set("isPC", 1);
+
+        // initilalize dRdWT matrix
+        daPartDeriv->initializePartDerivMat(options1, &dRdWTPC);
+
+        // calculate dRdWT
+        daPartDeriv->calcPartDerivMat(options1, xvVec, wVec, dRdWTPC);
+
+        if (daOptionPtr_->getOption<label>("debug"))
+        {
+            DAUtility::writeMatrixBinary(dRdWTPC, "dRdWTPC");
         }
     }
 
@@ -806,7 +874,7 @@ label DASolver::solveAdjoint(
             VecZeroEntries(psiVec);
 
             // create the multi-level Richardson KSP
-            daLinearEqn.createMLRKSP(kspOptions, dRdWT, dRdWT, &ksp);
+            daLinearEqn.createMLRKSP(kspOptions, dRdWT, dRdWTPC, &ksp);
 
             // solve the linear equation and get psiVec
             daLinearEqn.solveLinearEqn(ksp, dFdWVecAllParts, psiVec);
@@ -893,6 +961,7 @@ label DASolver::calcTotalDeriv(
             options.set("fieldType", fieldType);
             options.set("bcType", bcType);
             options.set("comp", comp);
+            options.set("isPC", 0);
 
             // initialize the dRdBC matrix
             daPartDeriv->initializePartDerivMat(options, &dRdBC);
@@ -1063,6 +1132,7 @@ label DASolver::calcTotalDeriv(
             // setup options
             dictionary options;
             options.set("nDesignVars", nDesignVars);
+            options.set("isPC", 0);
 
             // for FFD, we need to first assign dXvdFFDMat to daPartDeriv
             daPartDeriv->setdXvdFFDMat(dXvdFFDMat_);

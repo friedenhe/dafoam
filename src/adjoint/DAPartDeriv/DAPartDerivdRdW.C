@@ -92,10 +92,15 @@ void DAPartDerivdRdW::calcPartDerivMat(
     VecZeroEntries(resVec);
     VecZeroEntries(resVecRef);
 
+    // set up state normalization vector
+    Vec normStatePerturbVec;
+    this->setNormStatePerturbVec(&normStatePerturbVec);
+
     dictionary mOptions;
     mOptions.set("updateState", 1);
     mOptions.set("updateMesh", 0);
     mOptions.set("setResVec", 1);
+    mOptions.set("isPC", options.getLabel("isPC"));
     daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
     scalar delta = daOption_.getOption<scalar>("adjEpsDerivState");
@@ -115,6 +120,7 @@ void DAPartDerivdRdW::calcPartDerivMat(
         // perturb states
         this->perturbStates(
             daJacCon_.getJacConColor(),
+            normStatePerturbVec,
             color,
             delta,
             wVecNew);

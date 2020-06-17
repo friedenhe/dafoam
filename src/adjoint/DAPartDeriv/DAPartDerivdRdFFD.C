@@ -88,6 +88,7 @@ void DAPartDerivdRdFFD::calcPartDerivMat(
     mOptions.set("updateState", 1);
     mOptions.set("updateMesh", 1);
     mOptions.set("setResVec", 1);
+    mOptions.set("isPC", options.getLabel("isPC"));
     daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
     scalar delta = daOption_.getOption<scalar>("adjEpsDerivFFD");
