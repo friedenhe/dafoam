@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-DAFoam run script for the NACA0012 airfoil at low-speed
+DAFoam run script for the NACA0012 airfoil at subsonic speed
 """
 
 # =================================================================================================
@@ -33,9 +33,9 @@ task = args.task
 outputDirectory = args.output
 gcomm = MPI.COMM_WORLD
 
-UmagIn = 10.0
+UmagIn = 100.0
 CL_star = 0.5
-twist0 = 5.113547
+twist0 = 3.856366
 
 # Set the parameters for optimization
 aeroOptions = {
@@ -44,9 +44,9 @@ aeroOptions = {
     "designSurfaceFamily": "designSurfaces",
     "designSurfaces": ["wing"],
     # flow setup
-    "solverName": "DASimpleFoam",
+    "solverName": "DARhoSimpleFoam",
     "turbulenceModel": "SpalartAllmaras",
-    "flowCondition": "Incompressible",
+    "flowCondition": "Compressible",
     # adjoint setup
     "adjUseColoring": True,
     "objFunc": {
@@ -56,7 +56,7 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["wing"],
                 "direction": [1.0, 0.0, 0.0],
-                "scale": 0.2,
+                "scale": 0.002,
                 "addToAdjoint": True,
             }
         },
@@ -66,16 +66,16 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["wing"],
                 "direction": [0.0, 1.0, 0.0],
-                "scale": 0.2,
+                "scale": 0.002,
                 "addToAdjoint": True,
             }
         },
     },
     "designVar": {"shapey": {"designVarType": "FFD"}, "twist": {"designVarType": "FFD"},},
-    "normalizeStates": {"U": UmagIn, "p": UmagIn*UmagIn/2.0, "nuTilda": 0.001, "phi": 1.0},
+    "normalizeStates": {"U": UmagIn, "p": 100000.0, "nuTilda": 0.001, "phi": 1.0, "T": 300.0},
     "adjEpsDerivState": 1e-6,
     "adjEpsDerivFFD": 1e-3,
-    "maxResConLv4JacPCMat": {"pRes": 2, "phiRes": 1, "URes": 2, "nuTildaRes": 2},
+    "maxResConLv4JacPCMat": {"pRes": 2, "phiRes": 1, "URes": 2, "nuTildaRes": 2, "TRes": 2},
     ########## misc setup ##########
 }
 
@@ -149,7 +149,7 @@ def twist(val, geo):
 
 # select points
 pts = DVGeo.getLocalIndex(0)
-indexList = pts[:, :, :].flatten()
+indexList = pts[3:5, 0, 1].flatten()
 PS = geo_utils.PointSelect("list", indexList)
 DVGeo.addGeoDVLocal("shapey", lower=-1.0, upper=1.0, axis="y", scale=1.0, pointSelect=PS)
 DVGeo.addGeoDVGlobal("twist", twist0, twist, lower=-10.0, upper=10.0, scale=1.0)
@@ -172,7 +172,7 @@ for funcName in objFuncs:
         if objFuncs[funcName][funcPart]["addToAdjoint"] == True:
             if not funcName in evalFuncs:
                 evalFuncs.append(funcName)
-                
+
 # =================================================================================================
 # DVCon
 # =================================================================================================
