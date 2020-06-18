@@ -310,7 +310,6 @@ class PYDAFOAM(object):
             raise Error("DVGeo not set!")
 
         dvs = self.DVGeo.getValues()
-        print(dvs)
 
         for funcName in evalFuncs:
             funcsSens[funcName] = {}
@@ -849,8 +848,10 @@ class PYDAFOAM(object):
                     dXvdFFDMat[idx, i] = deltaVal
             # reset the perturbation of the dv
             xDV[designVarName][i] -= epsFFD
-            self.DVGeo.setDesignVars(xDV)
-            self.updateVolumePoints()
+        
+        # reset the volume mesh coordinates
+        self.DVGeo.setDesignVars(xDV)
+        self.updateVolumePoints()
 
         # assemble
         dXvdFFDMat.assemblyBegin()
