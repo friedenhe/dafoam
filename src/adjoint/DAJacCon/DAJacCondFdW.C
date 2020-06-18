@@ -25,6 +25,7 @@ DAJacCondFdW::DAJacCondFdW(
     : DAJacCon(modelType, mesh, daOption, daModel, daIndex)
 {
     this->initializePetscVecs();
+    this->initializeStateBoundaryCon();
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -125,25 +126,12 @@ void DAJacCondFdW::setupJacCon(const dictionary& options)
     options.readEntry<labelList>("objFuncFaceSources", objFuncFaceSources);
     options.readEntry<labelList>("objFuncCellSources", objFuncCellSources);
 
-    label addFace = 0;
-    forAll(objFuncConInfo, idxI)
-    {
-        forAll(objFuncConInfo[idxI], idxJ)
-        {
-            const word stateName = objFuncConInfo[idxI][idxJ];
-            word stateType = daIndex_.adjStateType[stateName];
-            if (stateType == "surfaceScalarState")
-            {
-                addFace = 1;
-            }
-        }
-    }
-
     // maximal connectivity level information
     label maxConLevel = objFuncConInfo.size() - 1;
 
     forAll(objFuncFaceSources, idxI)
     {
+
         const label& objFuncFaceI = objFuncFaceSources[idxI];
         label bFaceI = objFuncFaceI - daIndex_.nLocalInternalFaces;
         const label patchI = daIndex_.bFacePatchI[bFaceI];
@@ -163,7 +151,17 @@ void DAJacCondFdW::setupJacCon(const dictionary& options)
         forAll(objFuncConInfo, idxJ) // idxJ: con level
         {
             // set connectedStatesLocal: the locally connected state variables for this level
-            wordList connectedStatesLocal = objFuncConInfo[idxJ];
+            wordList connectedStatesLocal(0);
+            forAll(objFuncConInfo[idxJ], idxK)
+            {
+                word conName = objFuncConInfo[idxJ][idxK];
+                // Exclude surfaceScalarState when appending connectedStatesLocal
+                // whether to add it depends on addFace parameter
+                if (daIndex_.adjStateType[conName] != "surfaceScalarState")
+                {
+                    connectedStatesLocal.append(conName);
+                }
+            }
 
             // set connectedStatesInterProc: the globally connected state variables for this level
             List<List<word>> connectedStatesInterProc;
@@ -178,13 +176,44 @@ void DAJacCondFdW::setupJacCon(const dictionary& options)
                 connectedStatesInterProc.setSize(maxConLevel - idxJ + 1);
                 for (label k = 0; k < maxConLevel - idxJ + 1; k++)
                 {
-                    connectedStatesInterProc[k] = objFuncConInfo[k + idxJ];
+                    label conSize = objFuncConInfo[k + idxJ].size();
+                    for (label l = 0; l < conSize; l++)
+                    {
+                        word conName = objFuncConInfo[k + idxJ][l];
+                        // Exclude surfaceScalarState when appending connectedStatesLocal
+                        // whether to add it depends on addFace parameter
+                        if (daIndex_.adjStateType[conName] != "surfaceScalarState")
+                        {
+                            connectedStatesInterProc[k].append(conName);
+                        }
+                    }
                 }
             }
             else
             {
                 connectedStatesInterProc.setSize(1);
-                connectedStatesInterProc[0] = objFuncConInfo[maxConLevel];
+                label conSize = objFuncConInfo[maxConLevel].size();
+                for (label l = 0; l < conSize; l++)
+                {
+                    word conName = objFuncConInfo[maxConLevel][l];
+                    // Exclude surfaceScalarState when appending connectedStatesLocal
+                    // whether to add it depends on addFace parameter
+                    if (daIndex_.adjStateType[conName] != "surfaceScalarState")
+                    {
+                        connectedStatesInterProc[0].append(conName);
+                    }
+                }
+            }
+
+            // check if we need to add face
+            label addFace = 0;
+            forAll(stateInfo_["surfaceScalarStates"], idxK)
+            {
+                word conName = stateInfo_["surfaceScalarStates"][idxK];
+                if (DAUtility::isInList<word>(conName, objFuncConInfo[idxJ]))
+                {
+                    addFace = 1;
+                }
             }
 
             this->addStateConnections(
@@ -210,6 +239,7 @@ void DAJacCondFdW::setupJacCon(const dictionary& options)
 
     MatAssemblyBegin(jacCon_, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacCon_, MAT_FINAL_ASSEMBLY);
+    
 }
 
 label DAJacCondFdW::getLocalObjFuncGeoIndex(
