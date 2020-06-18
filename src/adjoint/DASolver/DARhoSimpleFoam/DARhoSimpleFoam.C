@@ -41,7 +41,7 @@ void DARhoSimpleFoam::initSolver()
     argList& args = argsPtr_();
 #include "createSimpleControlPython.H"
 #include "createFieldsRhoSimple.H"
-#include "createAdjointRhoSimple.H"
+#include "createAdjointCompressible.H"
     // initialize checkMesh
     daCheckMeshPtr_.reset(new DACheckMesh(runTime, mesh));
 }
@@ -112,6 +112,8 @@ label DARhoSimpleFoam::solvePrimal(
 
         nSolverIters++;
     }
+
+    this->calcPrimalResidualStatistics("print");
 
     // primal converged, assign the OpenFoam fields to the state vec wVec
     this->ofField2StateVec(wVec);

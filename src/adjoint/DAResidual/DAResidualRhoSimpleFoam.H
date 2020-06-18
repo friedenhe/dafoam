@@ -13,6 +13,10 @@
 
 #include "DAResidual.H"
 #include "addToRunTimeSelectionTable.H"
+#include "simpleControl.H"
+#include "adjustPhi.H"
+#include "thermodynamicConstants.H"
+#include "pressureControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -26,6 +30,45 @@ namespace Foam
 class DAResidualRhoSimpleFoam
     : public DAResidual
 {
+
+protected:
+    /// \name These are state variables, state residuals, and partial derivatives
+    //@{
+    volVectorField& U_;
+    volVectorField URes_;
+    volVectorField UResPartDeriv_;
+
+    volScalarField& p_;
+    volScalarField pRes_;
+    volScalarField pResPartDeriv_;
+
+    volScalarField& T_;
+    volScalarField TRes_;
+    volScalarField TResPartDeriv_;
+
+    surfaceScalarField& phi_;
+    surfaceScalarField phiRes_;
+    surfaceScalarField phiResPartDeriv_;
+    //@}
+
+    fluidThermo& thermo_;
+
+    volScalarField& he_;
+    volScalarField& rho_;
+    volScalarField& alphat_;
+    volScalarField& psi_;
+
+    DATurbulenceModel& daTurb_;
+
+    simpleControl simple_;
+
+    pressureControl pressureControl_;
+
+    scalar molWeight_;
+
+    scalar Cp_;
+
+    scalar Prt_;
 
 public:
     TypeName("DARhoSimpleFoam");

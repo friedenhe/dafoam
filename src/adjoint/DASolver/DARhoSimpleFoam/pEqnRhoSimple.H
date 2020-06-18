@@ -13,64 +13,23 @@ bool closedVolume = false;
 
 surfaceScalarField phiHbyA("phiHbyA", fvc::interpolate(rho) * fvc::flux(HbyA));
 
-if (simple.transonic())
+closedVolume = adjustPhi(phiHbyA, U, p);
+
+while (simple.correctNonOrthogonal())
 {
-    surfaceScalarField phid(
-        "phid",
-        (fvc::interpolate(psi) / fvc::interpolate(rho)) * phiHbyA);
+    fvScalarMatrix pEqn(
+        fvc::div(phiHbyA)
+        - fvm::laplacian(rhorAUf, p));
 
-    phiHbyA -= fvc::interpolate(psi * p) * phiHbyA / fvc::interpolate(rho);
+    pEqn.setReference(
+        pressureControl.refCell(),
+        pressureControl.refValue());
 
-    while (simple.correctNonOrthogonal())
+    pEqn.solve();
+
+    if (simple.finalNonOrthogonalIter())
     {
-        fvScalarMatrix pEqn(
-            fvc::div(phiHbyA)
-            + fvm::div(phid, p)
-            - fvm::laplacian(rhorAUf, p));
-
-        // Relax the pressure equation to ensure diagonal-dominance
-        pEqn.relax();
-
-        pEqn.setReference(
-            pressureControl.refCell(),
-            pressureControl.refValue());
-
-        // get the solver performance info such as initial
-        // and final residuals
-        SolverPerformance<scalar> solverP = pEqn.solve();
-
-        if (nSolverIters % 100 == 0 || nSolverIters == 1)
-        {
-            Info << "p Initial residual: " << solverP.initialResidual() << endl
-                 << "    Final residual: " << solverP.finalResidual() << endl;
-        }
-
-        if (simple.finalNonOrthogonalIter())
-        {
-            phi = phiHbyA + pEqn.flux();
-        }
-    }
-}
-else
-{
-    closedVolume = adjustPhi(phiHbyA, U, p);
-
-    while (simple.correctNonOrthogonal())
-    {
-        fvScalarMatrix pEqn(
-            fvc::div(phiHbyA)
-            - fvm::laplacian(rhorAUf, p));
-
-        pEqn.setReference(
-            pressureControl.refCell(),
-            pressureControl.refValue());
-
-        pEqn.solve();
-
-        if (simple.finalNonOrthogonalIter())
-        {
-            phi = phiHbyA + pEqn.flux();
-        }
+        phi = phiHbyA + pEqn.flux();
     }
 }
 
@@ -107,10 +66,8 @@ if (pLimited || closedVolume)
 
 rho = thermo.rho();
 
-if (!simple.transonic())
-{
-    rho.relax();
-}
+rho.relax();
+
 
 // bound rho
 DAUtility::boundVar(allOptions, rho);

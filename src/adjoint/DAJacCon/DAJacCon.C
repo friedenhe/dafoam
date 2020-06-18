@@ -1814,6 +1814,10 @@ void DAJacCon::calcJacConColoring(const word postFix)
             jacConColorsArray[relIdx] = i * 1.0;
         }
         VecRestoreArray(jacConColors_, &jacConColorsArray);
+
+        PetscReal maxVal;
+        VecMax(jacConColors_, NULL, &maxVal);
+        nJacConColors_ = maxVal + 1;
     }
 
     daColoring_.validateColoring(jacCon_, jacConColors_);
@@ -1977,50 +1981,63 @@ void DAJacCon::calcColoredColumns(
 
     */
 
-    Vec colorIdx;
-    label Istart, Iend;
-
-    /* for the current color, determine which row/column pairs match up. */
-
-    // create a vector to hold the column indices associated with this color
-    VecDuplicate(jacConColors_, &colorIdx);
-    VecZeroEntries(colorIdx);
-
-    // Start by looping over the color vector. Set each column index associated
-    // with the current color to its own value in the color idx vector
-    // get the values on this proc
-    VecGetOwnershipRange(jacConColors_, &Istart, &Iend);
-
-    // create the arrays to access them directly
-    const PetscScalar* jacConColorsArray;
-    PetscScalar* colorIdxArray;
-    VecGetArrayRead(jacConColors_, &jacConColorsArray);
-    VecGetArray(colorIdx, &colorIdxArray);
-
-    // loop over the entries to find the ones that match this color
-    for (label j = Istart; j < Iend; j++)
+    if (daOption_.getOption<label>("adjUseColoring"))
     {
-        label idx = j - Istart;
-        if (DAUtility::isValueCloseToRef(jacConColorsArray[idx], colorI * 1.0))
+
+        Vec colorIdx;
+        label Istart, Iend;
+
+        /* for the current color, determine which row/column pairs match up. */
+
+        // create a vector to hold the column indices associated with this color
+        VecDuplicate(jacConColors_, &colorIdx);
+        VecZeroEntries(colorIdx);
+
+        // Start by looping over the color vector. Set each column index associated
+        // with the current color to its own value in the color idx vector
+        // get the values on this proc
+        VecGetOwnershipRange(jacConColors_, &Istart, &Iend);
+
+        // create the arrays to access them directly
+        const PetscScalar* jacConColorsArray;
+        PetscScalar* colorIdxArray;
+        VecGetArrayRead(jacConColors_, &jacConColorsArray);
+        VecGetArray(colorIdx, &colorIdxArray);
+
+        // loop over the entries to find the ones that match this color
+        for (label j = Istart; j < Iend; j++)
         {
-            // use 1 based indexing here and then subtract 1 from all values in
-            // the mat mult. This will handle the zero index case in the first row
-            colorIdxArray[idx] = j + 1;
+            label idx = j - Istart;
+            if (DAUtility::isValueCloseToRef(jacConColorsArray[idx], colorI * 1.0))
+            {
+                // use 1 based indexing here and then subtract 1 from all values in
+                // the mat mult. This will handle the zero index case in the first row
+                colorIdxArray[idx] = j + 1;
+            }
         }
+        VecRestoreArrayRead(jacConColors_, &jacConColorsArray);
+        VecRestoreArray(colorIdx, &colorIdxArray);
+
+        //VecAssemblyBegin(colorIdx);
+        //VecAssemblyEnd(colorIdx);
+
+        //Set coloredColumn to -1 to account for the 1 based indexing in the above loop
+        VecSet(coloredColumn, -1);
+        // Now do a MatVec with the conMat to get the row coloredColumn pairs.
+        MatMultAdd(jacCon_, colorIdx, coloredColumn, coloredColumn);
+
+        // destroy the temporary vector
+        VecDestroy(&colorIdx);
     }
-    VecRestoreArrayRead(jacConColors_, &jacConColorsArray);
-    VecRestoreArray(colorIdx, &colorIdxArray);
+    else
+    {
+        // uncolored case, we just set all elements to colorI
+        scalar val = colorI * 1.0;
+        VecSet(coloredColumn, val);
 
-    //VecAssemblyBegin(colorIdx);
-    //VecAssemblyEnd(colorIdx);
-
-    //Set coloredColumn to -1 to account for the 1 based indexing in the above loop
-    VecSet(coloredColumn, -1);
-    // Now do a MatVec with the conMat to get the row coloredColumn pairs.
-    MatMultAdd(jacCon_, colorIdx, coloredColumn, coloredColumn);
-
-    // destroy the temporary vector
-    VecDestroy(&colorIdx);
+        VecAssemblyBegin(coloredColumn);
+        VecAssemblyEnd(coloredColumn);
+    }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

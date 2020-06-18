@@ -99,6 +99,11 @@ public:
     /// update intermediate variables that are dependent on the model states
     void updateIntermediateVariables();
 
+#ifdef CompressibleFlow
+    /// return thermo_ from DATurbulenceModel
+    const fluidThermo& getThermo() const;
+#endif
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

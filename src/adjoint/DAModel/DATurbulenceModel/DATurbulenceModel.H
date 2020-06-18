@@ -247,6 +247,10 @@ public:
         return phase_;
     }
 
+#ifdef CompressibleFlow
+    const fluidThermo& getThermo() const;
+#endif
+
     /// get mu
     tmp<Foam::volScalarField> getMu() const;
 

@@ -229,6 +229,19 @@ void DAModel::updateIntermediateVariables()
     }
 }
 
+#ifdef CompressibleFlow
+const fluidThermo& DAModel::getThermo() const
+{
+    if (!hasTurbulenceModel_)
+    {
+        FatalErrorIn("DATurbulence not found!") << abort(FatalError);
+    }
+
+    const DATurbulenceModel& daTurb = mesh_.thisDb().lookupObject<DATurbulenceModel>("DATurbulenceModel");
+    return daTurb.getThermo();
+}
+#endif
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

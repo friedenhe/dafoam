@@ -80,7 +80,7 @@ class PYDAFOAM(object):
                 },
             ],
             "normalizeStates": [dict, {}],
-            "normalizeResiduals": [list, ["URes", "pRes", "nuTildaRes", "phiRes"]],
+            "normalizeResiduals": [list, ["URes", "pRes", "nuTildaRes", "phiRes", "TRes"]],
             "maxResConLv4JacPCMat": [dict, {}],
             # optimization options
             "designVar": [dict, {}],
@@ -183,7 +183,7 @@ class PYDAFOAM(object):
         self.adjointFail = 0
 
         if self.comm.rank == 0:
-            print("Done Init.")
+            print("pyDAFoam initialization done!")
 
         return
 

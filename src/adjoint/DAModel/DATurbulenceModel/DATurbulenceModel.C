@@ -304,6 +304,12 @@ void DATurbulenceModel::correctWallDist()
     this->correctBoundaryConditions();
 }
 
+#ifdef CompressibleFlow
+const fluidThermo& DATurbulenceModel::getThermo() const
+{
+    return thermo_;
+}
+#endif
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

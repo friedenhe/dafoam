@@ -13,3 +13,5 @@ pressureControl& pressureControl = pressureControlPtr_();
 initialMass_ = fvc::domainIntegrate(rho);
 const volScalarField& psi = thermo.psi();
 const dictionary& allOptions = daOptionPtr_->getAllOptions();
+
+this->setDAObjFuncList();

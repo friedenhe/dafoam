@@ -47,11 +47,27 @@ DAObjFuncForce::DAObjFuncForce(
 
     objFuncDict_.readEntry<scalar>("scale", scale_);
 
-    // setup the connectivity for force, it depends on zero level
+    // setup the connectivity for force
+    word pName = "p";
+    if (mesh_.thisDb().foundObject<volScalarField>("p_rgh"))
+    {
+        pName = "p_rgh";
+    }
+#ifdef IncompressibleFlow
+    // For incompressible flow, it depends on zero level
     // of U, nut, and p, and one level of U
     objFuncConInfo_ = {
-        {"U", "nut", "p"}, // level 0
+        {"U", "nut", pName}, // level 0
         {"U"}}; // level 1
+#endif
+
+#ifdef CompressibleFlow
+    // For compressible flow, it depends on zero level
+    // of U, nut, T, and p, and one level of U
+    objFuncConInfo_ = {
+        {"U", "nut", "T", pName}, // level 0
+        {"U"}}; // level 1
+#endif
 
     // now replace nut with the corrected name for the selected turbulence model
     daModel.correctModelStates(objFuncConInfo_[0]);

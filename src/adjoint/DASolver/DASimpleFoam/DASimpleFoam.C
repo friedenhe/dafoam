@@ -37,7 +37,7 @@ void DASimpleFoam::initSolver()
     fvMesh& mesh = meshPtr_();
 #include "createSimpleControlPython.H"
 #include "createFieldsSimple.H"
-#include "createAdjointSimple.H"
+#include "createAdjointIncompressible.H"
     // initialize checkMesh
     daCheckMeshPtr_.reset(new DACheckMesh(runTime, mesh));
 }
