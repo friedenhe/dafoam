@@ -647,7 +647,7 @@ label DASolver::solveAdjoint(
             daOptionPtr_(),
             daModelPtr_(),
             daIndexPtr_()));
-        
+
         // need to reduce the JacCon for PC to reduce memory usage
         const HashTable<List<List<word>>>& stateResConInfo = daStateInfoPtr_->getStateResConInfo();
 
@@ -656,7 +656,7 @@ label DASolver::solveAdjoint(
         dictionary maxResConLv4JacPCMat = daOptionPtr_->getAllOptions().subDict("maxResConLv4JacPCMat");
 
         this->reduceStateResConLevel(maxResConLv4JacPCMat, stateResConInfoReduced);
-        
+
         // Note we set stateResConInfoReduced for dRdWTPC
         dictionary options;
         options.set("stateResConInfo", stateResConInfoReduced);
@@ -1330,18 +1330,28 @@ void DASolver::setTotalDerivDict(
     const Vec totalDerivVec,
     dictionary& totalDerivDict)
 {
-    scalarList totalDerivList;
-    const PetscScalar* totalDerivVecArray;
-    VecGetArrayRead(totalDerivVec, &totalDerivVecArray);
-    label Istart, Iend;
-    VecGetOwnershipRange(totalDerivVec, &Istart, &Iend);
-    for (label i = Istart; i < Iend; i++)
-    {
-        label relIdx = i - Istart;
-        totalDerivList.append(totalDerivVecArray[relIdx]);
-    }
+    label vecSize;
+    VecGetSize(totalDerivVec, &vecSize);
 
-    VecRestoreArrayRead(totalDerivVec, &totalDerivVecArray);
+    // scatter colors to local array for all procs
+    Vec vout;
+    VecScatter ctx;
+    VecScatterCreateToAll(totalDerivVec, &ctx, &vout);
+    VecScatterBegin(ctx, totalDerivVec, vout, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterEnd(ctx, totalDerivVec, vout, INSERT_VALUES, SCATTER_FORWARD);
+
+    PetscScalar* voutArray;
+    VecGetArray(vout, &voutArray);
+
+    scalarList totalDerivList;
+
+    for (label i = 0; i < vecSize; i++)
+    {
+        totalDerivList.append(voutArray[i]);
+    }
+    VecRestoreArray(vout, &voutArray);
+    VecScatterDestroy(&ctx);
+    VecDestroy(&vout);
 
     if (!totalDerivDict.found(objFuncName))
     {
