@@ -12,7 +12,7 @@ import argparse
 import sys
 import numpy as np
 from mpi4py import MPI
-from dafoam import *
+from dafoam import PYDAFOAM, optFuncs
 from pygeo import *
 from pyspline import *
 from idwarp import *
@@ -149,7 +149,7 @@ def twist(val, geo):
 
 # select points
 pts = DVGeo.getLocalIndex(0)
-indexList = pts[3:5, 0, 1].flatten()
+indexList = pts[:, :, :].flatten()
 PS = geo_utils.PointSelect("list", indexList)
 DVGeo.addGeoDVLocal("shapey", lower=-1.0, upper=1.0, axis="y", scale=1.0, pointSelect=PS)
 DVGeo.addGeoDVGlobal("twist", twist0, twist, lower=-10.0, upper=10.0, scale=1.0)
@@ -210,92 +210,14 @@ for i in [0, nFFDs_x-1]:
 DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=1.0, lower=0.0, upper=0.0)
 
 
-def aeroFuncs(xDV):
-    """
-    Update the design surface and run the flow solver to get objective function values.
-    """
-
-    if gcomm.rank == 0:
-        print("\n")
-        print("+--------------------------------------------------------------------------+")
-        print("|                  Evaluating Objective Functions %03d                      |" % CFDSolver.nSolvePrimals)
-        print("+--------------------------------------------------------------------------+")
-        print("Design Variables: ", xDV)
-
-    a = time.time()
-
-    # Setup an empty dictionary for the evaluated function values
-    funcs = {}
-
-    # Set the current design variables in the DV object
-    DVGeo.setDesignVars(xDV)
-    CFDSolver.setDesignVars(xDV)
-
-    # Evaluate the geometric constraints and add them to the funcs dictionary
-    DVCon.evalFunctions(funcs)
-
-    # Solve the CFD problem
-    CFDSolver()
-
-    # Populate the required values from the CFD problem
-    CFDSolver.evalFunctions(funcs, evalFuncs=evalFuncs)
-
-    b = time.time()
-
-    # Print the current solution to the screen
-    if gcomm.rank == 0:
-        print("Objective Functions: ", funcs)
-        print("Flow Runtime: ", b - a)
-
-    funcs["fail"] = False
-    fail = funcs["fail"]
-
-    # flush the output to the screen/file
-    sys.stdout.flush()
-
-    return funcs, fail
-
-
-def aeroFuncsSens(xDV, funcs):
-    """
-    Run the adjoint solver and get objective function sensitivities.
-    """
-
-    if gcomm.rank == 0:
-        print("\n")
-        print("+--------------------------------------------------------------------------+")
-        print("|              Evaluating Objective Function Sensitivities %03d             |" % CFDSolver.nSolveAdjoints)
-        print("+--------------------------------------------------------------------------+")
-
-    a = time.time()
-
-    # Setup an empty dictionary for the evaluated derivative values
-    funcsSens = {}
-
-    # Evaluate the geometric constraint derivatives
-    DVCon.evalFunctionsSens(funcsSens)
-
-    # Solve the adjoint
-    CFDSolver.solveAdjoint()
-    CFDSolver.calcTotalDeriv()
-
-    # Evaluate the CFD derivatives
-    CFDSolver.evalFunctionsSens(funcsSens, evalFuncs=evalFuncs)
-
-    b = time.time()
-
-    # Print the current solution to the screen
-    if gcomm.rank == 0:
-        print("Objective Function Sensitivity: ", funcsSens)
-        print("Adjoint Runtime: ", b - a)
-
-    fail = funcsSens["fail"]
-
-    # flush the output to the screen/file
-    sys.stdout.flush()
-
-    return funcsSens, fail
-
+# ================================================================================================
+# optFuncs
+# =================================================================================================
+optFuncs.CFDSolver = CFDSolver
+optFuncs.DVGeo = DVGeo
+optFuncs.DVCon = DVCon
+optFuncs.evalFuncs = evalFuncs
+optFuncs.gcomm = gcomm
 
 # =================================================================================================
 # Task
@@ -323,112 +245,16 @@ if task == "opt":
 
 elif task == "run":
 
-    CFDSolver.runColoring()
-    xDV = DVGeo.getValues()
-    aeroFuncs(xDV)
-    aeroFuncs(xDV)
-    CFDSolver.solveAdjoint()
+    optFuncs.run()
 
 elif task == "solveCL":
 
-    CFDSolver.setOption("adjUseColoring", False)
+    optFuncs.solveCL(CL_star, "twist", "CL")
 
-    xDVs = DVGeo.getValues()
-    twist = xDVs["twist"]
-
-    for i in range(10):
-        # Solve the CFD problem
-        xDVs["twist"] = twist
-        funcs = {}
-        funcs, fail = aeroFuncs(xDVs)
-        CL0 = funcs["CL"]
-        if gcomm.rank == 0:
-            print("twist: %f, CL: %f" % (twist.real, CL0))
-        if abs(CL0 - CL_star) / CL_star < 1e-5:
-            if gcomm.rank == 0:
-                print("Completed! twist = %f" % twist.real)
-            break
-        # compute sens
-        eps = 1e-2
-        twistVal = twist + eps
-        xDVs["twist"] = twistVal
-        funcsP = {}
-        funcsP, fail = aeroFuncs(xDVs)
-        CLP = funcsP["CL"]
-        deltatwist = (CL_star - CL0) * eps / (CLP - CL0)
-        twist += deltatwist
 elif task == "testSensShape":
 
-    CFDSolver.runColoring()
+    optFuncs.testSensShape()
 
-    xDV = DVGeo.getValues()
-
-    if gcomm.rank == 0:
-        fOut = open("./testFFDSens.txt", "w")
-
-    # gradAdj
-
-    funcs = {}
-    funcsSens = {}
-    funcs, fail = aeroFuncs(xDV)
-    funcsSens, fail = aeroFuncsSens(xDV, funcs)
-    if gcomm.rank == 0:
-        for funcName in evalFuncs:
-            for shapeVar in xDV:
-                fOut.write(funcName + " " + shapeVar + "\n")
-                try:
-                    nDVs = len(funcsSens[funcName][shapeVar])
-                except Exception:
-                    nDVs = 1
-                for n in range(nDVs):
-                    line = str(funcsSens[funcName][shapeVar][n]) + "\n"
-                    fOut.write(line)
-                    fOut.flush()
-
-    # gradFD
-    deltaX = CFDSolver.getOption("adjEpsDerivFFD")
-    # initialize gradFD
-    gradFD = {}
-    for funcName in evalFuncs:
-        gradFD[funcName] = {}
-        for shapeVar in xDV:
-            gradFD[funcName][shapeVar] = np.zeros(len(xDV[shapeVar]))
-    if gcomm.rank == 0:
-        print("-------FD----------", deltaX)
-        fOut.write("DeltaX: " + str(deltaX) + "\n")
-    for shapeVar in xDV:
-        try:
-            nDVs = len(xDV[shapeVar])
-        except Exception:
-            nDVs = 1
-        for i in range(nDVs):
-            funcp = {}
-            funcm = {}
-            xDV[shapeVar][i] += deltaX
-            funcp, fail = aeroFuncs(xDV)
-            xDV[shapeVar][i] -= 2.0 * deltaX
-            funcm, fail = aeroFuncs(xDV)
-            xDV[shapeVar][i] += deltaX
-            for funcName in evalFuncs:
-                gradFD[funcName][shapeVar][i] = (funcp[funcName] - funcm[funcName]) / (2.0 * deltaX)
-            if gcomm.rank == 0:
-                print(gradFD)
-    # write FD results
-    if gcomm.rank == 0:
-        for funcName in evalFuncs:
-            for shapeVar in xDV:
-                fOut.write(funcName + " " + shapeVar + "\n")
-                try:
-                    nDVs = len(gradFD[funcName][shapeVar])
-                except Exception:
-                    nDVs = 1
-                for n in range(nDVs):
-                    line = str(gradFD[funcName][shapeVar][n]) + "\n"
-                    fOut.write(line)
-                    fOut.flush()
-
-    if gcomm.rank == 0:
-        fOut.close()
 else:
     print("task arg not found!")
     exit(0)
