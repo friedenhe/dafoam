@@ -13,6 +13,8 @@ bool closedVolume = false;
 
 surfaceScalarField phiHbyA("phiHbyA", fvc::interpolate(rho) * fvc::flux(HbyA));
 
+// NOTE: we don't support transonic = true
+
 closedVolume = adjustPhi(phiHbyA, U, p);
 
 while (simple.correctNonOrthogonal())

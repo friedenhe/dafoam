@@ -113,7 +113,7 @@ void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
     // ******** p and phi Residuals **********
     // copied and modified from pEqn.H
     volScalarField rAU(1.0 / UEqn.A());
-    volScalarField rAtU(1.0 / (1.0 / rAU - UEqn.H1()));
+    surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho_ * rAU));
     //volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
     //***************** NOTE *******************
     // we should not use the constrainHbyA function above since it
@@ -125,21 +125,13 @@ void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
 
     surfaceScalarField phiHbyA("phiHbyA", fvc::interpolate(rho_) * fvc::flux(HbyA));
 
-    volScalarField rhorAtU("rhorAtU", rho_ * rAtU);
-
-    // Update the pressure BCs to ensure flux consistency
-    // constrainPressure(p_, rho_, U_, phiHbyA, rhorAtU, this->MRF_);
-
     // NOTE: we don't support transonic = true
 
     adjustPhi(phiHbyA, U_, p_);
 
-    phiHbyA += fvc::interpolate(rho_ * (rAtU - rAU)) * fvc::snGrad(p_) * mesh_.magSf();
-    HbyA -= (rAU - rAtU) * fvc::grad(p_);
-
     fvScalarMatrix pEqn(
         fvc::div(phiHbyA)
-        - fvm::laplacian(rhorAtU, p_));
+        - fvm::laplacian(rhorAUf, p_));
 
     pEqn.setReference(pressureControl_.refCell(), pressureControl_.refValue());
 
@@ -195,7 +187,6 @@ void DAResidualRhoSimpleFoam::updateIntermediateVariables()
 
     alphat_ = rho_ * daTurb_.getNut() / Prt1;
     alphat_.correctBoundaryConditions();
-
 }
 
 /// update the boundary condition for all the states in the selected solver
