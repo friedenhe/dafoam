@@ -13,9 +13,14 @@ from idwarp import *
 from pyoptsparse import Optimization, OPT
 import numpy as np
 
-checkRegVal = 0
-if len(sys.argv) == 0:
+checkRegVal = 1
+if len(sys.argv) == 1:
     checkRegVal = 1
+elif sys.argv[1] == "noCheck":
+    checkRegVal = 0
+else:
+    print("sys.argv not valid!")
+    exit(1)
 
 gcomm = MPI.COMM_WORLD
 
