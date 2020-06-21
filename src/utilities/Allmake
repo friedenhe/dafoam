@@ -5,9 +5,32 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-for d in ./*/ ; do 
-  cd "$d" 
-  python setup.py build_ext --inplace 
-  mv *.so ../../
-  cd ../
-done
+case $1 in
+  "opt")
+    for d in ./*/ ; do 
+      cd "$d" 
+      python setup.py build_ext --inplace 
+      mv *.so ../../
+      cd ../
+    done
+    ;;
+  "debug")
+    for d in ./*/ ; do 
+      cd "$d" 
+      python setup.py build_ext --inplace
+      mv *.so ../../
+      cd ../
+    done
+    ;;
+  "incompressible")
+    cd pyColoringIncompressible && python setup.py build_ext --inplace && mv *.so ../../ && cd -
+    ;;
+  "compressible")
+    cd pyColoringCompressible && python setup.py build_ext --inplace && mv *.so ../../ && cd -
+    ;;
+  *)
+    echo "Argument not valid! Options are: opt, debug, incompressible, and compressible"
+    echo "Example: ./Allmake opt"
+    exit 1
+    ;;
+esac

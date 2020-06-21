@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+if [ -z "$WM_PROJECT" ]; then
+  echo "OpenFOAM environment not found, forgot to source the OpenFOAM bashrc?"
+  exit 1
+fi
+
+case $1 in
+  "opt")
+    cp setup_Incompressible.py setup.py
+    python setup.py build_ext --inplace 
+    mv *.so ../
+    cp setup_Compressible.py setup.py
+    python setup.py build_ext --inplace 
+    mv *.so ../
+    ;;
+  "debug")
+    cp setup_Incompressible.py setup.py
+    sed -i 's/"-std=c++11",/"-std=c++11","-DFULLDEBUG -g -O0",/g' setup.py
+    python setup.py build_ext --inplace 
+    mv *.so ../
+    cp setup_Compressible.py setup.py
+    sed -i 's/"-std=c++11",/"-std=c++11","-DFULLDEBUG -g -O0",/g' setup.py
+    python setup.py build_ext --inplace 
+    mv *.so ../
+    ;;
+  "incompressible")
+    cp setup_Incompressible.py setup.py
+    python setup.py build_ext --inplace 
+    mv *.so ../
+    ;;
+  "compressible")
+    cp setup_Compressible.py setup.py
+    python setup.py build_ext --inplace 
+    mv *.so ../
+    ;;
+  *)
+    echo "Argument not valid! Options are: opt, debug, incompressible, and compressible"
+    echo "Example: ./Allmake opt"
+    exit 1
+    ;;
+esac
+
+
