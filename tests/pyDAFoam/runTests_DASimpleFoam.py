@@ -13,6 +13,10 @@ from idwarp import *
 from pyoptsparse import Optimization, OPT
 import numpy as np
 
+checkRegVal = 0
+if len(sys.argv) == 0:
+    checkRegVal = 1
+
 gcomm = MPI.COMM_WORLD
 
 CL_star = 12.6
@@ -148,20 +152,21 @@ sol = opt(optProb, sens=optFuncs.getObjFuncSens, storeHistory=histFile)
 if gcomm.rank == 0:
     print(sol)
 
-xDVs = DVGeo.getValues()
-
-l2_shapey = np.linalg.norm(xDVs["shapey"])
-l2_shapex = np.linalg.norm(xDVs["shapex"])
-
-ref_shapey = 0.16377918783065240
-ref_shapex = 0.20529406551908677
-
-diff_shapey = abs(l2_shapey - ref_shapey)
-diff_shapex = abs(l2_shapex - ref_shapex)
-
-if diff_shapey > 1.0e-8 or diff_shapex > 1.0e-8:
-    print("Failed!")
-    exit(1)
-else:
-    print("Succes!")
+if checkRegVal:
+    xDVs = DVGeo.getValues()
+    
+    l2_shapey = np.linalg.norm(xDVs["shapey"])
+    l2_shapex = np.linalg.norm(xDVs["shapex"])
+    
+    ref_shapey = 0.16377918783065240
+    ref_shapex = 0.20529406551908677
+    
+    diff_shapey = abs(l2_shapey - ref_shapey)
+    diff_shapex = abs(l2_shapex - ref_shapex)
+    
+    if diff_shapey > 1.0e-8 or diff_shapex > 1.0e-8:
+        print("Failed!")
+        exit(1)
+    else:
+        print("Succes!")
 
