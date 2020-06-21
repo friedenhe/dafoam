@@ -68,6 +68,8 @@ pyDict = {
     ],
 }
 
+pyStrList = ["a", "B", "C1"]
+
 parallelFlag = ""
 if comm.size > 1:
     parallelFlag = "-parallel"
@@ -76,7 +78,7 @@ tests = pyTestDAFoamIncompressible(solverArg.encode())
 
 # Test1: DAUtility
 os.chdir("../input/CurvedCubeHexMesh")
-testErrors = tests.testDAUtility(pyDict)
+testErrors = tests.testDAUtility(pyDict, pyStrList)
 checkErrors("DAUtility", testErrors)
 os.chdir("../../DAFoamIncompressible")
 
@@ -93,11 +95,11 @@ testErrors = tests.testDAModel(testDict)
 checkErrors("DAModel", testErrors)
 os.chdir("../../DAFoamIncompressible")
 
-# Test4: DARegState
+# Test4: DAStateInfo
 os.chdir("../input/CurvedCubeHexMesh")
 testDict = {"solverName": [str, "DASimpleFoam"], "turbulenceModel": [str, "SpalartAllmaras"]}
-testErrors = tests.testDARegState(testDict)
-checkErrors("DARegState", testErrors)
+testErrors = tests.testDAStateInfo(testDict)
+checkErrors("DAStateInfo", testErrors)
 os.chdir("../../DAFoamIncompressible")
 
 # Test5: DAObjFunc

@@ -30,6 +30,13 @@ void DAUtility::pyDict2OFDict(
         Parse a Python dictionary to an OpenFOAM dictionary
         Only support a certain number of data types
 
+    Input:
+        pyDict: Pytion dictionary
+
+    Output:
+        ofDict: OpenFoam dictionary
+    
+    Example:
         We support two types of pyDict, one is to set the key value
         as a list and have the value type as the first element.
         This is needed in pyDAFoam.py to reminder users the date type
@@ -46,10 +53,8 @@ void DAUtility::pyDict2OFDict(
             "solverName": "DASimpleFoam",
             "patches": [1.0, 2.0]
         }
-    Input:
-        pyDict: Pytion dictionary
-    Output:
-        ofDict: OpenFoam dictionary
+
+        Note: one can have multiple levels of sub dictionaries
     */
 
     //PyObject_Print(pyDict,stdout,0);Info<<endl;
@@ -176,7 +181,8 @@ void DAUtility::pyDict2OFDict(
                 else
                 {
                     FatalErrorIn("pyDict2OFDict") << "Type: <" << tmpTypeWord << "> for " << keyUTF8
-                                                  << " list is not supported! Options are: str, int, bool, and float!"
+                                                  << " list is not supported! Options are:"
+                                                  << " str, int, bool, and float!"
                                                   << abort(FatalError);
                 }
             }
@@ -223,19 +229,20 @@ void DAUtility::pyStrList2OFWordList(
     /*
     Description:
         Parse a Python str list to an OpenFOAM word list
-        Only support a certain number of data types
 
     Input:
-        pyList: Pytion list
+        pyList: Pytion str list
+
     Output:
-        ofList: OpenFOAM list
+        ofList: OpenFOAM wordList
+
     Example:
         In Python
         pyList = ["CD", "CL"]
         ....
         Call:
         wordList ofList;
-        DAUtility::pyList2OFList<word>(pyList, ofList);
+        DAUtility::pyStrList2OFWordList(pyList, ofList);
         ofList -> {"CD", "CL"}
     */
 
@@ -281,9 +288,11 @@ void DAUtility::readVectorBinary(
     /*
     Description:
         Read a vector in binary form
+
     Input:
         vecIn: a Petsc vector to read values into (also output)
         prefix: Name of the Petsc vector from disk
+
     Example:
         If the vector storing in the disk reads: dFdWVector.bin
         Then read the vector using:
@@ -312,9 +321,11 @@ void DAUtility::writeVectorBinary(
     /*
     Description:
         Write a vector in binary form
+
     Input:
         vecIn: a Petsc vector to write to disk
         prefix: Name of the Petsc vector to write to disk
+
     Example:
         Vec dFdW;
         codes to initialize vector dFdW....
@@ -373,9 +384,11 @@ void DAUtility::readMatrixBinary(
     /*
     Description:
         Read a matrix in binary form
+
     Input:
         matIn: a Petsc matrix to read values into (also output)
         prefix: Name of the Petsc matrix from disk
+
     Example:
         If the matrix storing in the disk reads: dRdWMat.bin
         Then read the matrix using:
@@ -404,9 +417,11 @@ void DAUtility::writeMatrixBinary(
     /*
     Description:
         Write a matrix in binary form
+
     Input:
         matIn: a Petsc matrix to write to disk
         prefix: Name of the Petsc matrix to write to disk
+
     Example:
         Mat dRdW;
         codes to initialize matrix dRdW....
@@ -434,9 +449,11 @@ void DAUtility::writeMatrixASCII(
     /*
     Description:
         Write a matrix in ASCII form
+
     Input:
         matIn: a Petsc matrix to write to disk
         prefix: Name of the Petsc matrix to write to disk
+
     Example:
         Mat dRdW;
         codes to initialize matrix dRdW....
@@ -465,6 +482,7 @@ void DAUtility::boundVar(
     Description:
         Bound a field variable according to the bounds defined
         in the allOptions dict. This is a overload function for volScalarField
+
     Input:
         allOptions: a dictionary that has upper and lower bound values
         We need to give specific name for the bounds, i.e.,
@@ -475,6 +493,7 @@ void DAUtility::boundVar(
     
     Input & Output:
         var: an OpenFOAM field variable to be bounded
+
     Example:
         dictionary allOptions;
         allOptions.set("pUpperBound", 120000.0);
@@ -542,11 +561,11 @@ void DAUtility::boundVar(
     const dictionary& allOptions,
     volVectorField& var)
 {
-
     /*
     Description:
         Bound a field variable according to the bounds defined
         in the allOptions dict. This is a overload function for volVectorField
+
     Input:
         allOptions: a dictionary that has upper and lower bound values
         We need to give specific name for the bounds, i.e.,
@@ -557,6 +576,7 @@ void DAUtility::boundVar(
     
     Input & Output:
         var: an OpenFOAM field variable to be bounded
+
     Example:
         dictionary allOptions;
         allOptions.set("pUpperBound", 120000.0);
@@ -678,12 +698,24 @@ globalIndex DAUtility::genGlobalIndex(const label localIndexSize)
     return result;
 }
 
-/// check whether a value is close to a reference value by a tolerance
+
 label DAUtility::isValueCloseToRef(
     const scalar val,
     const scalar refVal,
     const scalar tol)
 {
+    /* 
+    Description:
+        check whether a value is close to a reference value by a tolerance
+
+    Input:
+        val: value to check
+        refVal: reference value 
+        tol: tolerance
+    
+    Output:
+        return: 1 means fabs(val-refVal) < tol
+    */
     if (fabs(val - refVal) < tol)
     {
         return 1;

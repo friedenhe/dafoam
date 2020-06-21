@@ -21,7 +21,7 @@ TestDAFoamCompressible::~TestDAFoamCompressible()
 {
 }
 
-label TestDAFoamCompressible::testDARegState(PyObject* pyDict)
+label TestDAFoamCompressible::testDAStateInfo(PyObject* pyDict)
 {
     autoPtr<argList> argsPtr_;
 #include "setArgs.H"
@@ -31,7 +31,7 @@ label TestDAFoamCompressible::testDARegState(PyObject* pyDict)
 #include "createFields.H"
 
     label testErrors = 0;
-
+/*
     DAOption daOption(mesh, pyDict);
 
     autoPtr<DATurbulenceModel> daTurbmodel(
@@ -62,7 +62,7 @@ label TestDAFoamCompressible::testDARegState(PyObject* pyDict)
         Pout << "compressible error in DARegState!" << endl;
         testErrors += 1;
     }
-
+*/
     return testErrors;
 }
 

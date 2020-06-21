@@ -61,6 +61,7 @@ private:
     /// Foam::fvMesh object
     const fvMesh& mesh_;
 
+    /// DAOptoin object
     const DAOption& daOption_;
 
     /// have turbulence models for the flow and adjoint?

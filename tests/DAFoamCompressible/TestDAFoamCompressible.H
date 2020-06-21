@@ -16,7 +16,7 @@
 #include "Python.h"
 #include "DAUtility.H"
 #include "DAOption.H"
-#include "DARegState.H"
+#include "DAStateInfo.H"
 #include "DATurbulenceModel.H"
 #include "DAModel.H"
 
@@ -51,11 +51,8 @@ public:
     /// Destructor
     virtual ~TestDAFoamCompressible();
 
-    /// check if the dict matches the reference
-    label validateOFDict(const dictionary& ofDict1);
-
-    /// test DARegState
-    label testDARegState(PyObject* pyDict);
+    /// test DAStateInfo
+    label testDAStateInfo(PyObject* pyDict);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

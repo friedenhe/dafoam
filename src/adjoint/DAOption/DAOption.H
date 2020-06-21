@@ -4,9 +4,9 @@
     Version : v2
 
     Description:
-        DAOption contains a dictionary that has all the DAFoam options 
+        DAOption contains an OpenFOAM dictionary that has all the options 
         defined in the python layer. It also has functions to get and set
-        values in DAOption::allOptions_
+        values from DAOption::allOptions_
 
 \*---------------------------------------------------------------------------*/
 
@@ -91,14 +91,17 @@ classType DAOption::getOption(const word key) const
     /*
     Description:
         Get an option from allOptions_
-        NOTE: the return value can not be a dictionary. If one need to get 
-        a dictionary for key, use DAOption::getOptionSubDict instead
+        NOTE: the return value can not be a dictionary. If one need to get a sub
+        dictionary, use DAOption::getAllOptions().subDict("subDictName") instead
+
     Input:
-        key: the key in the allOptions_ dictionary
+        key: the key in the DAOption::allOptions_ dictionary
+
     Output:
-        classType: the value for the allOptions_[key]
+        classType: the value for the DAOption::allOptions_[key]
+
     Example:
-        If allOptions_ reads
+        If DAOption::allOptions_ reads
         {
             flowCondition  Incompressible;
             nkTol          1.e-6;
@@ -124,16 +127,18 @@ void DAOption::setOption(
 {
     /*
     Description:
-        Set an option to allOptions_. 
-        NOTE: the value can not be a dictionary. If one need to set a dictionary
-        to key, use DAOption::setOptionSubDict instead
+        Set an option to DAOption::allOptions_. 
+        NOTE: the value can not be a dictionary. 
+
     Input:
-        key: the key in the allOptions_ dictionary
+        key: the key in the DAOption::allOptions_ dictionary
         value: the value to set
+
     Output:
-        allOptions_: the key value in allOptions will be replaced
+        DAOption::allOptions_: the key value in allOptions will be replaced
+
     Example:
-        If allOptions_ reads
+        If DAOption::allOptions_ reads
         {
             flowCondition  Incompressible;
             nkTol          1.e-6;
@@ -160,11 +165,14 @@ classType DAOption::getSubDictOption(
     /*
     Description:
         Get value from a key from a sub dictionary in allOptions_
+
     Input:
         subDict: the name of the subDict
         subDictKey: the key in the subDict
+
     Output:
         classType: the value for the allOptions_[subDict][subDictKey]
+
     Example:
         If allOptions_ reads
         {
@@ -194,12 +202,15 @@ void DAOption::setSubDictOption(
     /*
     Description:
         Set a sub dictionary option to allOptions_
+
     Input:
         subDict: the name of the subDict
         subDictKey: the key in the subDict
         value: the value to set
+
     Output:
         allOptions_: the key value in allOptions will be replaced
+
     Example:
         If allOptions_ reads
         {

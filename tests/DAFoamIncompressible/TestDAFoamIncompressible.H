@@ -16,7 +16,7 @@
 #include "Python.h"
 #include "DAUtility.H"
 #include "DAOption.H"
-#include "DARegState.H"
+#include "DAStateInfo.H"
 #include "DATurbulenceModel.H"
 #include "simpleControl.H"
 #include "DAModel.H"
@@ -60,7 +60,9 @@ public:
     label validateOFDict(const dictionary& ofDict1);
 
     /// test DAUtility
-    label testDAUtility(PyObject* pyDict);
+    label testDAUtility(
+        PyObject* pyDict,
+        PyObject* pyStrList);
 
     /// test DAOption
     label testDAOption(PyObject* pyDict);
@@ -68,8 +70,8 @@ public:
     /// test DAModel
     label testDAModel(PyObject* pyDict);
 
-    /// test DARegState
-    label testDARegState(PyObject* pyDict);
+    /// test DAStateInfo
+    label testDAStateInfo(PyObject* pyDict);
 
     /// test DAObjFunc
     label testDAObjFunc(PyObject* pyDict);

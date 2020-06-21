@@ -5,7 +5,8 @@
 
     Description:
         DAUtility contains basic functions such as matrix file IO, and
-        it is independent of fvMesh.
+        it is independent of fvMesh. All the functions in DAUtility are static,
+        so they can be directly called, e.g., DAUtility::boundVar(...)
 
 \*---------------------------------------------------------------------------*/
 
@@ -47,6 +48,7 @@ public:
         PyObject* pyDict,
         dictionary& ofDict);
 
+    /// convert a python str list to OpenFOAM wordList
     static void pyStrList2OFWordList(
         PyObject* pyList,
         wordList& ofList);
@@ -128,9 +130,11 @@ label DAUtility::isInList(
     /*
     Description:
         Check whether a value is in the list
+
     Input:
         value: a value to check with type: classType
         list: list to check the value
+
     Example:
         If the list reads
         list1={"test","run","compare"};
@@ -157,10 +161,12 @@ label DAUtility::listReplaceVal(
     /*
     Description:
         Replace a value in hte list, the list sequence is preserved
+
     Input:
         listIn: the list to replace
         valOrig: original value in the list
         valNew: new value to replace
+
     Example:
         List<word> listIn={"apple","orange"};
         listReplaceVal<word>(listIn,"apple","banana");
@@ -191,9 +197,14 @@ label DAUtility::listDeleteVal(
     Description:
         Delete a value in the list, the sequence of other
         elements will be preserved
+
     Input:
         listIn: the list to delete value
         valDel: value to delete
+    
+    Output:
+        foundVal: 1 means the requested value is found and deleted
+
     Example:
         List<word> listIn={"apple","orange"};
         listDeleteVal<word>(listIn,"apple");

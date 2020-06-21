@@ -35,3 +35,10 @@ autoPtr<incompressible::turbulenceModel> turbulence(
 // need to register laminarTransport and turbulence to mesh
 DARegDbSinglePhaseTransportModel regDbTransport(mesh, laminarTransport);
 DARegDbTurbulenceModelIncompressible regDbTurbulence(mesh, turbulence());
+
+DAOption daOption(mesh, pyDict);
+
+word turbModelName = daOption.getOption<word>("turbulenceModel");
+autoPtr<DATurbulenceModel> daTurbulenceModel(DATurbulenceModel::New(turbModelName, mesh, daOption));
+
+DAModel daModel(mesh, daOption);

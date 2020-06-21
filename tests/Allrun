@@ -5,6 +5,7 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
+# test DAFoamIncompresible lib
 rm -rf input
 tar -xvf input.tar.gz
 cd input/CurvedCubeHexMesh && cp -r 0.incompressible/* 0/ && decomposePar
@@ -13,6 +14,7 @@ cd ../../
 cd DAFoamIncompressible && make && mpirun -np 4 python runTests.py
 cd ../
 
+# test DAFoamCompressible lib
 rm -rf input
 tar -xvf input.tar.gz
 cd input/CurvedCubeHexMesh && cp -r 0.compressible/* 0/ && decomposePar
@@ -21,11 +23,15 @@ cd ../../
 cd DAFoamCompressible && make && mpirun -np 4 python runTests.py
 cd ../
 
+# test pyDAFoam.py
+rm -rf input
+tar -xvf input.tar.gz
+
+cd pyDAFoam && mpirun -np 4 python runTests_DASimpleFoam.py
+cd ../
+
 rm -rf input
 tar -xvf input.tar.gz
 
 cd pyDAFoam && mpirun -np 4 python runTests_DARhoSimpleFoam.py
 cd ../
-cd pyDAFoam && mpirun -np 4 python runTests_DASimpleFoam.py
-cd ../
-

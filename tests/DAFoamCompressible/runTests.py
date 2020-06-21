@@ -50,9 +50,9 @@ if comm.size > 1:
 solverArg = "TestDAFoamCompressible -python " + parallelFlag
 tests = pyTestDAFoamCompressible(solverArg.encode())
 
-# Test1: DARegState
+# Test1: DAStateInfo
 os.chdir("../input/CurvedCubeHexMesh")
 testDict = {"solverName": [str, "DARhoSimpleFoam"], "turbulenceModel": [str, "SpalartAllmaras"]}
-testErrors = tests.testDARegState(testDict)
-checkErrors("DARegState", testErrors)
+testErrors = tests.testDAStateInfo(testDict)
+checkErrors("DAStateInfo", testErrors)
 os.chdir("../../DAFoamCompressible")
