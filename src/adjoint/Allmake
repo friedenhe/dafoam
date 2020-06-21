@@ -10,7 +10,7 @@ case $1 in
     cp Make/files_Incompressible Make/files
     cp Make/options_Incompressible Make/options
     wmake -j 4
-    wclean
+    ./Allclean
     cp Make/files_Compressible Make/files
     cp Make/options_Compressible Make/options
     wmake -j 4
@@ -20,7 +20,7 @@ case $1 in
     cp Make/options_Incompressible Make/options
     sed -i 's/-std=c++11/-std=c++11 -DFULLDEBUG -g -O0/g' Make/options
     wmake -j 4
-    wclean
+    ./Allclean
     cp Make/files_Compressible Make/files
     cp Make/options_Compressible Make/options
     sed -i 's/-std=c++11/-std=c++11 -DFULLDEBUG -g -O0/g' Make/options
