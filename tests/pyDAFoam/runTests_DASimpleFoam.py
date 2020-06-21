@@ -16,10 +16,10 @@ import numpy as np
 checkRegVal = 1
 if len(sys.argv) == 1:
     checkRegVal = 1
-elif sys.argv[1] == "noCheck":
+elif sys.argv[1] == "noCheckVal":
     checkRegVal = 0
 else:
-    print("sys.argv not valid!")
+    print("sys.argv %s not valid!" % sys.argv[1])
     exit(1)
 
 gcomm = MPI.COMM_WORLD
@@ -159,16 +159,16 @@ if gcomm.rank == 0:
 
 if checkRegVal:
     xDVs = DVGeo.getValues()
-    
+
     l2_shapey = np.linalg.norm(xDVs["shapey"])
     l2_shapex = np.linalg.norm(xDVs["shapex"])
-    
+
     ref_shapey = 0.16377918783065240
     ref_shapex = 0.20529406551908677
-    
+
     diff_shapey = abs(l2_shapey - ref_shapey)
     diff_shapex = abs(l2_shapex - ref_shapex)
-    
+
     if diff_shapey > 1.0e-8 or diff_shapex > 1.0e-8:
         print("Failed!")
         exit(1)
