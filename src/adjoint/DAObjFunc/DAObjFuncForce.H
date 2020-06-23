@@ -31,6 +31,7 @@ protected:
     /// the direction of the force
     vector forceDir_;
 
+    /// DATurbulenceModel object
     const DATurbulenceModel& daTurb_;
 
 public:

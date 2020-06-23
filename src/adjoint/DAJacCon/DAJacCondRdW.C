@@ -33,6 +33,12 @@ DAJacCondRdW::DAJacCondRdW(
 
 void DAJacCondRdW::initializePetscVecs()
 {
+    /*
+    Description:
+        Initialize dRdWTPreallocOn_, dRdWTPreallocOff_, dRdWPreallocOn_,
+        dRdWPreallocOff_, and jacConColors_
+    
+    */
 
     // initialize the preallocation vecs
     VecCreate(PETSC_COMM_WORLD, &dRdWTPreallocOn_);
@@ -56,17 +62,17 @@ void DAJacCondRdW::initializePetscVecs()
 void DAJacCondRdW::setupJacConPreallocation(const dictionary& options)
 {
     /*
-    Setup the connectivity mat preallocation vectors:
+    Description:
+        Setup the connectivity mat preallocation vectors:
 
-    dRdWTPreallocOn_
-    dRdWTPreallocOff_
-    dRdWPreallocOn_
-    dRdWPreallocOff_
+        dRdWTPreallocOn_
+        dRdWTPreallocOff_
+        dRdWPreallocOn_
+        dRdWPreallocOff_
     
     Input:
-    -----
-    options.stateResConInfo: a hashtable that contains the connectivity
-    information for dRdW
+        options.stateResConInfo: a hashtable that contains the connectivity
+        information for dRdW, usually obtained from Foam::DAStateInfo
     */
 
     HashTable<List<List<word>>> stateResConInfo;
@@ -79,12 +85,12 @@ void DAJacCondRdW::setupJacConPreallocation(const dictionary& options)
 void DAJacCondRdW::setupJacCon(const dictionary& options)
 {
     /*
-    Setup DAJacCon::jacCon_
+    Description:
+        Setup DAJacCon::jacCon_
     
     Input:
-    -----
-    options.stateResConInfo: a hashtable that contains the connectivity
-    information for dRdW
+        options.stateResConInfo: a hashtable that contains the connectivity
+        information for dRdW, usually obtained from Foam::DAStateInfo
     */
 
     HashTable<List<List<word>>> stateResConInfo;
@@ -97,11 +103,11 @@ void DAJacCondRdW::setupJacCon(const dictionary& options)
 void DAJacCondRdW::initializeJacCon(const dictionary& options)
 {
     /*
-    Initialize the connectivity matrix and preallocate memory
+    Description:
+        Initialize the connectivity matrix and preallocate memory
     
     Input:
-    -----
-    options: it is not used.
+        options: it is not used.
     */
 
     MatCreate(PETSC_COMM_WORLD, &jacCon_);
@@ -128,110 +134,108 @@ void DAJacCondRdW::setupdRdWCon(
     const label isPrealloc)
 {
     /*
-    Calculates the state Jacobian connectivity mat DAJacCon::jacCon_ or 
-    computing the preallocation vectors DAJacCondRdW::dRdWPreallocOn_ and 
-    DAJacCondRdW::dRdWPreallocOff_
+    Description:
+        Calculates the state Jacobian connectivity mat DAJacCon::jacCon_ or 
+        computing the preallocation vectors DAJacCondRdW::dRdWPreallocOn_ and 
+        DAJacCondRdW::dRdWPreallocOff_
 
     Input:
-    ------
-    stateResConInfo: a hashtable that contains the connectivity
-    information for dRdW
+        stateResConInfo: a hashtable that contains the connectivity
+        information for dRdW, usually obtained from Foam::DAStateInfo
 
-    isPrealloc == 1: calculate the preallocation vectors, else, calculate jacCon_
+        isPrealloc == 1: calculate the preallocation vectors, else, calculate jacCon_
 
     Output:
-    ------
-    DAJacCondRdW::dRdWPreallocOn_: preallocation vector that stores the number of 
-    on-diagonal conectivity for each row
-
-    DAJacCon::jacCon_: state Jacobian connectivity mat with dimension 
-    sizeAdjStates by sizeAdjStates. jacCon_ has the same non-zero pattern as Jacobian mat.
-    The difference is that jacCon_ has values one for all non-zero values, so jacCon_
-    may look like this
-
-                1 1 0 0 1 0 
-                1 1 1 0 0 1 
-                0 1 1 1 0 0 
-    jacCon_ =   1 0 1 1 1 0 
-                0 1 0 1 1 1
-                0 0 1 0 0 1
-
+        DAJacCondRdW::dRdWPreallocOn_: preallocation vector that stores the number of 
+        on-diagonal conectivity for each row
+    
+        DAJacCon::jacCon_: state Jacobian connectivity mat with dimension 
+        sizeAdjStates by sizeAdjStates. jacCon_ has the same non-zero pattern as Jacobian mat.
+        The difference is that jacCon_ has values one for all non-zero values, so jacCon_
+        may look like this
+    
+                    1 1 0 0 1 0 
+                    1 1 1 0 0 1 
+                    0 1 1 1 0 0 
+        jacCon_ =   1 0 1 1 1 0 
+                    0 1 0 1 1 1
+                    0 0 1 0 0 1
+    
     Example:
-    -------
-    The way setupJacCon works is that we call the DAJacCon::addStateConnections function
-    to add connectivity for each row of DAJacCon::jacCon_.
+        The way setupJacCon works is that we call the DAJacCon::addStateConnections function
+        to add connectivity for each row of DAJacCon::jacCon_.
+        
+        Here we need to loop over all cellI and add a certain number levels of connected states.
+        If the connectivity list reads:
     
-    Here we need to loop over all cellI and add a certain number levels of connected states.
-    If the connectivity list reads:
-
-    stateResConInfo
-    {
-        "URes"
+        stateResConInfo
         {
-            {"U", "p", "phi"}, // level 0 connectivity
-            {"U", "p", "phi"}, // level 1 connectivity
-            {"U"},             // level 2 connectivity
+            "URes"
+            {
+                {"U", "p", "phi"}, // level 0 connectivity
+                {"U", "p", "phi"}, // level 1 connectivity
+                {"U"},             // level 2 connectivity
+            }
         }
-    }
-
-    and the cell topology with a inter-proc boundary cen be either of the following:
-    CASE 1:
-                       ---------
-                       | cellQ |
-                -----------------------
-               | cellP | cellJ | cellO |             <------ proc1
-    ------------------------------------------------ <----- inter-processor boundary
-       | cellT | cellK | cellI | cellL | cellU |     <------ proc0
-       -----------------------------------------
-               | cellN | cellM | cellR |
-                ------------------------
-                       | cellS |
-                       ---------
     
-    CASE 2:
-                       ---------
-                       | cellQ |                       <------ proc1
-    -------------------------------------------------- <----- inter-processor boundary
-               | cellP | cellJ | cellO |               <------ proc0
-       ----------------------------------------- 
-       | cellT | cellK | cellI | cellL | cellU |    
-       -----------------------------------------
-               | cellN | cellM | cellR |
-                ------------------------
-                       | cellS |
-                       ---------
+        and the cell topology with a inter-proc boundary cen be either of the following:
+        CASE 1:
+                           ---------
+                           | cellQ |
+                    -----------------------
+                   | cellP | cellJ | cellO |             <------ proc1
+        ------------------------------------------------ <----- inter-processor boundary
+           | cellT | cellK | cellI | cellL | cellU |     <------ proc0
+           -----------------------------------------
+                   | cellN | cellM | cellR |
+                    ------------------------
+                           | cellS |
+                           ---------
+        
+        CASE 2:
+                           ---------
+                           | cellQ |                       <------ proc1
+        -------------------------------------------------- <----- inter-processor boundary
+                   | cellP | cellJ | cellO |               <------ proc0
+           ----------------------------------------- 
+           | cellT | cellK | cellI | cellL | cellU |    
+           -----------------------------------------
+                   | cellN | cellM | cellR |
+                    ------------------------
+                           | cellS |
+                           ---------
+        
+        Then, to add the connectivity correctly, we need to add all levels of connected
+        states for cellI.
+        Level 0 connectivity is straightforward becasue we don't need
+        to provide connectedStatesInterProc
     
-    Then, to add the connectivity correctly, we need to add all levels of connected
-    states for cellI.
-    Level 0 connectivity is straightforward becasue we don't need
-    to provide connectedStatesInterProc
-
-    To add level 1 connectivity, we need to:
-    set connectedLevelLocal = 1
-    set connectedStatesLocal = {U, p}
-    set connectedStatesInterProc = {{U,p}, {U}}
-    set addFace = 1 
-    NOTE: we need set level 1 and level 2 con in connectedStatesInterProc because the 
-    north face of cellI is a inter-proc boundary and there are two levels of connected
-    state on the other side of the inter-proc boundary for CASE 1. This is the only chance we 
-    can add all two levels of connected state across the boundary for CASE 1. For CASE 2, we won't
-    add any level 1 inter-proc states because non of the faces for cellI are inter-proc
-    faces so calling DAJacCon::addBoundaryFaceConnections for cellI won't add anything
-
-    To add level 2 connectivity, we need to
-    set connectedLevelLocal = 2
-    set connectedStatesLocal = {U}
-    set connectedStatesInterProc = {{U}}
-    set addFace = 0
-    NOTE 1: we need only level 2 con (U) for connectedStatesInterProc because if we are in CASE 1,
-    the level 2 of inter-proc states have been added. For CASE 2, we only need to add cellQ
-    by calling DAJacCon::addBoundaryFaceConnections with cellJ
-    NOTE 2: If we didn't call two levels of connectedStatesInterProc in the previous call for 
-    level 1 con, we can not add it for connectedLevelLocal = 2 becasue for CASE 2 there is no
-    inter-proc boundary for cellI
-
-    NOTE: how to provide connectedLevelLocal, connectedStatesLocal, and connectedStatesInterProc
-    are done in this function
+        To add level 1 connectivity, we need to:
+        set connectedLevelLocal = 1
+        set connectedStatesLocal = {U, p}
+        set connectedStatesInterProc = {{U,p}, {U}}
+        set addFace = 1 
+        NOTE: we need set level 1 and level 2 con in connectedStatesInterProc because the 
+        north face of cellI is a inter-proc boundary and there are two levels of connected
+        state on the other side of the inter-proc boundary for CASE 1. This is the only chance we 
+        can add all two levels of connected state across the boundary for CASE 1. For CASE 2, we won't
+        add any level 1 inter-proc states because non of the faces for cellI are inter-proc
+        faces so calling DAJacCon::addBoundaryFaceConnections for cellI won't add anything
+    
+        To add level 2 connectivity, we need to
+        set connectedLevelLocal = 2
+        set connectedStatesLocal = {U}
+        set connectedStatesInterProc = {{U}}
+        set addFace = 0
+        NOTE 1: we need only level 2 con (U) for connectedStatesInterProc because if we are in CASE 1,
+        the level 2 of inter-proc states have been added. For CASE 2, we only need to add cellQ
+        by calling DAJacCon::addBoundaryFaceConnections with cellJ
+        NOTE 2: If we didn't call two levels of connectedStatesInterProc in the previous call for 
+        level 1 con, we can not add it for connectedLevelLocal = 2 becasue for CASE 2 there is no
+        inter-proc boundary for cellI
+    
+        NOTE: how to provide connectedLevelLocal, connectedStatesLocal, and connectedStatesInterProc
+        are done in this function
 
     */
 
@@ -670,28 +674,27 @@ void DAJacCondRdW::allocateJacobianConnections(
     const label row)
 {
     /*
-    Compute the matrix allocation vector based on one row connection mat
+    Description:
+        Compute the matrix allocation vector based on one row connection mat
 
     Input:
-    -----
-    connections: a one row matrix that contains all the nonzeros for one 
-    row of DAJacCon::jacCon_
+        connections: a one row matrix that contains all the nonzeros for one 
+        row of DAJacCon::jacCon_
 
-    row: which row to add for the preallocation vector
+        row: which row to add for the preallocation vector
 
     Output:
-    ------
-    preallocOnProc: the vector that contains the number of nonzeros for each row
-    in dRdW (on-diagonal block elements)
-
-    preallocOffProc: the vector that contains the number of nonzeros for each row
-    in dRdW (off-diagonal block elements)
-
-    preallocOnProcT: the vector that contains the number of nonzeros for each row
-    in dRdWT (on-diagonal block elements)
-
-    preallocOffProcT: the vector that contains the number of nonzeros for each row
-    in dRdWT (off-diagonal block elements)
+        preallocOnProc: the vector that contains the number of nonzeros for each row
+        in dRdW (on-diagonal block elements)
+    
+        preallocOffProc: the vector that contains the number of nonzeros for each row
+        in dRdW (off-diagonal block elements)
+    
+        preallocOnProcT: the vector that contains the number of nonzeros for each row
+        in dRdWT (on-diagonal block elements)
+    
+        preallocOffProcT: the vector that contains the number of nonzeros for each row
+        in dRdWT (off-diagonal block elements)
 
     */
     PetscScalar v = 1.0;
@@ -757,15 +760,15 @@ void DAJacCondRdW::preallocateJacobianMatrix(
     const Vec preallocOffProc) const
 {
     /*
-    Preallocate memory for dRMat.
+    Description:
+        Preallocate memory for dRMat.
 
     Input:
-    ------
-    preallocOnProc, preallocOffProc: the on and off diagonal nonzeros for
-    dRMat
+        preallocOnProc, preallocOffProc: the on and off diagonal nonzeros for
+        dRMat
 
     Output:
-    dRMat: matrix to preallocate memory for
+        dRMat: matrix to preallocate memory for
     */
 
     scalar normOn, normOff;
@@ -811,17 +814,16 @@ void DAJacCondRdW::preallocatedRdW(
     const label transposed) const
 {
     /*
-    Call the DAJacCondRdW::preallocateJacobianMatrix function with the 
-    correct vectors, depending on transposed
+    Description:
+        Call the DAJacCondRdW::preallocateJacobianMatrix function with the 
+        correct vectors, depending on transposed
 
     Input:
-    -----
-    transposed: whether the state Jacobian mat is transposed, i.e., it
-    is for dRdW or dRdWT (transposed)
+        transposed: whether the state Jacobian mat is transposed, i.e., it
+        is for dRdW or dRdWT (transposed)
 
     Output:
-    ------
-    dRMat: the matrix to preallocate
+        dRMat: the matrix to preallocate
     */
     if (transposed)
     {

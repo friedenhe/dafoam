@@ -60,6 +60,20 @@ DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
 
 void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
 {
+    /*
+    Description:
+        This is the function to compute residuals.
+    
+    Input:
+        options.isPC: 1 means computing residuals for preconditioner matrix.
+        This essentially use the first order scheme for div(phi,U), div(phi,e)
+
+        p_, T_, U_, phi_, etc: State variables in OpenFOAM
+    
+    Output:
+        URes_, pRes_, TRes_, phiRes_: residual field variables
+    */
+
     // We dont support MRF and fvOptions so all the related lines are commented
     // out for now
 
@@ -146,16 +160,21 @@ void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
 
 void DAResidualRhoSimpleFoam::updateIntermediateVariables()
 {
-    // ********************** NOTE *****************
-    // we assume hePsiThermo
-    // TODO: need to do this using built-in openfoam functions.
+    /* 
+    Description:
+        Update the intermediate variables that depend on the state variables
 
-    // we need to:
-    // 1, update psi based on T, psi=1/(R*T)
-    // 2, update rho based on p and psi, rho=psi*p
-    // 3, update E based on T, p and rho, E=Cp*T-p/rho
-    // 4, update alphat
-    // 5, update velocity boundary based on MRF
+        ********************** NOTE *****************
+        we assume hePsiThermo
+        TODO: need to do this using built-in openfoam functions.
+    
+        we need to:
+        1, update psi based on T, psi=1/(R*T)
+        2, update rho based on p and psi, rho=psi*p
+        3, update E based on T, p and rho, E=Cp*T-p/rho
+        4, update alphat
+        5, update velocity boundary based on MRF (not yet implemented)
+    */
 
     scalar RR = Foam::constant::thermodynamic::RR; // 8314.4700665  gas constant in OpenFOAM
     dimensionedScalar R(
@@ -189,9 +208,14 @@ void DAResidualRhoSimpleFoam::updateIntermediateVariables()
     alphat_.correctBoundaryConditions();
 }
 
-/// update the boundary condition for all the states in the selected solver
+
 void DAResidualRhoSimpleFoam::correctBoundaryConditions()
 {
+    /* 
+    Description:
+        Update the boundary condition for all the states in the selected solver
+    */
+    
     U_.correctBoundaryConditions();
     p_.correctBoundaryConditions();
     T_.correctBoundaryConditions();

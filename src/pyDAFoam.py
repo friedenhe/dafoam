@@ -64,7 +64,7 @@ class PYDAFOAM(object):
             "adjEpsDerivState": [float, 1.0e-5],
             "adjEpsDerivFFD": [float, 1.0e-3],
             "adjEpsDerivBC": [float, 1.0e-2],
-            "adjJacMatOrdering": [str, "state"],
+            "adjStateOrdering": [str, "state"],
             "adjEqnOption": [
                 dict,
                 {

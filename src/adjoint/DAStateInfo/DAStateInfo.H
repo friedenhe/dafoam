@@ -91,13 +91,13 @@ public:
     {
     }
 
-    /// return the reference of regStates_
+    /// return the reference of stateInfo_
     const HashTable<wordList>& getStateInfo() const
     {
         return stateInfo_;
     }
 
-    /// return the reference of adjStateResidualConInfo_
+    /// return the reference of stateResConInfo_
     const HashTable<List<List<word>>>& getStateResConInfo() const
     {
         return stateResConInfo_;

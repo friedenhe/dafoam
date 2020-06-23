@@ -233,6 +233,7 @@ public:
     /// get the nu field
     tmp<volScalarField> nu() const;
 
+    /// get alpha field
     tmp<volScalarField> getAlpha() const;
 
     /// get the density field

@@ -41,8 +41,15 @@ void DAPartDerivdRdW::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
-    label transposed = 0;
-    options.readEntry<label>("transposed", transposed);
+    /*
+    Description:
+        Initialize jacMat
+    
+    Input:
+        options.transposed. Whether to compute the transposed of dRdW
+    */
+
+    label transposed = options.getLabel("transposed");
 
     // now initialize the memory for the jacobian itself
     label localSize = daIndex_.nLocalAdjointStates;
@@ -69,7 +76,25 @@ void DAPartDerivdRdW::calcPartDerivMat(
     const Vec wVec,
     Mat jacMat)
 {
-    label transposed = 1;
+    /*
+    Description:
+        Compute jacMat. We use coloring accelerated finite-difference
+    
+    Input:
+
+        options.transposed. Whether to compute the transposed of dRdW
+
+        options.isPC: whether to compute the jacMat for preconditioner
+
+        xvVec: the volume mesh coordinate vector
+
+        wVec: the state variable vector
+    
+    Output:
+        jacMat: the partial derivative matrix dRdW to compute
+    */
+
+    label transposed = options.getLabel("transposed");
 
     // initialize coloredColumn vector
     Vec coloredColumn;

@@ -191,83 +191,6 @@ public:
     /// phi local indexing offset for cell-by-cell indexing
     labelList phiLocalOffset;
 
-    /*
-    // Member functions
-
-    /// get local segregated adjoint index for a given state name, cell/face indxI and its component (optional, only for vector states)
-    label getLocalSegregatedAdjointStateIndex
-    (
-        const word stateName,
-        const label idxI,
-        label comp=-1
-    );
-    
-    /// get global segregated adjoint index for a given state name, cell/face indxI and its component (optional, only for vector states)
-    label getGlobalSegregatedAdjointStateIndex
-    (
-        const word stateName,
-        const label idxI,
-        label comp=-1
-    );
-        
-    /// get the objective function geometry information from the adjIO object
-    List<word> getObjFuncGeoInfo(const word objFunc);
-
-    /// get the number of objective function geometry elements, this could be the total number of discrete surfaces for all the design surfaces, or total cells for all the user-defined volumes. 
-    label getNLocalObjFuncGeoElements(const word objFunc);
-    
-    void calcCellIFaceI4GlobalAdjIdx(scalarList& cellIFaceI4GlobalAdjIdx);
-    
-    /// given a boundary patchI and faceI, return its local boundary face index
-    label BFacePatchIFaceI2LocalIndex(const label patchI, const label faceI);
-    
-    /// given a local boundary face index, return its boundary patchI and faceI
-    void BFaceLocalIndex2PatchIFaceI
-    (
-        const label idxI,
-        label& patchIdx,
-        label& faceIdx
-    );
-    
-    /// write adjoint indexing information to disk for debugging
-    void writeAdjointIndexing();
-    
-    /// how many non-zeros in the petsc matrix
-    void getMatNonZeros
-    (
-        Mat matIn,
-        label& maxCols, 
-        scalar& allNonZeros
-    );
-    
-    /// print matrix non-zero information (e.g., diag/off-diag ratio)
-    void printMatChars(Mat matIn);
-
-    /// initialize globalObjFuncGeoNumbering for a given objective function   
-    void initializeObjFuncGeoNumbering(const word objFunc);
-
-    /// delete globalObjFuncGeoNumbering
-    void deleteObjFuncGeoNumbering();
-    
-    /// check if a patch is a user-defined patch
-    label isUserDefinedPatch(word geoInfo);
-
-    /// check if a volume is user-defined volume
-    label isUserDefinedVolume(word geoInfo);
-
-    /// calculate the face indices for all the user-defined patches: faceIdx4UserDefinedPatches
-    void calcFaceIndx4UserDefinedPatches();
-
-    /// calculate the cell indices for all the user-defined volumes: cellIdx4UserDefinedVolumes
-    void calcCellIndx4UserDefinedVolumes();
-    
-    ///  face indices for all the user-defined patches
-    HashTable< labelList > faceIdx4UserDefinedPatches;
-
-    ///  cell indices for all the user-defined volumes
-    HashTable< labelList > cellIdx4UserDefinedVolumes;
-    */
-
     // Member functions
 
     /// calculate stateLocalIndexOffset
@@ -320,8 +243,10 @@ public:
         Info << "Global Adjoint States: " << nGlobalAdjointStates << endl;
     }
 
+    /// print petsc matrix statistics such as the max on/off diagonral ratio
     void printMatChars(const Mat matIn) const;
 
+    /// get number of non zeros for a matrix
     void getMatNonZeros(
         const Mat matIn,
         label& maxCols,

@@ -55,13 +55,11 @@ DATurbulenceModel::DATurbulenceModel(
       phaseRhoPhi_(const_cast<surfaceScalarField&>(
           mesh.thisDb().lookupObject<surfaceScalarField>("phi"))),
 #ifdef IncompressibleFlow
-      daRegDbTransport_(
-          mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
-              "DARegDbSinglePhaseTransportModel")),
+      daRegDbTransport_(mesh.thisDb().lookupObject<DARegDbSinglePhaseTransportModel>(
+          "DARegDbSinglePhaseTransportModel")),
       laminarTransport_(daRegDbTransport_.getObject()),
-      daRegDbTurbIncomp_(
-          mesh.thisDb().lookupObject<DARegDbTurbulenceModelIncompressible>(
-              "DARegDbTurbulenceModelIncompressible")),
+      daRegDbTurbIncomp_(mesh.thisDb().lookupObject<DARegDbTurbulenceModelIncompressible>(
+          "DARegDbTurbulenceModelIncompressible")),
       turbulence_(daRegDbTurbIncomp_.getObject()),
       // for incompressible, we use uniform one field for rho
       rho_(
@@ -77,17 +75,13 @@ DATurbulenceModel::DATurbulenceModel(
           zeroGradientFvPatchScalarField::typeName),
 #endif
 #ifdef CompressibleFlow
-      daRegDbThermo_(
-          mesh.thisDb().lookupObject<DARegDbFluidThermo>(
-              "DARegDbFluidThermo")),
+      daRegDbThermo_(mesh.thisDb().lookupObject<DARegDbFluidThermo>("DARegDbFluidThermo")),
       thermo_(daRegDbThermo_.getObject()),
-      daRegDbTurbComp_(
-          mesh.thisDb().lookupObject<DARegDbTurbulenceModelCompressible>(
-              "DARegDbTurbulenceModelCompressible")),
+      daRegDbTurbComp_(mesh.thisDb().lookupObject<DARegDbTurbulenceModelCompressible>(
+          "DARegDbTurbulenceModelCompressible")),
       turbulence_(daRegDbTurbComp_.getObject()),
       // for compressible flow, we lookup rho in fvMesh
-      rho_(const_cast<volScalarField&>(
-          mesh.thisDb().lookupObject<volScalarField>("rho"))),
+      rho_(const_cast<volScalarField&>(mesh.thisDb().lookupObject<volScalarField>("rho"))),
 #endif
       turbDict_(
           IOobject(
@@ -98,36 +92,32 @@ DATurbulenceModel::DATurbulenceModel(
               IOobject::NO_WRITE,
               false)),
       coeffDict_(turbDict_.subDict("RAS")),
-      kMin_(
-          dimensioned<scalar>::lookupOrAddToDict(
-              "kMin",
-              coeffDict_,
-              sqr(dimVelocity),
-              SMALL)),
-      epsilonMin_(
-          dimensioned<scalar>::lookupOrAddToDict(
-              "epsilonMin",
-              coeffDict_,
-              kMin_.dimensions() / dimTime,
-              SMALL)),
-      omegaMin_(
-          dimensioned<scalar>::lookupOrAddToDict(
-              "omegaMin",
-              coeffDict_,
-              dimless / dimTime,
-              SMALL)),
-      nuTildaMin_(
-          dimensioned<scalar>::lookupOrAddToDict(
-              "nuTildaMin",
-              coeffDict_,
-              nut_.dimensions(),
-              SMALL))
+      kMin_(dimensioned<scalar>::lookupOrAddToDict(
+          "kMin",
+          coeffDict_,
+          sqr(dimVelocity),
+          SMALL)),
+      epsilonMin_(dimensioned<scalar>::lookupOrAddToDict(
+          "epsilonMin",
+          coeffDict_,
+          kMin_.dimensions() / dimTime,
+          SMALL)),
+      omegaMin_(dimensioned<scalar>::lookupOrAddToDict(
+          "omegaMin",
+          coeffDict_,
+          dimless / dimTime,
+          SMALL)),
+      nuTildaMin_(dimensioned<scalar>::lookupOrAddToDict(
+          "nuTildaMin",
+          coeffDict_,
+          nut_.dimensions(),
+          SMALL))
 {
 
     // Now we need to initialize other variables
 #ifdef IncompressibleFlow
 
-    // initialize the Prandtl number
+    // initialize the Prandtl number from transportProperties
     IOdictionary transportProperties(
         IOobject(
             "transportProperties",
@@ -142,7 +132,7 @@ DATurbulenceModel::DATurbulenceModel(
 
 #ifdef CompressibleFlow
 
-    // initialize the Prandtl number
+    // initialize the Prandtl number from thermophysicalProperties
     IOdictionary thermophysicalProperties(
         IOobject(
             "thermophysicalProperties",
@@ -201,6 +191,10 @@ bool DATurbulenceModel::writeData(Ostream& os) const
 
 tmp<volScalarField> DATurbulenceModel::nuEff() const
 {
+    /*
+    Description:
+        Return nut+nu
+    */
 
     return tmp<volScalarField>(
         new volScalarField(
@@ -210,6 +204,12 @@ tmp<volScalarField> DATurbulenceModel::nuEff() const
 
 tmp<volScalarField> DATurbulenceModel::alphaEff()
 {
+    /*
+    Description:
+        Return alphat+alpha
+        For compressible flow, we get it from thermo object
+        For incompressible flow we use alpha+alphat
+    */
 
 #ifdef IncompressibleFlow
     const volScalarField& alphat = mesh_.thisDb().lookupObject<volScalarField>("alphat");
@@ -230,6 +230,12 @@ tmp<volScalarField> DATurbulenceModel::alphaEff()
 
 tmp<volScalarField> DATurbulenceModel::nu() const
 {
+    /*
+    Description:
+        Return nu
+        For compressible flow, we get it from mu/rho
+        For incompressible flow we get it from ther laminarTransport object
+    */
 
 #ifdef IncompressibleFlow
     return laminarTransport_.nu();
@@ -242,11 +248,21 @@ tmp<volScalarField> DATurbulenceModel::nu() const
 
 tmp<volScalarField> DATurbulenceModel::getAlpha() const
 {
+    /*
+    Description:
+        Return alpha = nu/Pr
+    */
     return this->nu() / Pr_;
 }
 
 tmp<Foam::volScalarField> DATurbulenceModel::getMu() const
 {
+    /*
+    Description:
+        Return mu
+        For compressible flow, we get it from thermo
+        Not appliable for other flow conditions
+    */
 
 #ifdef CompressibleFlow
     return thermo_.mu();
@@ -258,6 +274,10 @@ tmp<Foam::volScalarField> DATurbulenceModel::getMu() const
 
 tmp<volSymmTensorField> DATurbulenceModel::devRhoReff() const
 {
+    /*
+    Description:
+        Return devRhoReff for computing viscous force
+    */
 
     return tmp<volSymmTensorField>(
         new volSymmTensorField(
@@ -273,6 +293,10 @@ tmp<volSymmTensorField> DATurbulenceModel::devRhoReff() const
 tmp<fvVectorMatrix> DATurbulenceModel::divDevRhoReff(
     volVectorField& U)
 {
+    /*
+    Description:
+        Return divDevRhoReff for the laplacian terms
+    */
 
 #ifdef IncompressibleFlow
     word divScheme = "div((nuEff*dev2(T(grad(U)))))";
@@ -292,11 +316,23 @@ tmp<fvVectorMatrix> DATurbulenceModel::divDevRhoReff(
 tmp<fvVectorMatrix> DATurbulenceModel::divDevReff(
     volVectorField& U)
 {
+    /*
+    Description:
+        Call divDevRhoReff
+    */
+    
     return divDevRhoReff(U);
 }
 
 void DATurbulenceModel::correctWallDist()
 {
+    /*
+    Description:
+        Update the near wall distance
+    */
+
+    // ********* TODO ********
+    // ********* this is not implemented yet ********
     //d_.correct();
     // need to correct turbulence boundary conditions
     // this is because when the near wall distance changes, the nut, omega, epsilon at wall
@@ -307,6 +343,10 @@ void DATurbulenceModel::correctWallDist()
 #ifdef CompressibleFlow
 const fluidThermo& DATurbulenceModel::getThermo() const
 {
+    /*
+    Description:
+        Return the thermo object, only for compressible flow
+    */
     return thermo_;
 }
 #endif

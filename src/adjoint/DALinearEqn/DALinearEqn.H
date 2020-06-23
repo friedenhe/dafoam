@@ -58,12 +58,14 @@ public:
 
     // Members
 
+    /// create a multi-level, Richardson KSP object
     void createMLRKSP(
         const dictionary options,
         const Mat jacMat,
         const Mat jacPCMat,
         KSP* genksp);
 
+    /// solve the linear euqation given a ksp and right-hand-side vector
     label solveLinearEqn(
         const KSP ksp,
         const Vec rhsVec,

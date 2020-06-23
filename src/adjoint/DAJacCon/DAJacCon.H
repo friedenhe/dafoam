@@ -219,6 +219,7 @@ public:
         return nJacConColors_;
     }
 
+    /// preallocate dRdW matrix using the preallocVec
     virtual void preallocatedRdW(
         Mat dRMat,
         const label transposed) const;
@@ -249,6 +250,7 @@ public:
         const label colorI,
         Vec coloredColumn) const;
 
+    /// assign values for the objective function vector based on the face and cell value lists
     virtual void setObjFuncVec(
         scalarList objFuncFaceValues,
         scalarList objFuncCellValues,

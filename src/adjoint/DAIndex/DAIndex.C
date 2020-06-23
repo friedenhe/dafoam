@@ -166,39 +166,40 @@ DAIndex::DAIndex(
             faceIdx++;
         }
     }
-
+    // now initialize the gloalindex for bFace
     globalCoupledBFaceNumbering = DAUtility::genGlobalIndex(nLocalCoupledBFaces);
     nGlobalCoupledBFaces = globalCoupledBFaceNumbering.size();
 
+    // calculate some local lists for indexing
     this->calcLocalIdxLists(adjStateName4LocalAdjIdx, cellIFaceI4LocalAdjIdx);
 }
 
 void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
 {
     /*
-    Calculate the indexing offset for all states (stateLocalIndexOffset),
-    this will be used in the DAIndex::getLocalAdjointStateIndex function
-
-    For state-by-state ordering, we set u_0, v_0, w_0, u_1, v_1, w_1,
-    ...., p_0, p_1, ... nuTilda_0, nuTilda_1, ... with subscript being the
-    cell index. stateLocalIndexingOffset will return how many states are
-    before a specific stateName
-
-    For cell by cell ordering, we set u_0, v_0, w_0, p_0, nuTilda_0, phi_0, .... 
-    u_N, v_N, w_N, p_N, nuTilda_N, phi_N with subscript being the cell index. 
-    so stateLocalIndexingOffset will return how many states are before a specific 
-    stateName for a given cell index
+    Description:
+        Calculate the indexing offset for all states (stateLocalIndexOffset),
+        this will be used in the DAIndex::getLocalAdjointStateIndex function
+    
+        For state-by-state ordering, we set u_0, v_0, w_0, u_1, v_1, w_1,
+        ...., p_0, p_1, ... nuTilda_0, nuTilda_1, ... with subscript being the
+        cell index. stateLocalIndexingOffset will return how many states are
+        before a specific stateName
+    
+        For cell by cell ordering, we set u_0, v_0, w_0, p_0, nuTilda_0, phi_0, .... 
+        u_N, v_N, w_N, p_N, nuTilda_N, phi_N with subscript being the cell index. 
+        so stateLocalIndexingOffset will return how many states are before a specific 
+        stateName for a given cell index
 
     Output:
-    ------
-    offset: hash table of  local state variable index offset, This will be used in determing 
-    the local indexing for adjoint states. It differs depending on whether we use state-by-state 
-    or cell-by-cell ordering
+        offset: hash table of  local state variable index offset, This will be used in 
+        determing the local indexing for adjoint states. It differs depending on whether 
+        we use state-by-state or cell-by-cell ordering
     */
 
-    word adjJacMatOrdering = daOption_.getOption<word>("adjJacMatOrdering");
+    word adjStateOrdering = daOption_.getOption<word>("adjStateOrdering");
 
-    if (adjJacMatOrdering == "state")
+    if (adjStateOrdering == "state")
     {
 
         forAll(adjStateNames, idxI)
@@ -248,7 +249,7 @@ void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
             }
         }
     }
-    else if (adjJacMatOrdering == "cell")
+    else if (adjStateOrdering == "cell")
     {
 
         forAll(adjStateNames, idxI)
@@ -360,7 +361,7 @@ void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
     }
     else
     {
-        FatalErrorIn("") << "adjJacMatOrdering invalid" << abort(FatalError);
+        FatalErrorIn("") << "adjStateOrdering invalid" << abort(FatalError);
     }
 
     return;
@@ -369,14 +370,14 @@ void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
 void DAIndex::calcAdjStateID(HashTable<label>& adjStateID)
 {
     /* 
-    The stateID is an alternative for the stateNames
-    stateID starts from 0 for the first volVector state
-    e.g., if the state variables are U, p, nut, phi, their 
-    state ID are U=0, p=1, nut=2, phi=3
+    Description:
+       The stateID is an alternative for the stateNames
+       stateID starts from 0 for the first volVector state
+       e.g., if the state variables are U, p, nut, phi, their 
+       state ID are U=0, p=1, nut=2, phi=3
 
     Output:
-    -------
-    adjStateID: the state ID list
+        adjStateID: the state ID list
     */
 
     label id = 0;
@@ -415,17 +416,17 @@ void DAIndex::calcLocalIdxLists(
     scalarList& cellIFaceI4LocalIdx)
 {
     /*
-    Initialize indexing lists:
-    cellIFaceI4LocalAdjIdx
-    adjStateName4LocalAdjIdx
+    Description:
+        Calculate indexing lists:
+        cellIFaceI4LocalAdjIdx
+        adjStateName4LocalAdjIdx
 
     Output:
-    -------
-    cellIFaceI4LocalAdjIdx: stores the cell/face index for a local adjoint index
-    For vector fields, the decima of cellIFaceI4LocalIdx denotes the vector component
-    e.g., 10.1 means cellI=10, y compoent of U
-
-    adjStateName4LocalAdjIdx: stores the state name for a local adjoint index
+        cellIFaceI4LocalAdjIdx: stores the cell/face index for a local adjoint index
+        For vector fields, the decima of cellIFaceI4LocalIdx denotes the vector component
+        e.g., 10.1 means cellI=10, y compoent of U
+    
+        adjStateName4LocalAdjIdx: stores the state name for a local adjoint index
     */
 
     cellIFaceI4LocalIdx.setSize(nLocalAdjointStates);
@@ -491,55 +492,54 @@ label DAIndex::getLocalAdjointStateIndex(
     const label comp) const
 {
     /*
-    Return the global adjoint index given a state name, a local index, 
-    and vector component (optional)
+    Description:
+        Return the global adjoint index given a state name, a local index, 
+        and vector component (optional)
 
     Input:
-    -----
-    stateName: name of the state variable for the global indexing
-
-    idxJ: the local index for the state variable, typically it is the state's 
-    local cell index or face index
-
-    comp: if the state is a vector, give its componet for global indexing. 
-    NOTE: for volVectorState, one need to set comp; while for other states, 
-    comp is simply ignored in this function
+        stateName: name of the state variable for the global indexing
+    
+        idxJ: the local index for the state variable, typically it is the state's 
+        local cell index or face index
+    
+        comp: if the state is a vector, give its componet for global indexing. 
+        NOTE: for volVectorState, one need to set comp; while for other states, 
+        comp is simply ignored in this function
 
     Example:
-    -------
-    Image we have two state variables (p, T) and we have three cells, the state
-    variable vector reads (state-by-state ordering):
-
-    w= [p0, p1, p2, T0, T1, T2]  <- p0 means p for the 0th cell
-         0   1   2   3   4   5   <- adjoint local index
-
-    Then getLocalAdjointStateIndex("p",1) returns 1 and 
-    getLocalAdjointStateIndex("T",1) returns 4
-
-    If we use cell-by-cell ordering, the state variable vector reads 
-    w= [p0, T0, p1, T1, p2, T2]
-         0   1   2   3   4   5   <- adjoint local index
+        Image we have two state variables (p, T) and we have three cells, the state
+        variable vector reads (state-by-state ordering):
     
-    Then getLocalAdjointStateIndex("p",1) returns 2 and 
-    getLocalAdjointStateIndex("T",1) returns 3
-
-    Similarly, we can apply this functions for vector state variables, again
-    we assume we have two state variables (U, p) and three cells, then the 
-    state-by-state adjoint ordering gives
-
-    w= [u0, v0, w0, u1, v1, w1, u2, v2, w2, p0, p1, p2]
-         0   1   2   3   4   5   6   7   8   9  10  11 <- adjoint local index
-
-    Then getLocalAdjointStateIndex("U", 1, 2) returns 5 and 
-    getLocalAdjointStateIndex("p",1) returns 10
-
-    NOTE: the three compoent for U are [u,v,w]
+        w= [p0, p1, p2, T0, T1, T2]  <- p0 means p for the 0th cell
+             0   1   2   3   4   5   <- adjoint local index
+    
+        Then getLocalAdjointStateIndex("p",1) returns 1 and 
+        getLocalAdjointStateIndex("T",1) returns 4
+    
+        If we use cell-by-cell ordering, the state variable vector reads 
+        w= [p0, T0, p1, T1, p2, T2]
+             0   1   2   3   4   5   <- adjoint local index
+        
+        Then getLocalAdjointStateIndex("p",1) returns 2 and 
+        getLocalAdjointStateIndex("T",1) returns 3
+    
+        Similarly, we can apply this functions for vector state variables, again
+        we assume we have two state variables (U, p) and three cells, then the 
+        state-by-state adjoint ordering gives
+    
+        w= [u0, v0, w0, u1, v1, w1, u2, v2, w2, p0, p1, p2]
+             0   1   2   3   4   5   6   7   8   9  10  11 <- adjoint local index
+    
+        Then getLocalAdjointStateIndex("U", 1, 2) returns 5 and 
+        getLocalAdjointStateIndex("p",1) returns 10
+    
+        NOTE: the three compoent for U are [u,v,w]
 
     */
 
-    word adjJacMatOrdering = daOption_.getOption<word>("adjJacMatOrdering");
+    word adjStateOrdering = daOption_.getOption<word>("adjStateOrdering");
 
-    if (adjJacMatOrdering == "state")
+    if (adjStateOrdering == "state")
     {
         /*
         state by state indexing
@@ -570,7 +570,7 @@ label DAIndex::getLocalAdjointStateIndex(
             }
         }
     }
-    else if (adjJacMatOrdering == "cell")
+    else if (adjStateOrdering == "cell")
     {
         // cell by cell ordering
         // We set u_0, v_0, w_0, p_0, nuTilda_0, phi_0a,phi_0b,phi_0c.... u_N, v_N, w_N, p_N, nuTilda_N, phi_N
@@ -623,7 +623,7 @@ label DAIndex::getLocalAdjointStateIndex(
     }
     else
     {
-        FatalErrorIn("") << "adjJacMatOrdering invalid" << abort(FatalError);
+        FatalErrorIn("") << "adjStateOrdering invalid" << abort(FatalError);
     }
 
     // if no stateName found, return an error
@@ -637,34 +637,33 @@ label DAIndex::getGlobalAdjointStateIndex(
     const label comp) const
 {
     /*
-    This function has the same input as DAIndex::getLocalAdjointStateIndex
-    the only difference is that this function returns the global adjoint 
-    state index by calling globalAdjointStateNumbering.toGlobal()
+    Description:
+        This function has the same input as DAIndex::getLocalAdjointStateIndex
+        the only difference is that this function returns the global adjoint 
+        state index by calling globalAdjointStateNumbering.toGlobal()
 
     Input:
-    -----
-    stateName: name of the state variable for the global indexing
-
-    idxJ: the local index for the state variable, typically it is the state's 
-    local cell index or face index
-
-    comp: if the state is a vector, give its componet for global indexing. 
-    NOTE: for volVectorState, one need to set comp; while for other states, 
-    comp is simply ignored in this function
+        stateName: name of the state variable for the global indexing
+    
+        idxJ: the local index for the state variable, typically it is the state's 
+        local cell index or face index
+    
+        comp: if the state is a vector, give its componet for global indexing. 
+        NOTE: for volVectorState, one need to set comp; while for other states, 
+        comp is simply ignored in this function
 
 
     Example:
-    -------
-    Image we have two state variables (p,T) and five cells, running on two CPU
-    processors, the proc0 owns two cells and the proc1 owns three cells,
-    then the global adjoint state variables reads (state-by-state)
-
-    w = [p0, p1, T0, T1 | p0, p1, p2, T0, T1, T2] <- p0 means p for the 0th cell on local processor
-          0   1   2   3 |  4   5   6   7   8   9  <- global adjoint index
-        ---- proc0 -----|--------- proc1 ------- 
+        Image we have two state variables (p,T) and five cells, running on two CPU
+        processors, the proc0 owns two cells and the proc1 owns three cells,
+        then the global adjoint state variables reads (state-by-state)
     
-    Then, on proc0, getGlobalAdjointStateIndex("T", 1) returns 3 
-      and on proc1, getGlobalAdjointStateIndex("T", 1) returns 8
+        w = [p0, p1, T0, T1 | p0, p1, p2, T0, T1, T2] <- p0 means p for the 0th cell on local processor
+              0   1   2   3 |  4   5   6   7   8   9  <- global adjoint index
+            ---- proc0 -----|--------- proc1 ------- 
+        
+        Then, on proc0, getGlobalAdjointStateIndex("T", 1) returns 3 
+          and on proc1, getGlobalAdjointStateIndex("T", 1) returns 8
 
     */
     // For vector, one need to provide comp, for scalar, comp is not needed.
@@ -678,25 +677,24 @@ label DAIndex::getGlobalXvIndex(
     const label idxCoord) const
 {
     /*
-    This function has the same input as DAIndex::getLocalXvIndex except that 
-    this function returns the global xv index 
+    Description:
+        This function has the same input as DAIndex::getLocalXvIndex except that 
+        this function returns the global xv index 
 
     Input:
-    -----
-    idxPoint: local point index
-
-    idxCoord: the compoent of the point
+        idxPoint: local point index
+    
+        idxCoord: the compoent of the point
 
     Example:
-    -------
-    Image we have three points, running on two CPU cores, and the proc0 owns
-    one point and proc1 owns two points, and the Xv vector reads
-
-    Xv = [x0, y0, z0 | x0, y0, z0, x1, y1, z1] <- x0 means the x for the 0th point
-           0   1   2    3   4   5   6   7   8  <- global Xv index
-          -- proc0 --|--------- proc1 ------- 
-    Then, on proc0, getGlobalXvIndex(0,1) returns 1
-      and on proc1, getGlobalXvIndex(0,1) returns 4
+        Image we have three points, running on two CPU cores, and the proc0 owns
+        one point and proc1 owns two points, and the Xv vector reads
+    
+        Xv = [x0, y0, z0 | x0, y0, z0, x1, y1, z1] <- x0 means the x for the 0th point
+               0   1   2    3   4   5   6   7   8  <- global Xv index
+              -- proc0 --|--------- proc1 ------- 
+        Then, on proc0, getGlobalXvIndex(0,1) returns 1
+          and on proc1, getGlobalXvIndex(0,1) returns 4
 
     */
 
@@ -710,22 +708,21 @@ label DAIndex::getLocalXvIndex(
     const label idxCoord) const
 {
     /*
-    Returns the local xv index for a given local cell index and its component
+    Description:
+        Returns the local xv index for a given local cell index and its component
 
     Input:
-    -----
-    idxPoint: local point index
-
-    idxCoord: the compoent of the point
+        idxPoint: local point index
+    
+        idxCoord: the compoent of the point
 
     Example:
-    -------
-    Image we have two points, and the Xv vector reads
-
-    Xv = [x0, y0, z0, x1, y1, z1] <- x0 means the x for the 0th point
-           0   1   2   3   4   5  <- local Xv index
-
-    Then, getLocalXvIndex(1,1) returns 4
+        Image we have two points, and the Xv vector reads
+    
+        Xv = [x0, y0, z0, x1, y1, z1] <- x0 means the x for the 0th point
+               0   1   2   3   4   5  <- local Xv index
+    
+        Then, getLocalXvIndex(1,1) returns 4
 
     */
 
@@ -736,20 +733,21 @@ label DAIndex::getLocalXvIndex(
 void DAIndex::calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) const
 {
     /*
-    Compute adjStateID4GlobalAdjIdx
+    Description:
+        Compute adjStateID4GlobalAdjIdx
 
     Output:
-    -------
-    adjStateID4GlobalAdjIdx: labelList that stores the adjStateID for given a global adj index
-    NOTE: adjStateID4GlobalAdjIdx contains all the global adj indices, so its memory usage 
-    is high. We should avoid having any sequential list; however, to make the connectivity
-    calculation easier, we keep it for now. 
-    *******delete this list after used!************
+        adjStateID4GlobalAdjIdx: labelList that stores the adjStateID for given a global adj index
+        NOTE: adjStateID4GlobalAdjIdx contains all the global adj indices, so its memory usage 
+        is high. We should avoid having any sequential list; however, to make the connectivity
+        calculation easier, we keep it for now. 
+        *******delete this list after used!************
     */
 
     if (adjStateID4GlobalAdjIdx.size() != nGlobalAdjointStates)
     {
-        FatalErrorIn("") << "adjStateID4GlobalAdjIdx.size()!=nGlobalAdjointStates" << abort(FatalError);
+        FatalErrorIn("") << "adjStateID4GlobalAdjIdx.size()!=nGlobalAdjointStates"
+                         << abort(FatalError);
     }
 
     Vec stateIVec;
@@ -832,6 +830,11 @@ void DAIndex::calcAdjStateID4GlobalAdjIdx(labelList& adjStateID4GlobalAdjIdx) co
 
 void DAIndex::printMatChars(const Mat matIn) const
 {
+    /*
+    Description:
+        Calculate and print some matrix statistics such as the 
+        max ratio of on and off diagonal elements
+    */
 
     PetscInt nCols, Istart, Iend;
     const PetscInt* cols;
@@ -1056,7 +1059,10 @@ void DAIndex::getMatNonZeros(
     label& maxCols,
     scalar& allNonZeros) const
 {
-    // get the max nonzeros per row, and all the nonzeros for this matrix
+    /*
+    Description:
+        Get the max nonzeros per row, and all the nonzeros for this matrix
+    */
 
     PetscInt nCols, Istart, Iend;
     const PetscInt* cols;

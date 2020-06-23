@@ -87,6 +87,11 @@ autoPtr<DASolver> DASolver::New(
 
 label DASolver::loop(Time& runTime)
 {
+    /*
+    Description:
+        The loop method to increment the runtime. The reason we implent this is
+        because the runTime.loop() and simple.loop() give us seg fault...
+    */
     const scalar& endTime = runTime.endTime().value();
     const scalar& deltaT = runTime.deltaT().value();
     const scalar t = runTime.timeOutputValue();
@@ -104,8 +109,9 @@ label DASolver::loop(Time& runTime)
 void DASolver::printAllObjFuncs()
 {
     /*
-    Calculate the values of all objective functions and print them to screen
-    NOTE: we need to call DASolver::setDAObjFuncList before calling this function!
+    Description:
+        Calculate the values of all objective functions and print them to screen
+        NOTE: we need to call DASolver::setDAObjFuncList before calling this function!
     */
 
     if (daObjFuncPtrList_.size() == 0)
@@ -128,16 +134,15 @@ void DASolver::printAllObjFuncs()
 scalar DASolver::getObjFuncValue(const word objFuncName)
 {
     /*
-    Return the value of the objective function.
-    NOTE: we will sum up all the parts in objFuncName
+    Description:
+        Return the value of the objective function.
+        NOTE: we will sum up all the parts in objFuncName
 
     Input:
-    ------
-    objFuncName: the name of the objective function
+        objFuncName: the name of the objective function
 
     Output:
-    ------
-    objFuncValue: the value of the objective
+        objFuncValue: the value of the objective
     */
 
     if (daObjFuncPtrList_.size() == 0)
@@ -164,43 +169,46 @@ scalar DASolver::getObjFuncValue(const word objFuncName)
 void DASolver::setDAObjFuncList()
 {
     /*
-    NOTE: this function needs to be called before calculating any objective functions
+    Description:
+        Set up the objective function list such that we can call printAllObjFuncs and getObjFuncValue
+        NOTE: this function needs to be called before calculating any objective functions
 
-    A typical objFunc dictionary looks like this:
-
-    "objFunc": 
-    {
-        "func1": 
+    Example:
+        A typical objFunc dictionary looks like this:
+    
+        "objFunc": 
         {
-            "part1": 
+            "func1": 
             {
-                "objFuncName": "force",
-                "source": "patchToFace",
-                "patch": ["walls", "wallsbump"],
-                "scale": 0.5,
-                "addToAdjoint": True,
+                "part1": 
+                {
+                    "objFuncName": "force",
+                    "source": "patchToFace",
+                    "patch": ["walls", "wallsbump"],
+                    "scale": 0.5,
+                    "addToAdjoint": True,
+                },
+                "part2": 
+                {
+                    "objFuncName": "force",
+                    "source": "patchToFace",
+                    "patch": ["wallsbump", "frontandback"],
+                    "scale": 0.5,
+                    "addToAdjoint": True,
+                },
             },
-            "part2": 
+            "func2": 
             {
-                "objFuncName": "force",
-                "source": "patchToFace",
-                "patch": ["wallsbump", "frontandback"],
-                "scale": 0.5,
-                "addToAdjoint": True,
+                "part1": 
+                {
+                    "objFuncName": "force",
+                    "source": "patchToFace",
+                    "patch": ["walls", "wallsbump", "frontandback"],
+                    "scale": 1.0,
+                    "addToAdjoint": False,
+                }
             },
-        },
-        "func2": 
-        {
-            "part1": 
-            {
-                "objFuncName": "force",
-                "source": "patchToFace",
-                "patch": ["walls", "wallsbump", "frontandback"],
-                "scale": 1.0,
-                "addToAdjoint": False,
-            }
-        },
-    }
+        }
     */
 
     const dictionary& allOptions = daOptionPtr_->getAllOptions();
@@ -260,52 +268,50 @@ void DASolver::reduceStateResConLevel(
     HashTable<List<List<word>>>& stateResConInfo) const
 {
     /*
-    Reduce the connectivity levels for stateResConInfo
-    based on maxResConLv4JacPCMat specified in DAOption
+    Description:
+        Reduce the connectivity levels for stateResConInfo
+        based on maxResConLv4JacPCMat specified in DAOption
 
     Input:
-    -----
-    maxResConLv4JacPCMat: the maximal levels of connectivity for each
+        maxResConLv4JacPCMat: the maximal levels of connectivity for each
     state variable residual
 
     Output:
-    ------
-    stateResConInfo: reduced connectivity level.
+        stateResConInfo: reduced connectivity level.
 
     Example:
-    -------
 
-    If the original stateResConInfo reads:
-
-    stateResConInfo
-    {
-        "URes":
-        {
-            {"U", "p", "phi"}, // level 0
-            {"U", "p"},        // level 1
-            {"U"}              // level 2
-        }
-    }
-    And maxResConLv4JacPCMat in DAOption reads:
-
-    maxResConLv4JacPCMat
-    {
-        "URes": 1
-    }
+        If the original stateResConInfo reads:
     
-    Then, calling reduceStateResConLevel will give:
-
-    stateResConInfo
-    {
-        "URes":
+        stateResConInfo
         {
-            {"U", "p", "phi"}, // level 0
-            {"U", "p"},        // level 1
+            "URes":
+            {
+                {"U", "p", "phi"}, // level 0
+                {"U", "p"},        // level 1
+                {"U"}              // level 2
+            }
         }
-    }
-
-    Note that the level 2 of the connectivity in URes is removed becasue
-    "URes"=1 in maxResConLv4JacPCMat
+        And maxResConLv4JacPCMat in DAOption reads:
+    
+        maxResConLv4JacPCMat
+        {
+            "URes": 1
+        }
+        
+        Then, calling reduceStateResConLevel will give:
+    
+        stateResConInfo
+        {
+            "URes":
+            {
+                {"U", "p", "phi"}, // level 0
+                {"U", "p"},        // level 1
+            }
+        }
+    
+        Note that the level 2 of the connectivity in URes is removed becasue
+        "URes"=1 in maxResConLv4JacPCMat
 
     */
 
@@ -389,6 +395,11 @@ void DASolver::calcPrimalResidualStatistics(
     const word mode,
     const label writeRes)
 {
+    /*
+    Description:
+        Calculate the mean, max, and norm2 for all residuals and print it to screen
+    */
+
     if (mode == "print")
     {
         // print the primal residuals to screen
@@ -573,7 +584,24 @@ label DASolver::solveAdjoint(
     const Vec xvVec,
     const Vec wVec)
 {
-    // solve the adjoint linear equations
+    /*
+    Description:
+        This function computes partials derivaties dRdWT and dFdW and 
+        solve the adjoint equations for the adjoint vector psiVec.
+        NOTE: this function should be called after calling DASolver::solvePrimal
+        and before calling DASolver::calcTotalDeriv
+    
+    Input:
+        xvVec: the volume mesh coordinate vector
+
+        wVec: the staate variable vector
+    
+    Output:
+        Return 0 means the solveAdjoint is sucessful, 1 means failure
+
+        psiVecDict_: Once the adjoint vector is computed we assign their values
+        to this list
+    */
 
     DALinearEqn daLinearEqn(meshPtr_(), daOptionPtr_());
 
@@ -900,6 +928,30 @@ label DASolver::calcTotalDeriv(
     const Vec wVec,
     const word designVarName)
 {
+    /*
+    Description:
+        This function computes the total derivative for a given design variable name
+        NOTE: this function should be called after calling DASolver::solveAdjoint
+    
+    Input:
+        xvVec: the volume mesh coordinate vector
+
+        wVec: the staate variable vector
+
+        designVarName: the name of the design variable for the total derivative
+    
+    Output:
+        Return 0 means the calcTotalDeriv is sucessful, 1 means failure
+
+        totalDerivDict_: Once the total derivative vector is computed we assign their 
+        values to this list. Note: this list store derivative wrt all the design 
+        variables and is reduced across all processors. This is necessary because
+        the pyDAFoam.py will get the total derivative from totalDerivDict_ and ask for
+        totalDeriv for all design variables, not just for the design variable stored in
+        in the local totalDerivVec. See DASolver::setTotalDerivDict for details. We need
+        to scatter the totalDerivVec and gather all the values
+    */
+
     // compute the total derivatives
     Info << "Computing total derivatives for " << designVarName << endl;
 
@@ -1286,7 +1338,20 @@ void DASolver::setPsiVecDict(
     const Vec psiVec,
     dictionary& psiVecDict)
 {
-    // assign the psiVec to psiVecDict_
+    /*
+    Description: 
+        Assign the psiVec to psiVecDict_ for a given objFuncName such that
+        we can get the psi value later when calling DASolver::calcTotalDeriv
+    
+    Input:
+        objFuncName: the name of the objective function
+
+        psiVec: the adjoint vector obtained from solving the adjoint equations
+
+    Output:
+        psiVecDict: the dictionary that store the psi value for this objFuncName
+        NOTE: psiVecDict only store values on local vector
+    */
     scalarList psiList;
     const PetscScalar* psiVecArray;
     VecGetArrayRead(psiVec, &psiVecArray);
@@ -1306,7 +1371,20 @@ void DASolver::getPsiVec(
     const word objFuncName,
     Vec psiVec)
 {
-    /// assign psiVecDict_ to psiVec
+    /*
+    Description: 
+        Assign the psiVecDict_ to psiVec for a given objFuncName such that
+        we can get the psi value later when calling DASolver::calcTotalDeriv
+    
+    Input:
+        objFuncName: the name of the objective function
+
+        psiVecDict: the dictionary that store the psi value for this objFuncName
+        NOTE: psiVecDict only store values on local vector
+
+    Output:
+        psiVec: the adjoint vector
+    */
     VecZeroEntries(psiVec);
 
     scalarList psiList;
@@ -1330,6 +1408,29 @@ void DASolver::setTotalDerivDict(
     const Vec totalDerivVec,
     dictionary& totalDerivDict)
 {
+    /*
+    Description: 
+        Assign the totalDerivVec to totalDerivDict for a given objFuncName and 
+        designVariableName, such that we can get the total derivatives from
+        the pyDAFoam.py for optimization
+    
+    Input:
+        objFuncName: the name of the objective function
+
+        designVarName: the name of the design variable
+
+        totalDerivVec: the total derivative vector obtained from DASolver::calcTotalDeriv
+
+    Output:
+        totalDerivDict: the dictionary to store the total derivative values.
+        Note: this list store derivative wrt all the design  variables and is reduced 
+        across all processors. This is necessary because the pyDAFoam.py will get the total 
+        derivative from totalDerivDict_ and ask for totalDeriv for all design variables, 
+        not just for the design variable stored in the local totalDerivVec. We need
+        to scatter the totalDerivVec and gather all the values
+
+    */
+
     label vecSize;
     VecGetSize(totalDerivVec, &vecSize);
 
@@ -1367,6 +1468,22 @@ scalar DASolver::getTotalDerivVal(
     const word designVarName,
     const label idxI) const
 {
+    /*
+    Description: 
+        Get the total derivative value for a given objFuncName, designVariableName, and an index
+    
+    Input:
+        objFuncName: the name of the objective function
+
+        designVarName: the name of the design variable
+
+        idxI: the design variable index for the total derivative value
+
+    Output:
+        Return the total derivative value
+
+    */
+
     dictionary subDict = totalDerivDict_.subDict(objFuncName);
     scalarList valList;
     subDict.readEntry<scalarList>(designVarName, valList);
@@ -1375,6 +1492,10 @@ scalar DASolver::getTotalDerivVal(
 
 void DASolver::setdXvdFFDMat(const Mat dXvdFFDMat)
 {
+    /*
+    Description:
+        Set the value for dXvdFFDMat_. Basically we use MatConvert
+    */
     MatConvert(dXvdFFDMat, MATSAME, MAT_INITIAL_MATRIX, &dXvdFFDMat_);
     //MatDuplicate(dXvdFFDMat, MAT_COPY_VALUES, &dXvdFFDMat_);
     MatAssemblyBegin(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);

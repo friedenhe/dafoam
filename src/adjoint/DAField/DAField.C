@@ -34,26 +34,24 @@ DAField::DAField(
 void DAField::ofField2StateVec(Vec stateVec) const
 {
     /*
-    Assign values for the state variable vector based on the 
-    latest OpenFOAM field values
+    Description:
+        Assign values for the state variable vector based on the 
+        latest OpenFOAM field values
 
     Input:
-    ------
-    OpenFOAM field variables
+        OpenFOAM field variables
 
     Output:
-    ------
-    stateVec: state variable vector
+        stateVec: state variable vector
 
     Example:
-    -------
-    Image we have two state variables (p,T) and five cells, running on two CPU
-    processors, the proc0 owns two cells and the proc1 owns three cells,
-    then calling this function gives the state vector (state-by-state ordering):
-
-    stateVec = [p0, p1, T0, T1 | p0, p1, p2, T0, T1, T2] <- p0 means p for the 0th cell on local processor
-                 0   1   2   3 |  4   5   6   7   8   9  <- global state vec index
-               ---- proc0 -----|--------- proc1 ------- 
+        Image we have two state variables (p,T) and five cells, running on two CPU
+        processors, the proc0 owns two cells and the proc1 owns three cells,
+        then calling this function gives the state vector (state-by-state ordering):
+    
+        stateVec = [p0, p1, T0, T1 | p0, p1, p2, T0, T1, T2] <- p0 means p for the 0th cell on local processor
+                     0   1   2   3 |  4   5   6   7   8   9  <- global state vec index
+                   ---- proc0 -----|--------- proc1 ------- 
     */
 
     const objectRegistry& db = mesh_.thisDb();
@@ -126,26 +124,24 @@ void DAField::ofField2StateVec(Vec stateVec) const
 void DAField::stateVec2OFField(const Vec stateVec) const
 {
     /*
-    Assign values OpenFOAM field values based on the state variable vector
+    Description:
+        Assign values OpenFOAM field values based on the state variable vector
 
     Input:
-    ------
     stateVec: state variable vector
 
     Output:
-    ------
     OpenFoam field variables
 
     Example:
-    -------
-    Image we have two state variables (p,T) and five cells, running on two CPU
-    processors, the proc0 owns two cells and the proc1 owns three cells,
-    then calling this function will assign the p, and T based on the the state 
-    vector (state-by-state ordering):
-
-    stateVec = [p0, p1, T0, T1 | p0, p1, p2, T0, T1, T2] <- p0 means p for the 0th cell on local processor
-                 0   1   2   3 |  4   5   6   7   8   9  <- global state vec index
-               ---- proc0 -----|--------- proc1 ------- 
+        Image we have two state variables (p,T) and five cells, running on two CPU
+        processors, the proc0 owns two cells and the proc1 owns three cells,
+        then calling this function will assign the p, and T based on the the state 
+        vector (state-by-state ordering):
+    
+        stateVec = [p0, p1, T0, T1 | p0, p1, p2, T0, T1, T2] <- p0 means p for the 0th cell on local processor
+                     0   1   2   3 |  4   5   6   7   8   9  <- global state vec index
+                   ---- proc0 -----|--------- proc1 ------- 
     */
 
     const objectRegistry& db = mesh_.thisDb();
@@ -218,27 +214,25 @@ void DAField::stateVec2OFField(const Vec stateVec) const
 void DAField::pointVec2OFMesh(const Vec xvVec) const
 {
     /*
-    Assign the points in fvMesh of OpenFOAM based on the point vector
+    Description:
+        Assign the points in fvMesh of OpenFOAM based on the point vector
 
     Input:
-    -----
-    xvVec: a vector that stores the x, y, and z coordinates for all
-    points in the fvMesh mesh
+        xvVec: a vector that stores the x, y, and z coordinates for all
+        points in the fvMesh mesh
 
     Output:
-    ------
-    New mesh metrics in fvMesh, effectively by calling mesh.movePoints
+        New mesh metrics in fvMesh, effectively by calling mesh.movePoints
 
     Example:
-    --------
-    Image we have three points in fvMesh, running on two CPU
-    processors, the proc0 owns one point and the proc1 owns two points,
-    then calling this function will assign xvVec based on the the points
-    coordinates in fvMesh
-
-    xvVec = [x0, y0, z0 | x0, y0, z0, x1, y1, z1] <- x0 means x coordinate for the 0th point on local processor
-             0   1   2  |  3   4   5   6   7   8  <- global point vec index
-            --- proc0 --|--------- proc1 ------- 
+        Image we have three points in fvMesh, running on two CPU
+        processors, the proc0 owns one point and the proc1 owns two points,
+        then calling this function will assign xvVec based on the the points
+        coordinates in fvMesh
+    
+        xvVec = [x0, y0, z0 | x0, y0, z0, x1, y1, z1] <- x0 means x coordinate for the 0th point on local processor
+                 0   1   2  |  3   4   5   6   7   8  <- global point vec index
+                --- proc0 --|--------- proc1 ------- 
     */
 
     const PetscScalar* xvVecArray;
@@ -265,27 +259,25 @@ void DAField::pointVec2OFMesh(const Vec xvVec) const
 void DAField::ofMesh2PointVec(Vec xvVec) const
 {
     /*
-    Assign the point vector based on the points in fvMesh of OpenFOAM
+    Description:
+        Assign the point vector based on the points in fvMesh of OpenFOAM
 
     Input:
-    ------
-    Mesh coordinates in fvMesh
+        Mesh coordinates in fvMesh
 
     Output:
-    -----
-    xvVec: a vector that stores the x, y, and z coordinates for all
-    points in the fvMesh mesh
+        xvVec: a vector that stores the x, y, and z coordinates for all
+        points in the fvMesh mesh
 
     Example:
-    --------
-    Image we have three points in fvMesh, running on two CPU
-    processors, the proc0 owns one point and the proc1 owns two points,
-    then calling this function will assign xvVec based on the the points
-    coordinates in fvMesh
-
-    xvVec = [x0, y0, z0 | x0, y0, z0, x1, y1, z1] <- x0 means x coordinate for the 0th point on local processor
-             0   1   2  |  3   4   5   6   7   8  <- global point vec index
-            --- proc0 --|--------- proc1 ------- 
+        Image we have three points in fvMesh, running on two CPU
+        processors, the proc0 owns one point and the proc1 owns two points,
+        then calling this function will assign xvVec based on the the points
+        coordinates in fvMesh
+    
+        xvVec = [x0, y0, z0 | x0, y0, z0, x1, y1, z1] <- x0 means x coordinate for the 0th point on local processor
+                 0   1   2  |  3   4   5   6   7   8  <- global point vec index
+                --- proc0 --|--------- proc1 ------- 
     */
 
     PetscScalar* xvVecArray;
@@ -306,27 +298,25 @@ void DAField::ofMesh2PointVec(Vec xvVec) const
 void DAField::ofResField2ResVec(Vec resVec) const
 {
     /*
-    Assign values for the residual vector based on the 
-    latest OpenFOAM residual field values
+    Description:
+        Assign values for the residual vector based on the 
+        latest OpenFOAM residual field values
 
     Input:
-    ------
-    OpenFOAM residual field variables
+        OpenFOAM residual field variables
 
     Output:
-    ------
-    resVec: state residual  vector
+        resVec: state residual  vector
 
     Example:
-    -------
-    Image we have two state residuals (pRes,TRes) and five cells, running on two CPU
-    processors, the proc0 owns two cells and the proc1 owns three cells,
-    then calling this function gives the residual vector (state-by-state ordering):
-
-    resVec = [pRes0, pRes1, TRes0, TRes1 | pRes0, pRes1, pRes2, TRes0, TRes1, TRes2] 
-                 0      1      2      3  |    4      5      6      7      8      9  <- global residual vec index
-               ---------- proc0 ---------|------------- proc1 ----------------------
-    NOTE: pRes0 means p residual for the 0th cell on local processor
+        Image we have two state residuals (pRes,TRes) and five cells, running on two CPU
+        processors, the proc0 owns two cells and the proc1 owns three cells,
+        then calling this function gives the residual vector (state-by-state ordering):
+    
+        resVec = [pRes0, pRes1, TRes0, TRes1 | pRes0, pRes1, pRes2, TRes0, TRes1, TRes2] 
+                     0      1      2      3  |    4      5      6      7      8      9  <- global residual vec index
+                   ---------- proc0 ---------|------------- proc1 ----------------------
+        NOTE: pRes0 means p residual for the 0th cell on local processor
     */
 
     const objectRegistry& db = mesh_.thisDb();
@@ -399,26 +389,24 @@ void DAField::ofResField2ResVec(Vec resVec) const
 void DAField::resVec2OFResField(const Vec resVec) const
 {
     /*
-    Assign OpenFOAM residual values based on the residual vector
+    Description:
+        Assign OpenFOAM residual values based on the residual vector
 
     Input:
-    ------
-    resVec: residual vector
+        resVec: residual vector
 
     Output:
-    ------
-    OpenFoam field variables
+        OpenFoam field variables
 
     Example:
-    -------
-    Image we have two state residuals (pRes,TRes) and five cells, running on two CPU
-    processors, the proc0 owns two cells and the proc1 owns three cells,
-    then calling this function gives the residual vector (state-by-state ordering):
-
-    resVec = [pRes0, pRes1, TRes0, TRes1 | pRes0, pRes1, pRes2, TRes0, TRes1, TRes2] 
-                 0      1      2      3  |    4      5      6      7      8      9  <- global residual vec index
-               ---------- proc0 ---------|------------- proc1 ----------------------
-    NOTE: pRes0 means p residual for the 0th cell on local processor
+        Image we have two state residuals (pRes,TRes) and five cells, running on two CPU
+        processors, the proc0 owns two cells and the proc1 owns three cells,
+        then calling this function gives the residual vector (state-by-state ordering):
+    
+        resVec = [pRes0, pRes1, TRes0, TRes1 | pRes0, pRes1, pRes2, TRes0, TRes1, TRes2] 
+                     0      1      2      3  |    4      5      6      7      8      9  <- global residual vec index
+                   ---------- proc0 ---------|------------- proc1 ----------------------
+        NOTE: pRes0 means p residual for the 0th cell on local processor
     */
 
     const objectRegistry& db = mesh_.thisDb();
@@ -491,28 +479,29 @@ void DAField::resVec2OFResField(const Vec resVec) const
 void DAField::setPrimalBoundaryConditions()
 {
     /*
-    A general function to read the inlet/outlet values from DAOption, and set
-    the corresponding values to the boundary field. It also setup turbulence 
-    wall boundary condition
-    Note: this function should be called before running the primal solver
-    If nothing is set, the BC will remain unchanged
-    Example
-    primalBC 
-    { 
-        bc1
-        {
-            patch inlet; 
-            variable U; 
-            value {10 0 0};
-        } 
-        bc2
-        {
-            patch outlet;
-            variable p;
-            value {0};
+    Description:
+        A general function to read the inlet/outlet values from DAOption, and set
+        the corresponding values to the boundary field. It also setup turbulence 
+        wall boundary condition
+        Note: this function should be called before running the primal solver
+        If nothing is set, the BC will remain unchanged
+        Example
+        primalBC 
+        { 
+            bc1
+            {
+                patch inlet; 
+                variable U; 
+                value {10 0 0};
+            } 
+            bc2
+            {
+                patch outlet;
+                variable p;
+                value {0};
+            }
+            useWallFunction 1;
         }
-        useWallFunction 1;
-    }
     */
 
     const objectRegistry& db = mesh_.thisDb();

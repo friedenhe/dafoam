@@ -44,8 +44,10 @@ protected:
     surfaceScalarField phiResPartDeriv_;
     //@}
 
+    /// DATurbulenceModel object
     DATurbulenceModel& daTurb_;
 
+    /// simpleControl object which will be initialized in this class
     simpleControl simple_;
 
 public:

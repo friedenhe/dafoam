@@ -51,24 +51,32 @@ protected:
     surfaceScalarField phiResPartDeriv_;
     //@}
 
+    /// thermophysical property
     fluidThermo& thermo_;
 
+    /// \name These are intermediate variables
+    //@{
     volScalarField& he_;
     volScalarField& rho_;
     volScalarField& alphat_;
     volScalarField& psi_;
+    //@}
 
+    /// DATurbulenceModel object
     DATurbulenceModel& daTurb_;
 
+    /// simpleControl object which will be initialized in this class
     simpleControl simple_;
 
+    /// pressureControl object to set ref pressure
     pressureControl pressureControl_;
 
+    /// \name These are constants to update the intermediate variables
+    //@{
     scalar molWeight_;
-
     scalar Cp_;
-
     scalar Prt_;
+    //@}
 
 public:
     TypeName("DARhoSimpleFoam");

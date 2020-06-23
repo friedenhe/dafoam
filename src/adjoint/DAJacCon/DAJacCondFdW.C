@@ -24,6 +24,7 @@ DAJacCondFdW::DAJacCondFdW(
     const DAIndex& daIndex)
     : DAJacCon(modelType, mesh, daOption, daModel, daIndex)
 {
+    // NOTE: we need to initialize petsc vectors and setup state boundary con
     this->initializePetscVecs();
     this->initializeStateBoundaryCon();
 }
@@ -33,6 +34,10 @@ DAJacCondFdW::DAJacCondFdW(
 
 void DAJacCondFdW::initializePetscVecs()
 {
+    /*
+    Description:
+        Initialize jacConColors_
+    */
 
     // dFdW Colors the jacConColoredColumn will be initialized in
     // DAJacCondFdW::initializeJacCon
@@ -46,24 +51,23 @@ void DAJacCondFdW::initializePetscVecs()
 void DAJacCondFdW::initializeJacCon(const dictionary& options)
 {
     /*
-    Initialize the connectivity matrix
+    Description:
+        Initialize the connectivity matrix
 
     Input:
-    ------
-    options.objFuncFaceSources: a labelList that contains all the
-    face indices for the objective
-
-    options.objFuncCellSources: a labelList that contains all the
-    cell indices for the objective
+        options.objFuncFaceSources: a labelList that contains all the
+        face indices for the objective
+    
+        options.objFuncCellSources: a labelList that contains all the
+        cell indices for the objective
 
     Output:
-    ------
-    jacCon_: connectivity matrix for dFdW, here dFdWCon has a
-    size of nLocalObjFuncGeoElements * nGlobalAdjointStates
-    The reason that dFdWCon has nLocalObjFuncGeoElements rows is 
-    because we need to divide the objective function into 
-    nLocalObjFuncGeoElements discrete value such that we can
-    use coloring to compute dFdW
+        jacCon_: connectivity matrix for dFdW, here dFdWCon has a
+        size of nLocalObjFuncGeoElements * nGlobalAdjointStates
+        The reason that dFdWCon has nLocalObjFuncGeoElements rows is 
+        because we need to divide the objective function into 
+        nLocalObjFuncGeoElements discrete value such that we can
+        use coloring to compute dFdW
     */
 
     labelList objFuncFaceSources;
@@ -99,18 +103,18 @@ void DAJacCondFdW::initializeJacCon(const dictionary& options)
 void DAJacCondFdW::setupJacCon(const dictionary& options)
 {
     /*
-    Setup jacCon_ matrix
+    Description:
+        Setup the jacCon_ matrix
     
     Input:
-    -----
-    options.objFuncConInfo: the connectivity information for
-    this objective function
-
-    options.objFuncFaceSources: a labelList that contains all the
-    face indices for the objective
-
-    options.objFuncCellSources: a labelList that contains all the
-    cell indices for the objective
+        options.objFuncConInfo: the connectivity information for
+        this objective function, usually obtained from Foam::DAObjFunc
+    
+        options.objFuncFaceSources: a labelList that contains all the
+        face indices for the objective, usually obtained from Foam::DAObjFunc
+    
+        options.objFuncCellSources: a labelList that contains all the
+        cell indices for the objective, usually obtained from Foam::DAObjFunc
     */
 
     Info << "Setting up dFdWCon.." << endl;
@@ -246,6 +250,37 @@ label DAJacCondFdW::getLocalObjFuncGeoIndex(
     const word idxType,
     const label idxI) const
 {
+    /*
+    Description:
+        Get the local index of a geometry element of an objective
+    
+    Input:
+        idxType: face means it is a faceSource and cell means it is a cellSource
+    
+        idxI: the index of the face or cell source
+    
+    Output:
+        The local index
+
+    Example:
+        To enable coloring, we divide the objective into discrete face/cells. 
+        So the number of local rows in DAJacCon::jacCon_ is nLocalObjFuncGeoElements
+
+        If the faceSource and cellSource on proc0 read
+        objFuncFaceSources_ = {11, 12};  <---- these are the indices of the faces for the objective
+        objFuncCellSources_ = {23, 24, 25};
+
+        and the faceSource and cellSource on proc1 read
+        objFuncFaceSources_ = {21, 22};
+        objFuncCellSources_ = {33, 34, 35};
+
+        Then, globalObjFuncGeoNumbering_ reads:
+        
+    globalObjFuncGeoNumbering:  {  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,    }
+    Local face/cell Indices:      11   12   23   24   25  | 21   22   33   34   35
+                                -------    proc 0    -----|-------    proc 1    ----- 
+    */
+
     label localIdx = -9999;
     if (idxType == "face")
     {
@@ -267,6 +302,36 @@ label DAJacCondFdW::getGlobalObjFuncGeoIndex(
     const word idxType,
     const label idxI) const
 {
+    /*
+    Description:
+        Get the global index of a geometry element of an objective
+    
+    Input:
+        idxType: face means it is a faceSource and cell means it is a cellSource
+    
+        idxI: the index of the face or cell source
+    
+    Output:
+        The global index
+
+    Example:
+        To enable coloring, we divide the objective into discrete face/cells. 
+        So the number of local rows in DAJacCon::jacCon_ is nLocalObjFuncGeoElements
+
+        If the faceSource and cellSource on proc0 read
+        objFuncFaceSources_ = {11, 12};  <---- these are the indices of the faces for the objective
+        objFuncCellSources_ = {23, 24, 25};
+
+        and the faceSource and cellSource on proc1 read
+        objFuncFaceSources_ = {21, 22};
+        objFuncCellSources_ = {33, 34, 35};
+
+        Then, globalObjFuncGeoNumbering_ reads:
+        
+    globalObjFuncGeoNumbering:  {  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,    }
+    Local face/cell Indices:      11   12   23   24   25  | 21   22   33   34   35
+                                -------    proc 0    -----|-------    proc 1    ----- 
+    */
     label localIdx = this->getLocalObjFuncGeoIndex(idxType, idxI);
 
     return globalObjFuncGeoNumbering_.toGlobal(localIdx);
@@ -277,6 +342,19 @@ void DAJacCondFdW::setObjFuncVec(
     scalarList objFuncCellValues,
     Vec objFuncVec) const
 {
+    /*
+    Description:
+        Assign the values from objFuncFaceValues and objFuncCellValues
+        to the objFuncVec
+    
+    Input:
+        objFuncFaceValues, objFuncCellValues: these two lists are computed
+        by calling DAObjFunc::calcObjFunc or DAObjFunc::getObjFuncValue
+    
+    Output:
+        objFuncVec: a vector that contains all the discret values from all processors
+        It will be primarily used in Foam::DAPartDerivdFdW
+    */
     PetscScalar* objFuncVecArray;
     VecGetArray(objFuncVec, &objFuncVecArray);
 

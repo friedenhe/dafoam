@@ -41,6 +41,13 @@ void DAPartDerivdRdFFD::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
+    /*
+    Description:
+        Initialize jacMat
+    
+    Input:
+        options.nDesignVars. The number of design variable for dRdFFD
+    */
 
     label nDesignVars = options.getLabel("nDesignVars");
 
@@ -70,6 +77,24 @@ void DAPartDerivdRdFFD::calcPartDerivMat(
     const Vec wVec,
     Mat jacMat)
 {
+    /*
+    Description:
+        Compute jacMat. We use brute-force finite-difference
+    
+    Input:
+
+        options.nDesignVars. The number of design variable for dRdFFD
+
+        options.isPC: whether to compute the jacMat for preconditioner
+
+        xvVec: the volume mesh coordinate vector
+
+        wVec: the state variable vector
+    
+    Output:
+        jacMat: the partial derivative matrix dRdFFD to compute
+    */
+
     label nDesignVars = options.getLabel("nDesignVars");
 
     DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);

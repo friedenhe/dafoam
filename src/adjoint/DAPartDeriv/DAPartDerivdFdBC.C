@@ -41,6 +41,14 @@ void DAPartDerivdFdBC::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
+    /*
+    Description:
+        Initialize jacMat
+    
+    Input:
+        options. This is not used
+    */
+
     // create dFdBC
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
@@ -64,8 +72,26 @@ void DAPartDerivdFdBC::calcPartDerivMat(
     const Vec wVec,
     Mat jacMat)
 {
-    // for dFdBC, we have only one column so we can do brute force finite-difference
-    // there is no need to do coloring
+    /*
+    Description:
+        Compute jacMat. Note for dFdBC, we have only one column so we can do brute 
+        force finite-difference there is no need to do coloring
+    
+    Input:
+        options.objFuncSubDictPart: the objFunc subDict, obtained from DAOption
+
+        options.objFuncName: the name of the objective
+
+        options.objFuncPart: the part of the objective
+
+        xvVec: the volume mesh coordinate vector
+
+        wVec: the state variable vector
+    
+    Output:
+        jacMat: the partial derivative matrix dFdBC to compute
+    */
+
 
     word objFuncName, objFuncPart;
     dictionary objFuncSubDictPart = options.subDict("objFuncSubDictPart");

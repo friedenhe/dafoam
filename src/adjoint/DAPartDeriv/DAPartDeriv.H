@@ -5,6 +5,7 @@
 
     Description:
         Compute partial derivatives using the finite-difference method
+        with coloring
 
 \*---------------------------------------------------------------------------*/
 
@@ -67,7 +68,7 @@ protected:
     /// all the DAFoam option
     const dictionary& allOptions_;
 
-    /// the regState_ list from DAStateInfo object
+    /// the stateInfo_ list from DAStateInfo object
     HashTable<wordList> stateInfo_;
 
     /// perturb state variables given a color index
@@ -78,16 +79,19 @@ protected:
         const scalar delta,
         Vec wVec);
 
+    /// perturb the values in the boundary condition
     void perturbBC(
         const dictionary options,
         const scalar delta);
 
+    /// set values for the partial derivative matrix
     void setPartDerivMat(
         const Vec resVec,
         const Vec coloredColumn,
         const label transposed,
         Mat jacMat) const;
 
+    /// volume mesh coordinates wrt the ffd point coordinate partials
     Mat dXvdFFDMat_;
 
 public:
@@ -157,8 +161,10 @@ public:
         const Vec wVec,
         Mat jacMat) = 0;
 
+    /// setup dXvdFFD matrix
     void setdXvdFFDMat(const Mat dXvdFFDMat);
 
+    /// setup the state normalization vector
     void setNormStatePerturbVec(Vec* normStatePerturbVec);
 };
 

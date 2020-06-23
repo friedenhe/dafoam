@@ -30,6 +30,46 @@ void DALinearEqn::createMLRKSP(
     const Mat jacPCMat,
     KSP* genksp)
 {
+    /*
+    Description:
+        This is the main function we need to call to initialize the KSP and set
+        up parameters for solving the linear equations
+    
+    Input:
+        options.GMRESRestart: how many Krylov spaces to keep before resetting them.
+        Usually, this is set to the GMRESMaxIters
+
+        options.GMRESMaxIters: how many GMRES iteration to run at most
+
+        options.GMRESRelTol: the relative tolerance for GMRES
+
+        options.GMRESAbsTol: the absolute tolerance for GMRES
+
+        options.GlobalPCIters: globa iteration for PC, usually set it to 0
+
+        options.ASMOverlap: ASM overlap for solving the linearEqn in parallel. 
+        Usually set it to 1. Setting a higher number increases the convergence but
+        significantly increase the memory usage
+
+        options.LocalPCIters: local iteraction for PC. usually set it to 1
+        
+        options.JacMatReOrdering: re-order the lhs matrix to reduce memory usage.
+        Usually we use nd, rcm, or natural (not re-ordered)
+    
+        options.PCFillLevel: how many leve fill-in to use for PC. This is a critical
+        parameters for convergence rate. Usually set it to 1. Setting it to a higher
+        number increase the convergence, however, the memory usage generally grows 
+        exponetially. We rarely set it more than 2.
+
+        options.printInfo: whether to print summary information before solving 
+
+        jacMat: the right-hand-side petsc matrix 
+
+        jacPCMat: the preconditioner matrix from which we constructor our preconditioners
+    
+    Output:
+        genksp: the set KSP object 
+    */
 
     PC MLRMasterPC, MLRGlobalPC;
     PC MLRsubpc;
@@ -256,6 +296,19 @@ label DALinearEqn::solveLinearEqn(
     const Vec rhsVec,
     Vec solVec)
 {
+    /*
+    Description:
+        Solve a linear euqation.
+    
+    Input:
+        ksp: the KSP object, obtained from calling Foam::createMLRKSP
+
+        rhsVec: the right-hand-side petsc vector
+
+    Output:
+        solVec: the solution vector
+    */
+
     Info << "Solving Linear Euqation... "
          << this->getRunTime() << " s" << endl;
 
@@ -295,12 +348,13 @@ PetscErrorCode DALinearEqn::myKSPMonitor(
 {
 
     /*
-      Write the solution vector and residual norm to stdout.
-      - PetscPrintf() handles output for multiprocessor jobs
-      by printing from only one processor in the communicator.
-      - The parallel viewer PETSC_VIEWER_STDOUT_WORLD handles
-      data from multiple processors so that the output
-      is not jumbled.
+    Descripton:
+        Write the solution vector and residual norm to stdout.
+        - PetscPrintf() handles output for multiprocessor jobs
+        by printing from only one processor in the communicator.
+        - The parallel viewer PETSC_VIEWER_STDOUT_WORLD handles
+        data from multiple processors so that the output
+        is not jumbled.
     */
 
     DALinearEqn* daLinearEqn = (DALinearEqn*)ctx;
@@ -320,6 +374,10 @@ PetscErrorCode DALinearEqn::myKSPMonitor(
 
 label DALinearEqn::getRunTime()
 {
+    /*
+    Descripton:
+        Return the runtime
+    */
     return mesh_.time().elapsedClockTime();
 }
 

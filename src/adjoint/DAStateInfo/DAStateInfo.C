@@ -28,15 +28,6 @@ DAStateInfo::DAStateInfo(
       daOption_(daOption),
       daModel_(daModel)
 {
-    /*
-    Description:
-        Construct from Foam::fvMesh
-    Input:
-        modelType: the type of model
-        mesh: a fvMesh object
-        daOption: DAOption object
-        daModel: DAModel object
-    */
 
     // initialize stateInfo
     stateInfo_.set("volScalarStates", {});

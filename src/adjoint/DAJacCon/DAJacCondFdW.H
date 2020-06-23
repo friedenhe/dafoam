@@ -34,16 +34,20 @@ protected:
     /// the global numbering for the discrete source of objective function
     globalIndex globalObjFuncGeoNumbering_;
 
+    /// get the local index of geometry element for objective
     label getLocalObjFuncGeoIndex(
         const word idxType,
         const label idxI) const;
     
+    /// get the global index of geometry element for objective
     label getGlobalObjFuncGeoIndex(
         const word idxType,
         const label idxI) const;
     
+    /// the size of objFunc faces
     label objFuncFaceSize_ = 0;
 
+    /// the size of objFunc cells
     label objFuncCellSize_ = 0;
 
 public:
@@ -72,6 +76,7 @@ public:
     /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
     virtual void setupJacCon(const dictionary& options);
 
+    /// assign values for the objective function vector based on the face and cell value lists
     virtual void setObjFuncVec(
         scalarList objFuncFaceValues,
         scalarList objFuncCellValues,

@@ -41,6 +41,16 @@ void DAPartDerivdFdW::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
+    /*
+    Description:
+        Initialize jacMat
+    
+    Input:
+        options.objFuncFaceSources:  The list of objFunc face indices
+
+        options.objFuncCellSources:  The list of objFunc cell indices
+    */
+
     labelList objFuncFaceSources;
     labelList objFuncCellSources;
     options.readEntry<labelList>("objFuncFaceSources", objFuncFaceSources);
@@ -72,6 +82,26 @@ void DAPartDerivdFdW::calcPartDerivMat(
     const Vec wVec,
     Mat jacMat)
 {
+
+    /*
+    Description:
+        Compute jacMat. We use coloring acclerated finite-difference for dFdW
+    
+    Input:
+
+        options.objFuncSubDictPart: the objFunc subDict, obtained from DAOption
+
+        options.objFuncName: the name of the objective
+
+        options.objFuncPart: the part of the objective
+
+        xvVec: the volume mesh coordinate vector
+
+        wVec: the state variable vector
+    
+    Output:
+        jacMat: the partial derivative matrix dFdW to compute
+    */
 
     label transposed = 0;
 

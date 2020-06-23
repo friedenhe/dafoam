@@ -102,6 +102,7 @@ protected:
     /// the dictionary of adjoint vector (psi) values for all objectives
     dictionary psiVecDict_;
 
+    /// the dictionary that stores the total derivatives reduced from processors
     dictionary totalDerivDict_;
 
     /// assign the psiVec to psiVecArray_
@@ -116,6 +117,7 @@ protected:
         const Vec totalDerivVec,
         dictionary& totalDerivDict);
 
+    /// the matrix that stores the partials dXv/dFFD computed from the idwarp and pygeo in the pyDAFoam.py
     Mat dXvdFFDMat_;
 
 public:
@@ -240,6 +242,7 @@ public:
         const dictionary& maxResConLv4JacPCMat,
         HashTable<List<List<word>>>& stateResConInfo) const;
 
+    /// calculate the norms of all residuals and print to screen
     void calcPrimalResidualStatistics(
         const word mode,
         const label writeRes = 0);
@@ -249,11 +252,13 @@ public:
         const word objFuncName,
         Vec psiVec);
 
+    /// get the value of totoal derivative that is stored in DASolver::totalDerivDict_
     scalar getTotalDerivVal(
         const word objFuncName,
         const word designVarName,
         const label idxI) const;
 
+    /// set the value for DASolver::dXvdFFDMat_
     void setdXvdFFDMat(const Mat dXvdFFDMat);
 };
 

@@ -37,6 +37,8 @@ DAObjFuncForce::DAObjFuncForce(
       daTurb_(daModel.getDATurbulenceModel())
 {
 
+    // for computing force, first read in some parameters from objFuncDict_
+    // these parameters are only for force objective
     objFuncDict_.readEntry<word>("type", objFuncType_);
 
     scalarList dir;
@@ -47,7 +49,9 @@ DAObjFuncForce::DAObjFuncForce(
 
     objFuncDict_.readEntry<scalar>("scale", scale_);
 
-    // setup the connectivity for force
+    // setup the connectivity for force, this is needed in Foam::DAJacCondFdW
+    // need to determine the name of pressure because some buoyant OF solver use
+    // p_rgh as pressure
     word pName = "p";
     if (mesh_.thisDb().foundObject<volScalarField>("p_rgh"))
     {
@@ -82,25 +86,24 @@ void DAObjFuncForce::calcObjFunc(
     scalar& objFuncValue)
 {
     /*
-    Calculate the force which consist of pressure and viscous components.
-    This code is modified based on:
-    src/functionObjects/forcces/forces.C
+    Description:
+        Calculate the force which consist of pressure and viscous components.
+        This code is modified based on:
+        src/functionObjects/forcces/forces.C
 
     Input:
-    -----
-    objFuncFaceSources: List of face source (index) for this objective
-
-    objFuncCellSources: List of cell source (index) for this objective
+        objFuncFaceSources: List of face source (index) for this objective
+    
+        objFuncCellSources: List of cell source (index) for this objective
 
     Output:
-    ------
-    objFuncFaceValues: the discrete value of objective for each face source (index). 
-    This  will be used for computing df/dw in the adjoint.
-
-    objFuncCellValues: the discrete value of objective on each cell source (index). 
-    This will be used for computing df/dw in the adjoint.
-
-    objFuncValue: the sum of objective, reduced across all processsors and scaled by "scale"
+        objFuncFaceValues: the discrete value of objective for each face source (index). 
+        This  will be used for computing df/dw in the adjoint.
+    
+        objFuncCellValues: the discrete value of objective on each cell source (index). 
+        This will be used for computing df/dw in the adjoint.
+    
+        objFuncValue: the sum of objective, reduced across all processsors and scaled by "scale"
     */
 
     // initialize faceValues to zero

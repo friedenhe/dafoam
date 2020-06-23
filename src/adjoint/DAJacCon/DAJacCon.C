@@ -82,8 +82,18 @@ autoPtr<DAJacCon> DAJacCon::New(
 void DAJacCon::initializeStateBoundaryCon()
 {
     /*
-    Initialize state boundary connectivity matrices and variables. 
-    This will be used for Jacobian with respect to states, e.g., dRdW, and dFdW.
+    Description:
+        Initialize state boundary connectivity matrices and variables. 
+        This will be used for Jacobian with respect to states, e.g., dRdW, and dFdW.
+
+        NOTE: no need to call this function for partial derivatives that are not wrt states
+    
+    Output:
+        neiBFaceGlobalCompact_: neibough face global index for a given local boundary face
+
+        stateBoundaryCon_: matrix to store boundary connectivity levels for state Jacobians
+
+        stateBoundaryConID_: matrix to store boundary connectivity ID for state Jacobians
     */
 
     // Calculate the boundary connectivity
@@ -108,17 +118,16 @@ void DAJacCon::setupJacobianConnections(
     const PetscInt idxI)
 {
     /*
-    Assign connectivity to Jacobian conMat, e.g., dRdWCon, based on the connections input Mat
+    Description:
+        Assign connectivity to Jacobian conMat, e.g., dRdWCon, based on the connections input Mat
     
     Input:
-    ------
-    idxI: Row index to added, ad the column index to added is based on connections
+        idxI: Row index to added, ad the column index to added is based on connections
 
-    connections: the one row matrix with nonzero values to add to conMat
+        connections: the one row matrix with nonzero values to add to conMat
 
     Output:
-    ------
-    conMat: the connectivity mat to add
+        conMat: the connectivity mat to add
     */
 
     PetscInt nCols;
@@ -141,8 +150,12 @@ void DAJacCon::setupJacobianConnections(
 void DAJacCon::createConnectionMat(Mat* connectedStates)
 {
     /*
-    Initialize a serial connectivity matrix connectedStates,
-    basically, it is one row of connectivity in DAJacCon::jacCon_
+    Description:
+        Initialize a serial connectivity matrix connectedStates,
+        basically, it is one row of connectivity in DAJacCon::jacCon_
+    
+    Input/Output:
+        connectedStates: a 1 row matrix that will be used to store the connectivity
     */
 
     // create a local matrix to store this row's connectivity
@@ -170,99 +183,97 @@ void DAJacCon::addStateConnections(
     const label addFace)
 {
     /*
-    A high level interface to add the connectivity for the row matrix connections
-    Note: the connections mat is basically one row of connectivity in DAJacCon::jacCon_
+    Description:
+        A high level interface to add the connectivity for the row matrix connections
+        Note: the connections mat is basically one row of connectivity in DAJacCon::jacCon_
 
     Input:
-    ------
-    cellI: cell index based on which we want to add the connectivity. We can add any level of 
-    connected states to this cellI
+        cellI: cell index based on which we want to add the connectivity. We can add any level of 
+        connected states to this cellI
 
-    connectedLevelLocal: level of local connectivity, this is useually obtained from
-    DAJacCon::adjStateResidualConInfo_
+        connectedLevelLocal: level of local connectivity, this is useually obtained from
+        DAJacCon::adjStateResidualConInfo_
 
-    connectedStatesLocal: list of connected states to add for the level: connectedLevelLocal
-
-    connectedStatesInterProc: list of states to add for a given level of boundary connectivity 
+        connectedStatesLocal: list of connected states to add for the level: connectedLevelLocal
     
-    addFace: add cell faces for the current level?
+        connectedStatesInterProc: list of states to add for a given level of boundary connectivity 
+        
+        addFace: add cell faces for the current level?
 
     Output:
-    ------
-    connections: one row of connectivity in DAJacCon::jacCon_
+        connections: one row of connectivity in DAJacCon::jacCon_
 
     Example:
-    -------
-    If the connectivity list reads:
-
-    adjStateResidualConInfo_
-    {
-        "URes"
+        If the connectivity list reads:
+    
+        adjStateResidualConInfo_
         {
-            {"U", "p", "phi"}, // level 0 connectivity
-            {"U", "p", "phi"}, // level 1 connectivity
-            {"U"},             // level 2 connectivity
+            "URes"
+            {
+                {"U", "p", "phi"}, // level 0 connectivity
+                {"U", "p", "phi"}, // level 1 connectivity
+                {"U"},             // level 2 connectivity
+            }
         }
-    }
-
-    and the cell topology with a inter-proc boundary cen be either of the following:
-    CASE 1:
-                       ---------
-                       | cellQ |
-                -----------------------
-               | cellP | cellJ | cellO |             <------ proc1
-    ------------------------------------------------ <----- inter-processor boundary
-       | cellT | cellK | cellI | cellL | cellU |     <------ proc0
-       -----------------------------------------
-               | cellN | cellM | cellR |
-                ------------------------
-                       | cellS |
-                       ---------
     
-    CASE 2:
-                       ---------
-                       | cellQ |                       <------ proc1
-    -------------------------------------------------- <----- inter-processor boundary
-               | cellP | cellJ | cellO |               <------ proc0
-       ----------------------------------------- 
-       | cellT | cellK | cellI | cellL | cellU |    
-       -----------------------------------------
-               | cellN | cellM | cellR |
-                ------------------------
-                       | cellS |
-                       ---------
+        and the cell topology with a inter-proc boundary cen be either of the following:
+        CASE 1:
+                           ---------
+                           | cellQ |
+                    -----------------------
+                   | cellP | cellJ | cellO |             <------ proc1
+        ------------------------------------------------ <----- inter-processor boundary
+           | cellT | cellK | cellI | cellL | cellU |     <------ proc0
+           -----------------------------------------
+                   | cellN | cellM | cellR |
+                    ------------------------
+                           | cellS |
+                           ---------
+        
+        CASE 2:
+                           ---------
+                           | cellQ |                       <------ proc1
+        -------------------------------------------------- <----- inter-processor boundary
+                   | cellP | cellJ | cellO |               <------ proc0
+           ----------------------------------------- 
+           | cellT | cellK | cellI | cellL | cellU |    
+           -----------------------------------------
+                   | cellN | cellM | cellR |
+                    ------------------------
+                           | cellS |
+                           ---------
+        
+        Then, to add the connectivity correctly, we need to add all levels of connected
+        states for cellI.
+        Level 0 connectivity is straightforward becasue we don't need
+        to provide connectedStatesInterProc
     
-    Then, to add the connectivity correctly, we need to add all levels of connected
-    states for cellI.
-    Level 0 connectivity is straightforward becasue we don't need
-    to provide connectedStatesInterProc
-
-    To add level 1 connectivity, we need to:
-    set connectedLevelLocal = 1
-    set connectedStatesLocal = {U, p}
-    set connectedStatesInterProc = {{U,p}, {U}}
-    set addFace = 1 
-    NOTE: we need set level 1 and level 2 con in connectedStatesInterProc because the 
-    north face of cellI is a inter-proc boundary and there are two levels of connected
-    state on the other side of the inter-proc boundary for CASE 1. This is the only chance we 
-    can add all two levels of connected state across the boundary for CASE 1. For CASE 2, we won't
-    add any level 1 inter-proc states because non of the faces for cellI are inter-proc
-    faces so calling DAJacCon::addBoundaryFaceConnections for cellI won't add anything
-
-    To add level 2 connectivity, we need to
-    set connectedLevelLocal = 2
-    set connectedStatesLocal = {U}
-    set connectedStatesInterProc = {{U}}
-    set addFace = 0
-    NOTE 1: we need only level 2 con (U) for connectedStatesInterProc because if we are in CASE 1,
-    the level 2 of inter-proc states have been added. For CASE 2, we only need to add cellQ
-    by calling DAJacCon::addBoundaryFaceConnections with cellJ
-    NOTE 2: If we didn't call two levels of connectedStatesInterProc in the previous call for 
-    level 1 con, we can not add it for connectedLevelLocal = 2 becasue for CASE 2 there is no
-    inter-proc boundary for cellI
-
-    NOTE: how to provide connectedLevelLocal, connectedStatesLocal, and connectedStatesInterProc
-    are done in DAJacCon::setupJacCon
+        To add level 1 connectivity, we need to:
+        set connectedLevelLocal = 1
+        set connectedStatesLocal = {U, p}
+        set connectedStatesInterProc = {{U,p}, {U}}
+        set addFace = 1 
+        NOTE: we need set level 1 and level 2 con in connectedStatesInterProc because the 
+        north face of cellI is a inter-proc boundary and there are two levels of connected
+        state on the other side of the inter-proc boundary for CASE 1. This is the only chance we 
+        can add all two levels of connected state across the boundary for CASE 1. For CASE 2, we won't
+        add any level 1 inter-proc states because non of the faces for cellI are inter-proc
+        faces so calling DAJacCon::addBoundaryFaceConnections for cellI won't add anything
+    
+        To add level 2 connectivity, we need to
+        set connectedLevelLocal = 2
+        set connectedStatesLocal = {U}
+        set connectedStatesInterProc = {{U}}
+        set addFace = 0
+        NOTE 1: we need only level 2 con (U) for connectedStatesInterProc because if we are in CASE 1,
+        the level 2 of inter-proc states have been added. For CASE 2, we only need to add cellQ
+        by calling DAJacCon::addBoundaryFaceConnections with cellJ
+        NOTE 2: If we didn't call two levels of connectedStatesInterProc in the previous call for 
+        level 1 con, we can not add it for connectedLevelLocal = 2 becasue for CASE 2 there is no
+        inter-proc boundary for cellI
+    
+        NOTE: how to provide connectedLevelLocal, connectedStatesLocal, and connectedStatesInterProc
+        are done in DAJacCon::setupJacCon
 
     */
 
@@ -534,8 +545,9 @@ void DAJacCon::setConnections(
 {
 
     /*
-    set 1.0 for conMat, the column index is idx, the row index is
-    always 1 because conMat is a row matrix
+    Description:
+        Set 1.0 for conMat, the column index is idx, the row index is
+        always 1 because conMat is a row matrix
     */
 
     PetscInt idxI = 0;
@@ -547,28 +559,27 @@ void DAJacCon::setConnections(
 void DAJacCon::calcNeiBFaceGlobalCompact(labelList& neiBFaceGlobalCompact)
 {
     /*
-    This function calculates DAJacCon::neiBFaceGlobalCompact[bFaceI]. Here neiBFaceGlobalCompact 
-    stores the global coupled boundary face index for the face on the other side of the local 
-    processor boundary. bFaceI is the "compact" face index. bFaceI=0 for the first boundary face
-    neiBFaceGlobalCompat.size() = nLocalBoundaryFaces
-    neiBFaceGlobalCompact[bFaceI] = -1 means it is not a coupled face
-    NOTE: neiBFaceGlobalCompact will be used to calculate the connectivity across processors
-    in DAJacCon::setupStateBoundaryCon
+    Description:
+        This function calculates DAJacCon::neiBFaceGlobalCompact[bFaceI]. Here neiBFaceGlobalCompact 
+        stores the global coupled boundary face index for the face on the other side of the local 
+        processor boundary. bFaceI is the "compact" face index. bFaceI=0 for the first boundary face
+        neiBFaceGlobalCompat.size() = nLocalBoundaryFaces
+        neiBFaceGlobalCompact[bFaceI] = -1 means it is not a coupled face
+        NOTE: neiBFaceGlobalCompact will be used to calculate the connectivity across processors
+        in DAJacCon::setupStateBoundaryCon
 
     Output:
-    ------
-    neiBFaceGlobalCompact: the global coupled boundary face index for the face on the other 
-    side of the local processor boundary
+        neiBFaceGlobalCompact: the global coupled boundary face index for the face on the other 
+        side of the local processor boundary
    
     Example:
-    -------
-    On proc0, neiBFaceGlobalCompact[0] = 1024, then we have the following:
-   
-                         localBFaceI = 0     <--proc0
-                  ---------------------------   coupled boundary face
-                         globalBFaceI=1024   <--proc1   
-    Taken and modified from the extended stencil code in fvMesh
-    Swap the global boundary face index
+        On proc0, neiBFaceGlobalCompact[0] = 1024, then we have the following:
+       
+                             localBFaceI = 0     <--proc0
+                      ---------------------------   coupled boundary face
+                             globalBFaceI=1024   <--proc1   
+        Taken and modified from the extended stencil code in fvMesh
+        Swap the global boundary face index
     */
 
     const polyBoundaryMesh& patches = mesh_.boundaryMesh();
@@ -615,17 +626,16 @@ void DAJacCon::calcNeiBFaceGlobalCompact(labelList& neiBFaceGlobalCompact)
 label DAJacCon::getLocalCoupledBFaceIndex(const label localFaceI) const
 {
     /*
-    Calculate the index of the local inter-processor boundary face (bRow). 
+    Description:
+        Calculate the index of the local inter-processor boundary face (bRow). 
     
     Input:
-    -----
-    localFaceI: The local face index. It is in a list of faces including all the
-    internal and boundary faces.
+        localFaceI: The local face index. It is in a list of faces including all the
+        internal and boundary faces.
 
     Output:
-    ------
-    bRow: A list of faces starts with the first inter-processor face. 
-    See DAJacCon::globalBndNumbering_ for more details.
+        bRow: A list of faces starts with the first inter-processor face. 
+        See DAJacCon::globalBndNumbering_ for more details.
     */
 
     label counter = 0;
@@ -663,33 +673,32 @@ label DAJacCon::getLocalCoupledBFaceIndex(const label localFaceI) const
 void DAJacCon::setupStateBoundaryCon(Mat* stateBoundaryCon)
 {
     /*
-    This function calculates DAJacCon::stateBoundaryCon_
+    Description:
+        This function calculates DAJacCon::stateBoundaryCon_
 
     Output:
-    -------
-    stateBoundaryCon stores the level of connected states (on the other side 
-    across the boundary) for a given coupled boundary face. stateBoundaryCon is 
-    a matrix with sizes of nGlobalCoupledBFaces by nGlobalAdjointStates
-    stateBoundaryCon is mainly used in the addBoundaryFaceConnection function
+        stateBoundaryCon stores the level of connected states (on the other side 
+        across the boundary) for a given coupled boundary face. stateBoundaryCon is 
+        a matrix with sizes of nGlobalCoupledBFaces by nGlobalAdjointStates
+        stateBoundaryCon is mainly used in the addBoundaryFaceConnection function
     
     Example:
-    --------
-    Basically, if there are 2 levels of connected states across the inter-proc boundary
-
-                                   |<-----------proc0, globalBFaceI=1024
-                           -----------------------------------  <-coupled boundary face
-     globalAdjStateIdx=100 ->   | lv1 | <------ proc1
-                                |_____|
-     globalAdjStateIdx=200 ->   | lv2 |
-                                |_____| 
-                               
+        Basically, if there are 2 levels of connected states across the inter-proc boundary
     
-    The indices for row 1024 in the stateBoundaryCon matrix will be
-    stateBoundaryCon
-    rowI=1024   
-    Cols: colI=0 ...... colI=100  ........ colI=200 ......... colI=nGlobalAdjointStates
-    Vals (level):           1                 2           
-    NOTE: globalBFaceI=1024 is owned by proc0      
+                                       |<-----------proc0, globalBFaceI=1024
+                               -----------------------------------  <-coupled boundary face
+         globalAdjStateIdx=100 ->   | lv1 | <------ proc1
+                                    |_____|
+         globalAdjStateIdx=200 ->   | lv2 |
+                                    |_____| 
+                                   
+        
+        The indices for row 1024 in the stateBoundaryCon matrix will be
+        stateBoundaryCon
+        rowI=1024   
+        Cols: colI=0 ...... colI=100  ........ colI=200 ......... colI=nGlobalAdjointStates
+        Vals (level):           1                 2           
+        NOTE: globalBFaceI=1024 is owned by proc0      
            
     */
 
@@ -1073,22 +1082,23 @@ void DAJacCon::combineStateBndCon(
     Mat* stateBoundaryConTmp)
 {
     /*
-    1. Add additional adj state connectivities if the stateBoundaryCon stencil extends through
-    three or more decomposed domains, something like this:
+    Description:
+        1. Add additional adj state connectivities if the stateBoundaryCon stencil extends through
+        three or more decomposed domains, something like this:
+        
+        --------       ---------
+               |       |       |
+          Con3 |  Con2 |  Con1 |  R
+               |       |       |
+               ---------       --------
+               
+        Here R is the residual, Con1 to 3 are its connectivity, and dashed lines 
+        are the inter-processor boundary
+               
+        2. Assign stateBoundaryConTmp to stateBoundaryCon.
     
-    --------       ---------
-           |       |       |
-      Con3 |  Con2 |  Con1 |  R
-           |       |       |
-           ---------       --------
-           
-    Here R is the residual, Con1 to 3 are its connectivity, and dashed lines 
-    are the inter-processor boundary
-           
-    2. Assign stateBoundaryConTmp to stateBoundaryCon.
-
     Input/Output:
-    stateBoundaryCon, and stateBoundaryConTmp should come from DAJacCon::stateBoundaryCon
+        stateBoundaryCon, and stateBoundaryConTmp should come from DAJacCon::stateBoundaryCon
     */
 
     PetscInt nCols;
@@ -1306,13 +1316,13 @@ void DAJacCon::combineStateBndCon(
 void DAJacCon::setupStateBoundaryConID(Mat* stateBoundaryConID)
 {
     /*
-    This function computes DAJacCon::stateBoundaryConID_.
+    Description:
+        This function computes DAJacCon::stateBoundaryConID_.
 
     Output:
-    -------
-    stateBoundaryConID: it has the exactly same structure as DAJacConstateBoundaryCon_ 
-    except that stateBoundaryConID stores the connected stateID instead of connected 
-    levels. stateBoundaryConID will be used in DAJacCon::addBoundaryFaceConnections
+        stateBoundaryConID: it has the exactly same structure as DAJacCon::stateBoundaryCon_ 
+        except that stateBoundaryConID stores the connected stateID instead of connected 
+        levels. stateBoundaryConID will be used in DAJacCon::addBoundaryFaceConnections
     */
 
     PetscInt nCols, colI;
@@ -1376,35 +1386,35 @@ void DAJacCon::addConMatCell(
     const word stateName,
     const PetscScalar val)
 {
-
     /* 
-    Insert a value (val) to the connectivity Matrix (conMat)
-    This value will be inserted at rowI=gRow
-    The column index is dependent on the cellI and stateName
+    Description:
+        Insert a value (val) to the connectivity Matrix (conMat)
+        This value will be inserted at rowI=gRow
+        The column index is dependent on the cellI and stateName
 
     Input:
-    -----
-    gRow: which row to insert the value for conMat
-    cellI: the index of the cell to compute the column index to add
-    stateName: the name of the state variable to compute the column index to add
-    val: the value to add to conMat
+        gRow: which row to insert the value for conMat
+
+        cellI: the index of the cell to compute the column index to add
+
+        stateName: the name of the state variable to compute the column index to add
+
+        val: the value to add to conMat
 
     Output:
-    ------
-    conMat: the matrix to add value to
+        conMat: the matrix to add value to
 
     Example:
-    -------
 
-    If we want to add value 1.0 to conMat for
-    column={the U globalAdjointIndice of cellI} where cellI=5
-    row = gRow = 100
-    Then, call addConMatCell(conMat, 100, 5, "U", 1.0)
-
-             -------  
-            | cellI | <----------- value 1.0 will be added to 
-             -------               column = {global index of U 
-                                   for cellI}
+        If we want to add value 1.0 to conMat for
+        column={the U globalAdjointIndice of cellI} where cellI=5
+        row = gRow = 100
+        Then, call addConMatCell(conMat, 100, 5, "U", 1.0)
+    
+                 -------  
+                | cellI | <----------- value 1.0 will be added to 
+                 -------               column = {global index of U 
+                                       for cellI}
     */
 
     PetscInt idxJ, idxI;
@@ -1436,37 +1446,38 @@ void DAJacCon::addConMatNeighbourCells(
     const PetscScalar val)
 {
 
-    /* 
-    Insert a value (val) to the connectivity Matrix (conMat)
-    This value will be inserted at rowI=gRow
-    The column index is dependent on the cellI, and cellI's neibough and stateName
+    /*
+    Description:
+        Insert a value (val) to the connectivity Matrix (conMat)
+        This value will be inserted at rowI=gRow
+        The column index is dependent on the cellI, and cellI's neibough and stateName
 
     Input:
-    -----
-    gRow: which row to insert the value for conMat
-    cellI: the index of the cell to compute the column index to add
-    stateName: the name of the state variable to compute the column index to add
-    val: the value to add to conMat
+        gRow: which row to insert the value for conMat
+
+        cellI: the index of the cell to compute the column index to add
+
+        stateName: the name of the state variable to compute the column index to add
+
+        val: the value to add to conMat
 
     Output:
-    ------
-    conMat: the matrix to add value to
+        conMat: the matrix to add value to
 
     Example:
-    -------
 
-    If we want to add value 1.0 to conMat for
-    columns={the U globalAdjointIndice of all the neiboughs of cellI} where cellI=5
-    row = gRow = 100
-    Then, call addConMatNeighbourCells(conMat, 100, 5, "U", 1.0)
-
-             -------  
-            | cellL | <----------- value 1.0 will be added to 
-     ------- ------- -------       column = {global index of U 
-    | cellJ | cellI | cellK |      for cellL}, similarly for all 
-     ------- ------- -------       the neiboughs of cellI
-            | cellM |
-             -------
+        If we want to add value 1.0 to conMat for
+        columns={the U globalAdjointIndice of all the neiboughs of cellI} where cellI=5
+        row = gRow = 100
+        Then, call addConMatNeighbourCells(conMat, 100, 5, "U", 1.0)
+    
+                 -------  
+                | cellL | <----------- value 1.0 will be added to 
+         ------- ------- -------       column = {global index of U 
+        | cellJ | cellI | cellK |      for cellL}, similarly for all 
+         ------- ------- -------       the neiboughs of cellI
+                | cellM |
+                 -------
     */
 
     label localCellJ;
@@ -1505,33 +1516,34 @@ void DAJacCon::addConMatCellFaces(
 {
 
     /* 
-    Insert a value (val) to the connectivity Matrix (conMat)
-    This value will be inserted at rowI=gRow
-    The column index is dependent on the cellI's faces and stateName
+    Description:
+        Insert a value (val) to the connectivity Matrix (conMat)
+        This value will be inserted at rowI=gRow
+        The column index is dependent on the cellI's faces and stateName
 
     Input:
-    -----
-    gRow: which row to insert the value for conMat
-    cellI: the index of the cell to compute the column index to add
-    stateName: the name of the state variable to compute the column index to add
-    val: the value to add to conMat
+        gRow: which row to insert the value for conMat
+
+        cellI: the index of the cell to compute the column index to add
+
+        stateName: the name of the state variable to compute the column index to add
+
+        val: the value to add to conMat
 
     Output:
-    ------
-    conMat: the matrix to add value to
+        conMat: the matrix to add value to
 
     Example:
-    -------
 
-    If we want to add value 10.0 to conMat for
-    columns={the phi globalAdjointIndice of cellI's faces} where cellI=5
-    row = gRow = 100
-    Then, call addConMatCell(conMat, 100, 5, "U", 1.0)
-
-             -------  
-            | cellI | <----------- value 10.0 will be added to 
-             -------               column = {global adjoint index 
-                                   of all cellI's faces}
+        If we want to add value 10.0 to conMat for
+        columns={the phi globalAdjointIndice of cellI's faces} where cellI=5
+        row = gRow = 100
+        Then, call addConMatCell(conMat, 100, 5, "U", 1.0)
+    
+                 -------  
+                | cellI | <----------- value 10.0 will be added to 
+                 -------               column = {global adjoint index 
+                                       of all cellI's faces}
     */
 
     PetscInt idxJ, idxI;
@@ -1560,70 +1572,69 @@ void DAJacCon::addBoundaryFaceConnections(
     const label addFaces)
 {
     /*
-    This function adds inter-proc connectivity into conMat.
-    For all the inter-proc faces owned by cellI, get the global adj state indices 
-    from DAJacCon::stateBoundaryCon_ and then add them into conMat
-    Col index to add: the same col index for a given row (bRowGlobal) in the stateBoundaryCon 
-    mat if the element value in the stateBoundaryCon mat is less than the input level, 
-    i.e., v.size().
+    Description:
+        This function adds inter-proc connectivity into conMat.
+        For all the inter-proc faces owned by cellI, get the global adj state indices 
+        from DAJacCon::stateBoundaryCon_ and then add them into conMat
+        Col index to add: the same col index for a given row (bRowGlobal) in the stateBoundaryCon 
+        mat if the element value in the stateBoundaryCon mat is less than the input level, 
+        i.e., v.size().
     
     Input:
-    -----
-    gRow: Row index to add
-
-    cellI: the cell index for getting the faces to add inter-proc connectivity, NOTE: depending on the level
-    of requested connections, we may add inter-proc face that are not belonged to cellI
-
-    v: an array denoting the desired values to add, the size of v denotes the maximal levels to add
-
-    connectedStates: selectively add some states into the conMat for the current level. If its size is 0,
-    add all the possible states (except for surfaceStates). The dimension of connectedStates is nLevel 
-    by nStates.
-
-    addFaces: whether to add indices for face (phi) connectivity
+        gRow: Row index to add
+    
+        cellI: the cell index for getting the faces to add inter-proc connectivity, NOTE: depending on the level
+        of requested connections, we may add inter-proc face that are not belonged to cellI
+    
+        v: an array denoting the desired values to add, the size of v denotes the maximal levels to add
+    
+        connectedStates: selectively add some states into the conMat for the current level. If its size is 0,
+        add all the possible states (except for surfaceStates). The dimension of connectedStates is nLevel 
+        by nStates.
+    
+        addFaces: whether to add indices for face (phi) connectivity
     
     Example:
-    --------
     
-    labelList val2={1,2};
-    PetscInt gRow=1024, idxN = 100, addFaces=1;
-    wordListList connectedStates={{"U","p"},{"U"}};
-    addBoundaryFaceConnections(stateBoundaryCon,gRow,idxN,vals2,connectedStates,addFaces);
-    The above call will add 2 levels of connected states for all the inter-proc faces belonged to cellI=idxN
-    The cols to added are: the level1 connected states (U, p) for all the inter-proc faces belonged to 
-    cellI=idxN. the level2 connected states (U only) for all the inter-proc faces belonged to cellI=idxN
-    The valus "1" will be added to conMat for all the level1 connected states while the value "2" will be 
-    added for level2. 
-    Note: this function will also add all faces belonged to level1 of the inter-proc faces, see the 
-    following for reference
+        labelList val2={1,2};
+        PetscInt gRow=1024, idxN = 100, addFaces=1;
+        wordListList connectedStates={{"U","p"},{"U"}};
+        addBoundaryFaceConnections(stateBoundaryCon,gRow,idxN,vals2,connectedStates,addFaces);
+        The above call will add 2 levels of connected states for all the inter-proc faces belonged to cellI=idxN
+        The cols to added are: the level1 connected states (U, p) for all the inter-proc faces belonged to 
+        cellI=idxN. the level2 connected states (U only) for all the inter-proc faces belonged to cellI=idxN
+        The valus "1" will be added to conMat for all the level1 connected states while the value "2" will be 
+        added for level2. 
+        Note: this function will also add all faces belonged to level1 of the inter-proc faces, see the 
+        following for reference
+        
+                                    -------
+                                    | idxN|
+                                    |     |       proc0, idxN=100, globalBFaceI=1024 for the south face of idxN
+                               -----------------  <----coupled boundary face
+         add state U and p ----->   | lv1 |       proc1
+         also add faces -------->   |     |
+                                    -------
+                                    | lv2 |
+         add state U  ---------->   |     |
+                                    -------
+        
     
-                                -------
-                                | idxN|
-                                |     |       proc0, idxN=100, globalBFaceI=1024 for the south face of idxN
-                           -----------------  <----coupled boundary face
-     add state U and p ----->   | lv1 |       proc1
-     also add faces -------->   |     |
-                                -------
-                                | lv2 |
-     add state U  ---------->   |     |
-                                -------
+        ****** NOTE: *******
+        If the inter-proc boundary is like the following, calling this function will NOT add any 
+        inter-proc connection for idxN because there is no inter-proc boundary for cell idxN
     
-
-    ****** NOTE: *******
-    If the inter-proc boundary is like the following, calling this function will NOT add any 
-    inter-proc connection for idxN because there is no inter-proc boundary for cell idxN
-
-            -------
-            | idxN|
-            |     |       
-            -------  <--------- there is no inter-proc boundary for idxN, not adding anything
-            | lv1 |      
-            |     |        proc0
-      ------------------- <----coupled boundary face
-            | lv2 |        proc1
-            |     |
-            -------
-    
+                -------
+                | idxN|
+                |     |       
+                -------  <--------- there is no inter-proc boundary for idxN, not adding anything
+                | lv1 |      
+                |     |        proc0
+          ------------------- <----coupled boundary face
+                | lv2 |        proc1
+                |     |
+                -------
+        
     */
 
     if (v.size() != connectedStates.size() && connectedStates.size() != 0)
@@ -1747,7 +1758,18 @@ void DAJacCon::addBoundaryFaceConnections(
 
 label DAJacCon::coloringExists(const word postFix) const
 {
-    /// Check whether the coloring file exists
+    /*
+    Description: 
+        Check whether the coloring file exists
+    
+    Input:
+        postFix: the post fix of the file name, e.g., the original
+        name is dFdWColoring_1.bin, then the new name is
+        dFdWColoring_drag_1.bin with postFix = _drag
+
+    Output:
+        return 1 if coloring files exist, otherwise, return 0
+    */
 
     Info << "Checking if Coloring file exists.." << endl;
     label nProcs = Pstream::nProcs();
@@ -1768,23 +1790,22 @@ label DAJacCon::coloringExists(const word postFix) const
 void DAJacCon::calcJacConColoring(const word postFix)
 {
     /*
-    Calculate the coloring for jacCon.
+    Description:
+        Calculate the coloring for jacCon.
 
     Input:
-    -----
-    postFix: the post fix of the file name, e.g., the original
-    name is dFdWColoring_1.bin, then the new name is
-    dFdWColoring_drag_1.bin with postFix = _drag
+        postFix: the post fix of the file name, e.g., the original
+        name is dFdWColoring_1.bin, then the new name is
+        dFdWColoring_drag_1.bin with postFix = _drag
 
     Output:
-    ------
-    jacConColors_: jacCon coloring and save to files. 
-    The naming convention for coloring vector is 
-    coloringVecName_nProcs.bin. This is necessary because 
-    using different CPU cores result in different jacCon 
-    and therefore different coloring
-
-    nJacColors: number of jacCon colors
+        jacConColors_: jacCon coloring and save to files. 
+        The naming convention for coloring vector is 
+        coloringVecName_nProcs.bin. This is necessary because 
+        using different CPU cores result in different jacCon 
+        and therefore different coloring
+    
+        nJacColors: number of jacCon colors
 
     */
 
@@ -1832,23 +1853,23 @@ void DAJacCon::calcJacConColoring(const word postFix)
 void DAJacCon::readJacConColoring(const word postFix)
 {
     /*
-    Read the jacCon coloring from files and 
-    compute nJacConColors. The naming convention for
-    coloring vector is coloringVecName_nProcs.bin
-    This is necessary because using different CPU
-    cores result in different jacCon and therefore
-    different coloring
+    Description:
+        Read the jacCon coloring from files and 
+        compute nJacConColors. The naming convention for
+        coloring vector is coloringVecName_nProcs.bin
+        This is necessary because using different CPU
+        cores result in different jacCon and therefore
+        different coloring
 
     Input:
-    -----
-    postFix: the post fix of the file name, e.g., the original
-    name is dFdWColoring_1.bin, then the new name is
-    dFdWColoring_drag_1.bin with postFix = _drag
+        postFix: the post fix of the file name, e.g., the original
+        name is dFdWColoring_1.bin, then the new name is
+        dFdWColoring_drag_1.bin with postFix = _drag
 
     Output:
-    ------
-    jacConColors_: read from file
-    nJacConColors: number of jacCon colors
+        jacConColors_: read from file
+
+        nJacConColors: number of jacCon colors
     */
 
     label nProcs = Pstream::nProcs();
@@ -1868,11 +1889,12 @@ void DAJacCon::readJacConColoring(const word postFix)
 void DAJacCon::setupJacConPreallocation(const dictionary& options)
 {
     /*
-    Compute the preallocation vectors.
-    NOTE: this need to be implemented in the child class, if not,
-    print an error! For example, for dRdW, this needs to be implemented;
-    however, for dFdW, no setupJacConPreallocation is needed so users
-    shouldn't call this function at all!
+    Description:
+        Compute the preallocation vectors.
+        NOTE: this need to be implemented in the child class, if not,
+        print an error! For example, for dRdW, this needs to be implemented;
+        however, for dFdW, no setupJacConPreallocation is needed so users
+        shouldn't call this function at all!
     */
     FatalErrorIn("") << "setupJacConPreallocation not implemented " << endl
                      << " in the child class for " << modelType_
@@ -1884,11 +1906,12 @@ void DAJacCon::preallocatedRdW(
     const label transposed) const
 {
     /*
-    Preallocate the dRMat
-    NOTE: this need to be implemented in the child class, if not,
-    print an error! For example, for dRdW, this needs to be implemented;
-    however, for dFdW, no preallocatedRdW is needed so users
-    shouldn't call this function at all!
+    Description:
+        Preallocate the dRMat
+        NOTE: this need to be implemented in the child class, if not,
+        print an error! For example, for dRdW, this needs to be implemented;
+        however, for dFdW, no preallocatedRdW is needed so users
+        shouldn't call this function at all!
     */
     FatalErrorIn("") << "preallocatedRdW not implemented " << endl
                      << " in the child class for " << modelType_
@@ -1900,6 +1923,14 @@ void DAJacCon::setObjFuncVec(
     scalarList objFuncCellValues,
     Vec objFuncVec) const
 {
+    /*
+    Description:
+        Set the objective function vector
+        NOTE: this need to be implemented in the child class, if not,
+        print an error! For example, for dFdW, this needs to be implemented;
+        however, for dRdW, no setObjFuncVec is needed so users
+        shouldn't call this function at all!
+    */
     FatalErrorIn("") << "setObjFuncVec not implemented " << endl
                      << " in the child class for " << modelType_
                      << abort(FatalError);
@@ -1910,74 +1941,72 @@ void DAJacCon::calcColoredColumns(
     Vec coloredColumn) const
 {
     /*
-    Compute the colored column vector: coloredColumn. This vector will then
-    be used to assign resVec to dRdW in DAPartDeriv::calcPartDeriv
+    Description:
+        Compute the colored column vector: coloredColumn. This vector will then
+        be used to assign resVec to dRdW in DAPartDeriv::calcPartDeriv
 
     Input:
-    -----
-    colorI: the ith color index
+        colorI: the ith color index
 
     Output:
-    ------
-    coloredColumn: For a given colorI, coloredColumn vector contains the column 
-    index for non-zero elements in the DAJacCon::jacCon_ matrix. If there is 
-    no non-zero element for this color, set the value to -1
+        coloredColumn: For a given colorI, coloredColumn vector contains the column 
+        index for non-zero elements in the DAJacCon::jacCon_ matrix. If there is 
+        no non-zero element for this color, set the value to -1
 
     Example:
-    -------
 
-    If the DAJacCon::jacCon_ matrix reads,
-
-           color0  color1
-             |     |
-             1  0  0  0
-    jacCon = 0  1  1  0
-             0  0  1  0
-             0  0  0  1
-                |     | 
-            color0   color0
-
-    and the coloring vector DAJacCon::jacConColors_ = {0, 0, 1, 0}.
+        If the DAJacCon::jacCon_ matrix reads,
     
-    **************************
-    ***** If colorI = 0 ******
-    **************************
-    Calling calcColoredColumns(0, coloredColumn) will return 
-
-    coloredColumn = {0, 1, -1, 3}
-
-    In this case, we have three columns (0, 1, and 3) for color=0, the nonzero pattern is:
-
-           color0  
-             |     
-             1  0  0  0
-    jacCon = 0  1  0  0
-             0  0  0  0
-             0  0  0  1
-                |     | 
-            color0   color0
+               color0  color1
+                 |     |
+                 1  0  0  0
+        jacCon = 0  1  1  0
+                 0  0  1  0
+                 0  0  0  1
+                    |     | 
+                color0   color0
     
-    So for the 0th, 1th, and 3th rows, the non-zero elements in the jacCon matrix are at the 
-    0th, 1th, and 3th columns, respectively, which gives coloredColumn = {0, 1, -1, 3}
-
-    **************************
-    ***** If colorI = 1 ******
-    **************************
-    Calling calcColoredColumns(1, coloredColumn) will return 
-
-    coloredColumn = {-1, 2, 2, -1}
-
-    In this case, we have one column (2) for color=1, , the nonzero pattern is:
-
-                 color1
-                   |
-             0  0  0  0
-    jacCon = 0  0  1  0
-             0  0  1  0
-             0  0  0  0
-
-    So for the 1th and 2th rows, the non-zero elements in the jacCon matrix are at the 
-    2th and 2th columns, respectively, which gives coloredColumn = {-1, 2, 2, -1}
+        and the coloring vector DAJacCon::jacConColors_ = {0, 0, 1, 0}.
+        
+        **************************
+        ***** If colorI = 0 ******
+        **************************
+        Calling calcColoredColumns(0, coloredColumn) will return 
+    
+        coloredColumn = {0, 1, -1, 3}
+    
+        In this case, we have three columns (0, 1, and 3) for color=0, the nonzero pattern is:
+    
+               color0  
+                 |     
+                 1  0  0  0
+        jacCon = 0  1  0  0
+                 0  0  0  0
+                 0  0  0  1
+                    |     | 
+                color0   color0
+        
+        So for the 0th, 1th, and 3th rows, the non-zero elements in the jacCon matrix are at the 
+        0th, 1th, and 3th columns, respectively, which gives coloredColumn = {0, 1, -1, 3}
+    
+        **************************
+        ***** If colorI = 1 ******
+        **************************
+        Calling calcColoredColumns(1, coloredColumn) will return 
+    
+        coloredColumn = {-1, 2, 2, -1}
+    
+        In this case, we have one column (2) for color=1, , the nonzero pattern is:
+    
+                     color1
+                       |
+                 0  0  0  0
+        jacCon = 0  0  1  0
+                 0  0  1  0
+                 0  0  0  0
+    
+        So for the 1th and 2th rows, the non-zero elements in the jacCon matrix are at the 
+        2th and 2th columns, respectively, which gives coloredColumn = {-1, 2, 2, -1}
 
     */
 

@@ -41,6 +41,14 @@ void DAPartDerivdFdFFD::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
+    /*
+    Description:
+        Initialize jacMat
+    
+    Input:
+        options.nDesignVars: The number of design variable for dFdFFD
+    */
+
     label nDesignVars = options.getLabel("nDesignVars");
 
     // create dFdFFD
@@ -66,7 +74,27 @@ void DAPartDerivdFdFFD::calcPartDerivMat(
     const Vec wVec,
     Mat jacMat)
 {
-    // for dFdFFD, we do brute force finite-difference
+    /*
+    Description:
+        Compute jacMat. Note for dFdFFD, we do brute force finite-difference
+        there is no need to do coloring
+    
+    Input:
+        options.nDesignVars: The number of design variable for dFdFFD
+
+        options.objFuncSubDictPart: the objFunc subDict, obtained from DAOption
+
+        options.objFuncName: the name of the objective
+
+        options.objFuncPart: the part of the objective
+
+        xvVec: the volume mesh coordinate vector
+
+        wVec: the state variable vector
+    
+    Output:
+        jacMat: the partial derivative matrix dFdFFD to compute
+    */
 
     label nDesignVars = options.getLabel("nDesignVars");
 

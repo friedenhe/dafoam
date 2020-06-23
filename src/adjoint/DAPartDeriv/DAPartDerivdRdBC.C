@@ -41,6 +41,14 @@ void DAPartDerivdRdBC::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
+    /*
+    Description:
+        Initialize jacMat
+    
+    Input:
+        options. this is not used
+    */
+
     // now initialize the memory for the jacobian itself
     label localSize = daIndex_.nLocalAdjointStates;
 
@@ -67,6 +75,21 @@ void DAPartDerivdRdBC::calcPartDerivMat(
     const Vec wVec,
     Mat jacMat)
 {
+    /*
+    Description:
+        Compute jacMat. We use brute-force finite-difference
+    
+    Input:
+
+        options.isPC: whether to compute the jacMat for preconditioner
+
+        xvVec: the volume mesh coordinate vector
+
+        wVec: the state variable vector
+    
+    Output:
+        jacMat: the partial derivative matrix dRdBC to compute
+    */
 
     DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);
 

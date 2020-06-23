@@ -35,6 +35,20 @@ DAResidualSimpleFoam::DAResidualSimpleFoam(
 
 void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
 {
+    /*
+    Description:
+        This is the function to compute residuals.
+    
+    Input:
+        options.isPC: 1 means computing residuals for preconditioner matrix.
+        This essentially use the first order scheme for div(phi,U)
+
+        p_, U_, phi_, etc: State variables in OpenFOAM
+    
+    Output:
+        URes_, pRes_, phiRes_: residual field variables
+    */
+
     // We dont support MRF and fvOptions so all the related lines are commented
     // out for now
 
@@ -107,11 +121,22 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
 
 void DAResidualSimpleFoam::updateIntermediateVariables()
 {
+    /* 
+    Description:
+        Update the intermediate variables that depend on the state variables
+    */
+
+    // nothing to update for DASimpleFoam
 }
 
-/// update the boundary condition for all the states in the selected solver
+
 void DAResidualSimpleFoam::correctBoundaryConditions()
 {
+    /* 
+    Description:
+        Update the boundary condition for all the states in the selected solver
+    */
+    
     U_.correctBoundaryConditions();
     p_.correctBoundaryConditions();
 }

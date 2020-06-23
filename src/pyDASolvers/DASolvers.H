@@ -138,6 +138,7 @@ public:
         DASolverPtr_->printAllOptions();
     }
 
+    /// set values for dXvdFFDMat
     void setdXvdFFDMat(const Mat dXvdFFDMat)
     {
         DASolverPtr_->setdXvdFFDMat(dXvdFFDMat);

@@ -38,21 +38,12 @@ DAObjFunc::DAObjFunc(
       objFuncDict_(objFuncDict),
       daField_(mesh, daOption, daModel, daIndex)
 {
-    /*
-    Description:
-        Construct from Foam::fvMesh
-    Input:
-        mesh: a fvMesh object
 
-        objFuncName: the name of the objective function prescribed by users
-        NOTE: this is different from the "type" attribute in the objFuncDict_
-
-        objFuncDict: a dictionary that contains information for this objective
-    */
-
+    // calcualte the face and cell indices that are associated with this objective
     this->calcObjFuncSources(objFuncFaceSources_, objFuncCellSources_);
 
-    // initialize
+    // initialize objFuncFaceValues_ and objFuncCellValues_ and assign zeros
+    // they will be computed later by calling DAObjFunc::calcObjFunc
     objFuncFaceValues_.setSize(objFuncFaceSources_.size());
     forAll(objFuncFaceValues_, idxI)
     {
@@ -131,16 +122,25 @@ void DAObjFunc::calcObjFuncSources(
     labelList& cellSources)
 {
     /*
-    Compute the face and cell sources for the objective function.
-    A typical objFunc dictionary reads:
+    Description:
+        Compute the face and cell sources for the objective function.
 
-    {
-        "type": "force",
-        "source": "patchToFace",
-        "patches": ["walls", "wallsbump"],
-        "scale": 0.5,
-        "addToAdjoint": False
-    }
+    Output:
+        faceSources, cellSources: The face and cell indices that 
+        are associated with this objective function
+
+    Example:
+        A typical objFunc dictionary reads:
+    
+        {
+            "type": "force",
+            "source": "patchToFace",
+            "patches": ["walls", "wallsbump"],
+            "scale": 0.5,
+            "addToAdjoint": False
+        }
+
+        This information is obtained from DAObjFunc::objFuncDict_
 
     */
 
@@ -219,12 +219,36 @@ void DAObjFunc::calcObjFuncSources(
     }
 }
 
-/// the master function to compute objective function given the state and point vectors
 scalar DAObjFunc::masterFunction(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec)
 {
+    /*
+    Description:
+        A master function that takes the volume mesh points and state variable vecs
+        as input, and compute the value of the objective and their discrete values
+        on each face/cell source
+    
+    Input:
+        options.updateState: whether to assign the values in wVec to the state
+        variables of the OpenFOAM fields (e.g., U, p). This will also update boundary conditions
+        and update all intermediate variables that are dependent on the state 
+        variables. 
+
+        options.updateMesh: whether to assign the values in xvVec to the OpenFOAM mesh 
+        coordinates in Foam::fvMesh. This will also call mesh.movePoints() to update
+        all the mesh metrics such as mesh volume, cell centers, mesh surface area, etc.
+
+        xvVec: the volume coordinates vector (flatten)
+
+        wVec: the state variable vector
+    
+    Output:
+        objFuncValue: the reduced objective value
+
+    */
+
     DAModel& daModel = const_cast<DAModel&>(daModel_);
     DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);
 
@@ -258,6 +282,17 @@ scalar DAObjFunc::masterFunction(
 /// calcluate the value of objective function
 scalar DAObjFunc::getObjFuncValue()
 {
+    /*
+    Description:
+        Call the calcObjFunc in the child class and return
+        objFuncValue_
+    
+        NOTE: This is a interface for external calls where users
+        only want compute the objective value based on the existing
+        variable fields in OpenFOAM; no need to update state variables
+        or point coordinates. This can be used in the primal solver to print
+        the objective for each time step.
+    */
     // calculate
     this->calcObjFunc(
         objFuncFaceSources_,

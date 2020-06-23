@@ -34,34 +34,33 @@ void DAColoring::parallelD2Coloring(
     label& nColors) const
 {
     /*
-    A general function to compute coloring for a Jacobian matrix using a 
-    paralel heuristic distance 2 algorithm
+    Description:
+        A general function to compute coloring for a Jacobian matrix using a 
+        paralel heuristic distance 2 algorithm
 
     Input:
-    -----
-    conMat: a Petsc matrix that have the connectivity pattern (value one for 
-    all nonzero elements)
+        conMat: a Petsc matrix that have the connectivity pattern (value one for 
+        all nonzero elements)
 
     Output:
-    -------
-    colors: the coloring vector to store the coloring indices, starting with 0
+        colors: the coloring vector to store the coloring indices, starting with 0
+        
+        nColors: the number of colors
     
-    nColors: the number of colors
-
-    Example:
-    If the conMat reads,
-
-           color0  color1
-             |     |
-             1  0  0  0
-    conMat = 0  1  1  0
-             0  0  1  0
-             0  0  0  1
-                |     | 
-            color0   color0
-
-    Then, calling this function gives colors = {0, 0, 1, 0}.
-    This can be done for parallel conMat
+        Example:
+        If the conMat reads,
+    
+               color0  color1
+                 |     |
+                 1  0  0  0
+        conMat = 0  1  1  0
+                 0  0  1  0
+                 0  0  0  1
+                    |     | 
+                color0   color0
+    
+        Then, calling this function gives colors = {0, 0, 1, 0}.
+        This can be done for parallel conMat
     */
 
     // if we end up having more than 10000 colors, something must be wrong
@@ -788,18 +787,17 @@ void DAColoring::getMatNonZeros(
     scalar& allNonZeros) const
 {
     /*
-    Get the max nonzeros per row, and all the nonzeros for this matrix
-    This will be used in computing coloring
+    Description:
+        Get the max nonzeros per row, and all the nonzeros for this matrix
+        This will be used in computing coloring
 
     Input:
-    -----
-    conMat: the matrix to compute nonzeros
+        conMat: the matrix to compute nonzeros
 
     Output:
-    ------
-    maxCols: max nonzeros per row among all rows
-
-    allNonZeros: all non zero elements in conMat
+        maxCols: max nonzeros per row among all rows
+    
+        allNonZeros: all non zero elements in conMat
     */
 
     PetscInt nCols;
@@ -848,19 +846,21 @@ label DAColoring::find_index(
     const label* valArray) const
 {
     /*
-    Find the index of a value in an array
+    Description:
+        Find the index of a value in an array
     
     Input:
-    ------
-    target: the target value to find
-    start: the start index in valArray
-    size: the size of valArray array
-    valArray: the array to check the target value
+        target: the target value to find
+
+        start: the start index in valArray
+
+        size: the size of valArray array
+
+        valArray: the array to check the target value
 
     Output:
-    -------
-    k: the index of the value in the array, if the value is 
-    not found, return -1
+        k: the index of the value in the array, if the value is 
+        not found, return -1
     */
 
     // loop over the valArray from start until target is found
@@ -882,16 +882,15 @@ void DAColoring::coloringComplete(
     label& notColored) const
 {
     /*
-    Check if the coloring process is finished and return
-    the number of uncolored columns
+    Description:
+        Check if the coloring process is finished and return
+        the number of uncolored columns
 
     Input:
-    -----
-    colors: the current coloring vector
+        colors: the current coloring vector
 
     Output:
-    ------
-    notColored: the number of uncolored columns
+        notColored: the number of uncolored columns
 
     */
 
@@ -932,27 +931,28 @@ void DAColoring::validateColoring(
     Vec colors) const
 {
     /*
-    loop over the rows and verify that no row has two columns with the same color
+    Description:
+        Loop over the rows and verify that no row has two columns with the same color
 
     Input:
-    conMat: connectivity mat for check coloring
+        conMat: connectivity mat for check coloring
 
-    colors: the coloring vector
+        colors: the coloring vector
 
     Example:
-    If the conMat reads, its coloring for each column can be
-
-           color0  color1
-             |     |
-             1  0  0  0
-    conMat = 0  1  1  0
-             0  0  1  0
-             0  0  0  1
-                |     | 
-            color0   color0
-
-    Then, if colors = {0, 0, 1, 0}-> no coloring conflict
-    if colors = {0, 1, 0, 0}-> coloring conclict
+        If the conMat reads, its coloring for each column can be
+    
+               color0  color1
+                 |     |
+                 1  0  0  0
+        conMat = 0  1  1  0
+                 0  0  1  0
+                 0  0  0  1
+                    |     | 
+                color0   color0
+    
+        Then, if colors = {0, 0, 1, 0}-> no coloring conflict
+        if colors = {0, 1, 0, 0}-> coloring conclict
     */
 
     Info << "Validating Coloring..." << endl;

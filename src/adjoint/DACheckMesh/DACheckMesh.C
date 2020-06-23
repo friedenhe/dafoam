@@ -28,7 +28,11 @@ DACheckMesh::~DACheckMesh()
 label DACheckMesh::run() const
 {
     /*
-    Run checkMesh and return meshOK
+    Description:
+        Run checkMesh and return meshOK
+    
+    Output:
+        meshOK: 1 means quality passes
     */
 
     label meshOK=1;

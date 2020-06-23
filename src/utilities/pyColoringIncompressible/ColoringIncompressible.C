@@ -30,6 +30,11 @@ ColoringIncompressible::~ColoringIncompressible()
 
 void ColoringIncompressible::run()
 {
+    /*
+    Description:
+        Run the coloring solver and save the computed colors to disks
+    */
+    
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTimePython.H"

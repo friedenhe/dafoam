@@ -20,12 +20,17 @@
 #include "cyclicACMIPolyPatch.H"
 #include "Time.H"
 
-// Find wedge with opposite orientation. Note: does not actually check that
-// it is opposite, only that it has opposite normal and same axis
+
 Foam::label Foam::findOppositeWedge(
     const polyMesh& mesh,
     const wedgePolyPatch& wpp)
 {
+    /*
+    Description:
+        Find wedge with opposite orientation. Note: does not actually check that
+        it is opposite, only that it has opposite normal and same axis
+    */
+
     const polyBoundaryMesh& patches = mesh.boundaryMesh();
 
     scalar wppCosAngle = wpp.cosAngle();
@@ -61,7 +66,11 @@ bool Foam::checkWedges(
     const Vector<label>& directions,
     labelHashSet* setPtr)
 {
-    // To mark edges without calculating edge addressing
+    /*
+    Description:
+        To mark edges without calculating edge addressing
+    */
+
     EdgeMap<label> edgesInError;
 
     const pointField& p = mesh.points();

@@ -31,15 +31,6 @@ DAResidual::DAResidual(
       daIndex_(daIndex),
       daField_(mesh, daOption, daModel, daIndex)
 {
-    /*
-    Description:
-        Construct from Foam::fvMesh
-    Input:
-        modelType: the type of model
-        mesh: a fvMesh object
-        daOption: DAOption object
-        daModel: DAModel object
-    */
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
@@ -90,7 +81,36 @@ void DAResidual::masterFunction(
     const Vec wVec,
     Vec resVec)
 {
-    // the master function that compute the residual vector given the state and point vectors
+    /*
+    Description:
+        A master function that takes the volume mesh points and state variable vecs
+        as input, and compute the residual vector.
+    
+    Input:
+        options.updateState: whether to assign the values in wVec to the state
+        variables of the OpenFOAM fields (e.g., U, p). This will also update boundary conditions
+        and update all intermediate variables that are dependent on the state 
+        variables. 
+
+        options.updateMesh: whether to assign the values in xvVec to the OpenFOAM mesh 
+        coordinates in Foam::fvMesh. This will also call mesh.movePoints() to update
+        all the mesh metrics such as mesh volume, cell centers, mesh surface area, etc.
+
+        options.setResVec: whether to assign the residuals (e.g., URes_) from the OpenFOAM fields
+        to the resVec. If set to 0, nothing will be written to resVec
+
+        xvVec: the volume coordinates vector (flatten)
+
+        wVec: the state variable vector
+    
+    Output:
+        resVec: the residual vector
+
+    NOTE1: the ordering of the xvVec, wVec, and resVec depends on adjStateOrdering, see 
+    Foam::DAIndex for details
+
+    NOTE2: the calcResiduals function will be implemented in the child classes
+    */
 
     VecZeroEntries(resVec);
 

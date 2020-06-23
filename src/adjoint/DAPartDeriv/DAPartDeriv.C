@@ -100,6 +100,34 @@ void DAPartDeriv::perturbStates(
     const scalar delta,
     Vec wVec)
 {
+    /*
+    Descripton:
+        Perturb state variable vec such that it can be used to compute 
+        perturbed residual vector later
+    
+    Input:
+        jacConColors: the coloring vector for this Jacobian, obtained from Foam::DAJacCon
+    
+        normStatePerturbVec: state normalization vector, 1.0 means no normalization, the 
+        actually perturbation added on the wVec is normStatePerturbVec * delta
+
+        colorI: we perturb the rows that associated with the coloring index colorI
+
+        delta: the delta value for perturbation the actually perturbation added on 
+        the wVec is normStatePerturbVec * delta
+
+    Input/Output:
+        wVec: the perturbed state variable vector
+
+    Example:
+        Assuming we have five element in wVec {0.1, 0.5, 1.0, 1.5, 2.0}
+        If jacConColors reads {0, 0, 1, 0, 1},
+        normStatePerturbVec reads {1.0, 1.0, 0.5, 1.0, 0.1}
+        colorI = 1, delta = 0.01
+
+        Then after calling this function wVec reads
+        {0.1, 0.5, 1.005, 1.5, 2.001}
+    */
     PetscInt Istart, Iend;
     VecGetOwnershipRange(jacConColors, &Istart, &Iend);
 
@@ -135,6 +163,55 @@ void DAPartDeriv::setPartDerivMat(
     const label transposed,
     Mat jacMat) const
 {
+    /*
+    Description:
+        Set the values from resVec to jacMat
+    
+    Input:
+        resVec: residual vector, obtained after calling the DAResidual::masterFunction
+
+        coloredColumn: a vector to determine the element in resVec is associated with 
+        which column in the jacMat. coloredColumn is computed in DAJacCon::calcColoredColumns
+        -1 in coloredColumn means don't set values to jacMat for this column
+
+        transposed: whether the jacMat is transposed or not, for dRdWT transpoed = 1, for 
+        all the other cases, set it to 0
+
+    Output:
+        jacMat: the jacobian matrix to set
+
+    Example:
+        Condering a 5 by 5 jacMat with all zeros, and
+
+        resVec
+        {
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5
+        }
+
+        coloredColumn
+        {
+            -1
+            1
+            3
+            -1
+            0
+        }
+
+        transposed = 0
+
+        Then, after calling this function, jacMat reads
+
+        0.0  0.0  0.0  0.0  0.0  
+        0.0  0.2  0.0  0.0  0.0  
+        0.0  0.0  0.0  0.3  0.0  
+        0.0  0.0  0.0  0.0  0.0  
+        0.5  0.0  0.0  0.0  0.0  
+    */
+
     label rowI, colI;
     scalar val;
     PetscInt Istart, Iend;
@@ -177,6 +254,25 @@ void DAPartDeriv::perturbBC(
     const dictionary options,
     const scalar delta)
 {
+    /*
+    Descripton:
+        Perturb values in boundary conditions of the OpenFOAM fields
+    
+    Input:
+        options.varName: the name of the variable to perturb
+
+        options.patchName: the name of the boundary patches to perturb, do not support
+        multiple patches yet
+    
+        options.fieldType: the type of the OpenFOAM field for this variable
+
+        options.bcType: the boundary type, fixedValue?
+
+        optoins.comp: the component to perturb
+
+        delta: the delta value to perturb
+    */
+
     word varName, patchName, fieldType, bcType;
     label comp;
     options.readEntry<word>("varName", varName);
@@ -234,6 +330,11 @@ void DAPartDeriv::perturbBC(
 
 void DAPartDeriv::setdXvdFFDMat(const Mat dXvdFFDMat)
 {
+    /*
+    Description:
+        Assign value to dXvdFFDMat_ basically we do a MatConvert
+    */
+
     MatConvert(dXvdFFDMat, MATSAME, MAT_INITIAL_MATRIX, &dXvdFFDMat_);
     //MatDuplicate(dXvdFFDMat, MAT_COPY_VALUES, &dXvdFFDMat_);
     MatAssemblyBegin(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
@@ -242,6 +343,16 @@ void DAPartDeriv::setdXvdFFDMat(const Mat dXvdFFDMat)
 
 void DAPartDeriv::setNormStatePerturbVec(Vec* normStatePerturbVec)
 {
+    /*
+    Description:
+        Set the values for the normStatePerturbVec
+
+    Input/Output:
+        normStatePerturbVec: the vector to store the state normalization
+        values, this will be used in DAPartDeriv::perturbStates
+
+    The normalization referene values are set in "normalizeStates" in DAOption
+    */
     label localSize = daIndex_.nLocalAdjointStates;
     VecCreate(PETSC_COMM_WORLD, normStatePerturbVec);
     VecSetSizes(*normStatePerturbVec, localSize, PETSC_DETERMINE);

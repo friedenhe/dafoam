@@ -32,6 +32,11 @@ DASimpleFoam::DASimpleFoam(
 
 void DASimpleFoam::initSolver()
 {
+    /*
+    Description:
+        Initialize variables for DASolver
+    */
+    
     Info << "Initializing fields for DASimpleFoam" << endl;
     Time& runTime = runTimePtr_();
     fvMesh& mesh = meshPtr_();
@@ -47,15 +52,14 @@ label DASimpleFoam::solvePrimal(
     Vec wVec)
 {
     /*
-    Call the primal solver to get converged state variables
+    Description:
+        Call the primal solver to get converged state variables
 
     Input:
-    -----
-    xvVec: a vector that contains all volume mesh coordinates
+        xvVec: a vector that contains all volume mesh coordinates
 
     Output:
-    ------
-    wVec: state variable vector
+        wVec: state variable vector
     */
 
 #include "createRefsSimple.H"

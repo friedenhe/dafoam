@@ -31,10 +31,12 @@ DAJacConDummy::DAJacConDummy(
 
 void DAJacConDummy::setupJacCon(const dictionary& options)
 {
+    // no need to do anything
 }
 
 void DAJacConDummy::initializeJacCon(const dictionary& options)
 {
+    // no need to do anything
 }
 
 } // End namespace Foam
