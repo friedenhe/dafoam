@@ -169,7 +169,7 @@ def testSensShape():
     funcs = {}
     funcsSens = {}
     funcs, fail = getObjFuncValues(xDV)
-    funcsSens, fail = getObjFuncValuesSens(xDV, funcs)
+    funcsSens, fail = getObjFuncSens(xDV, funcs)
     if gcomm.rank == 0:
         for funcName in evalFuncs:
             for shapeVar in xDV:
