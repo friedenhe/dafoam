@@ -225,7 +225,7 @@ optFuncs.gcomm = gcomm
 if task == "opt":
 
     CFDSolver.runColoring()
-    optProb = Optimization("opt", aeroFuncs, comm=gcomm)
+    optProb = Optimization("opt", optFuncs.getObjFuncValues, comm=gcomm)
     DVGeo.addVariablesPyOpt(optProb)
     DVCon.addConstraintsPyOpt(optProb)
 
@@ -239,7 +239,7 @@ if task == "opt":
 
     opt = OPT(args.opt, options=optOptions)
     histFile = os.path.join(outputDirectory, "%s_hist.hst" % args.opt)
-    sol = opt(optProb, sens=aeroFuncsSens, storeHistory=histFile)
+    sol = opt(optProb, sens=optFuncs.getObjFuncSens, storeHistory=histFile)
     if gcomm.rank == 0:
         print(sol)
 

@@ -108,7 +108,6 @@ testDict = {
     "solverName": [str, "DASimpleFoam"],
     "turbulenceModel": [str, "SpalartAllmaras"],
     "adjUseColoring": [bool, True],
-    "adjJacMatOrdering": [str, "state"],
     "objFunc": [
         dict,
         {
