@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# the script will exit if there is any error
-set -e
-
 if [ -z "$WM_PROJECT" ]; then
   echo "OpenFOAM environment not found, forgot to source the OpenFOAM bashrc?"
   exit 1
@@ -14,7 +11,7 @@ tar -xvf input.tar.gz
 cd input/CurvedCubeHexMesh && cp -r 0.incompressible/* 0/ && decomposePar
 cd ../../
 
-cd DAFoamIncompressible && make && mpirun -np 4 python runTests.py
+cd DAFoamIncompressible && make && mpirun -np 4 python runTests.py || exit 1
 cd ../
 
 # test DAFoamCompressible lib
@@ -23,18 +20,18 @@ tar -xvf input.tar.gz
 cd input/CurvedCubeHexMesh && cp -r 0.compressible/* 0/ && decomposePar
 cd ../../
 
-cd DAFoamCompressible && make && mpirun -np 4 python runTests.py
+cd DAFoamCompressible && make && mpirun -np 4 python runTests.py || exit 1
 cd ../
 
 # test pyDAFoam.py
 rm -rf input
 tar -xvf input.tar.gz
 
-cd pyDAFoam && mpirun -np 4 python runTests_DASimpleFoam.py
+cd pyDAFoam && mpirun -np 4 python runTests_DASimpleFoam.py || exit 1
 cd ../
 
 rm -rf input
 tar -xvf input.tar.gz
 
-cd pyDAFoam && mpirun -np 4 python runTests_DARhoSimpleFoam.py
+cd pyDAFoam && mpirun -np 4 python runTests_DARhoSimpleFoam.py || exit 1
 cd ../

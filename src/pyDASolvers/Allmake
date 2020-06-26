@@ -8,32 +8,32 @@ fi
 case $1 in
   "opt")
     cp setup_Incompressible.py setup.py
-    python setup.py build_ext --inplace 
+    python setup.py build_ext --inplace || exit 1
     mv *.so ../
     ./Allclean
     cp setup_Compressible.py setup.py
-    python setup.py build_ext --inplace 
+    python setup.py build_ext --inplace || exit 1
     mv *.so ../
     ;;
   "debug")
     cp setup_Incompressible.py setup.py
     sed -i 's/"-std=c++11",/"-std=c++11","-DFULLDEBUG -g -O0",/g' setup.py
-    python setup.py build_ext --inplace 
+    python setup.py build_ext --inplace  || exit 1
     mv *.so ../
     ./Allclean
     cp setup_Compressible.py setup.py
     sed -i 's/"-std=c++11",/"-std=c++11","-DFULLDEBUG -g -O0",/g' setup.py
-    python setup.py build_ext --inplace 
+    python setup.py build_ext --inplace || exit 1
     mv *.so ../
     ;;
   "incompressible")
     cp setup_Incompressible.py setup.py
-    python setup.py build_ext --inplace 
+    python setup.py build_ext --inplace || exit 1
     mv *.so ../
     ;;
   "compressible")
     cp setup_Compressible.py setup.py
-    python setup.py build_ext --inplace 
+    python setup.py build_ext --inplace || exit 1
     mv *.so ../
     ;;
   *)
