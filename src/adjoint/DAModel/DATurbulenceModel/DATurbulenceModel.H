@@ -145,6 +145,9 @@ protected:
     /// Prandtl number
     scalar Pr_;
 
+    /// turbulent Prandtl number
+    scalar Prt_ = -9999.0;
+
 public:
     //- Runtime type information
     TypeName("DATurbulenceModel");
@@ -246,6 +249,21 @@ public:
     tmp<volScalarField> getPhase()
     {
         return phase_;
+    }
+
+    /// get the turbulent Prandtl number
+    scalar getPrt()
+    {
+        if (Prt_ > 0)
+        {
+            return Prt_;
+        }
+        else
+        {
+            // alphat not found in Db so Prt is not set
+            FatalErrorIn("getPrt") << exit(FatalError);
+            return -9999.0;
+        }
     }
 
 #ifdef CompressibleFlow

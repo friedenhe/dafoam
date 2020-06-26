@@ -52,9 +52,14 @@ DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
 
     // NOTE: for compressible flow, Prt is defined in RAS-turbulenceProperties
     // see EddyDiffusivity.C for reference
-    const IOdictionary& turbDict = mesh.thisDb().lookupObject<IOdictionary>("turbulenceProperties");
-    dictionary rasSubDict = turbDict.subDict("RAS");
-    Prt_ = rasSubDict.getScalar("Prt");
+    Prt_ = daTurb_.getPrt();
+
+    if (daOption_.getOption<label>("debug"))
+    {
+        Info << "molWeight " << molWeight_ << endl;
+        Info << "Cp " << Cp_ << endl;
+        Info << "Prt " << Prt_ << endl;
+    }
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -208,14 +213,13 @@ void DAResidualRhoSimpleFoam::updateIntermediateVariables()
     alphat_.correctBoundaryConditions();
 }
 
-
 void DAResidualRhoSimpleFoam::correctBoundaryConditions()
 {
     /* 
     Description:
         Update the boundary condition for all the states in the selected solver
     */
-    
+
     U_.correctBoundaryConditions();
     p_.correctBoundaryConditions();
     T_.correctBoundaryConditions();

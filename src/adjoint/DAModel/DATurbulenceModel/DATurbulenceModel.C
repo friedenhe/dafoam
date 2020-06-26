@@ -128,6 +128,11 @@ DATurbulenceModel::DATurbulenceModel(
             false));
     Pr_ = readScalar(transportProperties.lookup("Pr"));
 
+    if (mesh_.thisDb().foundObject<volScalarField>("alphat"))
+    {
+        Prt_ = readScalar(transportProperties.lookup("Prt"));
+    }
+
 #endif
 
 #ifdef CompressibleFlow
@@ -143,6 +148,13 @@ DATurbulenceModel::DATurbulenceModel(
             false));
     Pr_ = readScalar(
         thermophysicalProperties.subDict("mixture").subDict("transport").lookup("Pr"));
+
+    if (mesh_.thisDb().foundObject<volScalarField>("alphat"))
+    {
+        const IOdictionary& turbDict = mesh_.thisDb().lookupObject<IOdictionary>("turbulenceProperties");
+        dictionary rasSubDict = turbDict.subDict("RAS");
+        Prt_ = rasSubDict.getScalar("Prt");
+    }
 
 #endif
 }
@@ -320,7 +332,7 @@ tmp<fvVectorMatrix> DATurbulenceModel::divDevReff(
     Description:
         Call divDevRhoReff
     */
-    
+
     return divDevRhoReff(U);
 }
 

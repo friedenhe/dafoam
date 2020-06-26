@@ -89,7 +89,7 @@ DASpalartAllmaras::DASpalartAllmaras(
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// SA member functions. these functions are copied from 
+// SA member functions. these functions are copied from
 // src/TurbulenceModels/turbulenceModels/RAS/SpalartAllmaras/SpalartAllmaras.C
 tmp<volScalarField> DASpalartAllmaras::chi() const
 {
@@ -182,12 +182,12 @@ void DASpalartAllmaras::correctModelStates(wordList& modelStates) const
     }
 }
 
-
 void DASpalartAllmaras::correctNut()
 {
     /*
     Description:
         Update nut based on other turbulence variables and update the BCs
+        Also update alphat if is present
     */
 
     const volScalarField chi(this->chi());
@@ -195,6 +195,14 @@ void DASpalartAllmaras::correctNut()
     nut_ = nuTilda_ * fv1;
 
     nut_.correctBoundaryConditions();
+
+    if (mesh_.thisDb().foundObject<volScalarField>("alphat"))
+    {
+        volScalarField& alphat = const_cast<volScalarField&>(
+            mesh_.thisDb().lookupObject<volScalarField>("alphat"));
+        alphat = rho_ * nut_ / Prt_;
+        alphat.correctBoundaryConditions();
+    }
 
     return;
 }

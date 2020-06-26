@@ -243,7 +243,12 @@ void DAJacCondFdW::setupJacCon(const dictionary& options)
 
     MatAssemblyBegin(jacCon_, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacCon_, MAT_FINAL_ASSEMBLY);
-    
+
+    // output the matrix to a file
+    if (daOption_.getOption<label>("debug"))
+    {
+        DAUtility::writeMatrixBinary(jacCon_, "dFdWCon");
+    }
 }
 
 label DAJacCondFdW::getLocalObjFuncGeoIndex(

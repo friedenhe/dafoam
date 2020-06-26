@@ -661,6 +661,9 @@ label DASolver::solveAdjoint(
         {
             DAUtility::writeMatrixBinary(dRdWT, "dRdWT");
         }
+
+        this->calcPrimalResidualStatistics("print");
+
     }
 
     // ********************** compute dRdWTPC **********************
@@ -728,6 +731,8 @@ label DASolver::solveAdjoint(
         {
             DAUtility::writeMatrixBinary(dRdWTPC, "dRdWTPC");
         }
+
+        this->calcPrimalResidualStatistics("print");
     }
 
     // ********************** compute dFdW **********************
