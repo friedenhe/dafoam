@@ -68,7 +68,7 @@ aeroOptions = {
             }
         },
     },
-    "designVar": {"shapex": {"designVarType": "FFD"}, "shapey": {"designVarType": "FFD"},},
+    "designVar": {"shapex": {"designVarType": "FFD"}, "shapey": {"designVarType": "FFD"}},
 }
 
 # mesh warping parameters, users need to manually specify the symmetry plane
@@ -171,6 +171,9 @@ if checkRegVal:
 
     if diff_shapey > 1.0e-8 or diff_shapex > 1.0e-8:
         print("Failed!")
+        if gcomm.rank == 0:
+            print("l2_shapex: ", l2_shapex)
+            print("l2_shapey: ", l2_shapey)
         exit(1)
     else:
         print("Succes!")

@@ -13,9 +13,18 @@ from idwarp import *
 from pyoptsparse import Optimization, OPT
 import numpy as np
 
+checkRegVal = 1
+if len(sys.argv) == 1:
+    checkRegVal = 1
+elif sys.argv[1] == "noCheckVal":
+    checkRegVal = 0
+else:
+    print("sys.argv %s not valid!" % sys.argv[1])
+    exit(1)
+
 gcomm = MPI.COMM_WORLD
 
-CL_star = 378.78
+CL_star = 37.87716335434561
 
 os.chdir("../input/CurvedCubeHexMesh")
 
@@ -36,7 +45,7 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["walls"],
                 "direction": [1.0, 0.0, 0.0],
-                "scale": 1.0,
+                "scale": 0.1,
                 "addToAdjoint": True,
             },
             "part2": {
@@ -44,7 +53,7 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["wallsbump", "frontandback"],
                 "direction": [1.0, 0.0, 0.0],
-                "scale": 1.0,
+                "scale": 0.1,
                 "addToAdjoint": True,
             },
         },
@@ -54,12 +63,12 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["walls", "wallsbump", "frontandback"],
                 "direction": [0.0, 1.0, 0.0],
-                "scale": 1.0,
+                "scale": 0.1,
                 "addToAdjoint": True,
             }
         },
     },
-    "designVar": {"shapex": {"designVarType": "FFD"}, "shapey": {"designVarType": "FFD"},},
+    "designVar": {"shapex": {"designVarType": "FFD"}, "shapey": {"designVarType": "FFD"}},
 }
 
 # mesh warping parameters, users need to manually specify the symmetry plane
@@ -148,21 +157,25 @@ sol = opt(optProb, sens=optFuncs.getObjFuncSens, storeHistory=histFile)
 if gcomm.rank == 0:
     print(sol)
 
-xDVs = DVGeo.getValues()
 
-l2_shapey = np.linalg.norm(xDVs["shapey"])
-l2_shapex = np.linalg.norm(xDVs["shapex"])
+if checkRegVal:
+    xDVs = DVGeo.getValues()
 
+    l2_shapey = np.linalg.norm(xDVs["shapey"])
+    l2_shapex = np.linalg.norm(xDVs["shapex"])
 
-#ref_shapey = 0.21542076634520040 
-#ref_shapex = 0.21076858199334347 
+    ref_shapey = 0.21212612936446704
+    ref_shapex = 0.21080585358859122
 
-#diff_shapey = abs(l2_shapey - ref_shapey)
-#diff_shapex = abs(l2_shapex - ref_shapex)
+    diff_shapey = abs(l2_shapey - ref_shapey)
+    diff_shapex = abs(l2_shapex - ref_shapex)
 
-#if diff_shapey > 1.0e-8 or diff_shapex > 1.0e-8:
-#    print("Failed!")
-#    exit(1)
-#else:
-#    print("Succes!")
+    if diff_shapey > 1.0e-4 or diff_shapex > 1.0e-4:
+        print("Failed!")
+        if gcomm.rank == 0:
+            print("l2_shapex: ", l2_shapex)
+            print("l2_shapey: ", l2_shapey)
+        exit(1)
+    else:
+        print("Succes!")
 
