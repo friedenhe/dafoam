@@ -70,6 +70,5 @@ rho = thermo.rho();
 
 rho.relax();
 
-
 // bound rho
 DAUtility::boundVar(allOptions, rho);

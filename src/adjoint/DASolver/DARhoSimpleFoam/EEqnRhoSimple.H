@@ -16,8 +16,8 @@
 
     if (nSolverIters % 100 == 0 || nSolverIters == 1)
     {
-        Info << "E Initial residual: " << solverE.initialResidual() << endl
-             << "    Final residual: " << solverE.finalResidual() << endl;
+        Info << "he Initial residual: " << solverE.initialResidual() << endl
+             << "     Final residual: " << solverE.finalResidual() << endl;
     }
 
     // bound he

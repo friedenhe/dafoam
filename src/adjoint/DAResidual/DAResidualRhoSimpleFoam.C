@@ -50,15 +50,10 @@ DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
     dictionary thermodynamicsSubDict = mixSubDict.subDict("thermodynamics");
     Cp_ = thermodynamicsSubDict.getScalar("Cp");
 
-    // NOTE: for compressible flow, Prt is defined in RAS-turbulenceProperties
-    // see EddyDiffusivity.C for reference
-    Prt_ = daTurb_.getPrt();
-
     if (daOption_.getOption<label>("debug"))
     {
         Info << "molWeight " << molWeight_ << endl;
         Info << "Cp " << Cp_ << endl;
-        Info << "Prt " << Prt_ << endl;
     }
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -170,47 +165,71 @@ void DAResidualRhoSimpleFoam::updateIntermediateVariables()
         Update the intermediate variables that depend on the state variables
 
         ********************** NOTE *****************
-        we assume hePsiThermo
+        we assume hePsiThermo, pureMixture, perfectGas, hConst, and const transport
         TODO: need to do this using built-in openfoam functions.
     
         we need to:
         1, update psi based on T, psi=1/(R*T)
         2, update rho based on p and psi, rho=psi*p
         3, update E based on T, p and rho, E=Cp*T-p/rho
-        4, update alphat
-        5, update velocity boundary based on MRF (not yet implemented)
+        4, update velocity boundary based on MRF (not yet implemented)
     */
 
-    scalar RR = Foam::constant::thermodynamic::RR; // 8314.4700665  gas constant in OpenFOAM
+    // 8314.4700665  gas constant in OpenFOAM
+    // src/OpenFOAM/global/constants/thermodynamic/thermodynamicConstants.H
+    scalar RR = Foam::constant::thermodynamic::RR;
+
+    // R = RR/molWeight
+    // Foam::specie::R() function in src/thermophysicalModels/specie/specie/specieI.H
     dimensionedScalar R(
-        "R",
+        "R1",
         dimensionSet(0, 2, -2, -1, 0, 0, 0),
         RR / molWeight_);
-    psi_ = 1 / T_ / R;
+
+    // psi = 1/T/R
+    // see src/thermophysicalModels/specie/equationOfState/perfectGas/perfectGasI.H
+    psi_ = 1.0 / T_ / R;
+
+    // rho = psi*p
+    // see src/thermophysicalModels/basic/psiThermo/psiThermo.C
     rho_ = psi_ * p_;
 
-    forAll(he_, idxI)
+    // **************** NOTE ****************
+    // need to relax rho to be consistent with the primal solver
+    // However, the rho.relax() will mess up perturbation
+    // That being said, we comment out the rho.relax() call to 
+    // get the correct perturbed rho; however, the E residual will
+    // be a bit off compared with the ERes at the converged state 
+    // from the primal solver. TODO. Need to figure out how to improve this
+    // **************** NOTE ****************
+    // rho_.relax();
+
+    dimensionedScalar Cp(
+        "Cp1",
+        dimensionSet(0, 2, -2, -1, 0, 0, 0),
+        Cp_);
+
+    // Hs = Cp*T
+    // see Hs() in src/thermophysicalModels/specie/thermo/hConst/hConstThermoI.H
+    // here the H departure EquationOfState::H(p, T) will be zero for perfectGas
+    // Es = Hs - p/rho = Hs - T * R;
+    // see Es() in src/thermophysicalModels/specie/thermo/thermo/thermoI.H
+    // **************** NOTE ****************
+    // See the comment from the rho.relax() call, if we write he_=Cp*T-p/rho, the 
+    // accuracy of he_ may be impact by the inaccurate rho. So here we want to 
+    // rewrite he_ as he_ = Cp * T_ - T_ * R instead, such that we dont include rho
+    // **************** NOTE ****************
+    if (he_.name() == "e")
     {
-        if (he_.name() == "e")
-        {
-            he_[idxI] = Cp_ * T_[idxI] - p_[idxI] / rho_[idxI];
-        }
-        else
-        {
-            he_[idxI] = Cp_ * T_[idxI];
-        }
+        he_ = Cp * T_ - T_ * R;
+    }
+    else
+    {
+        he_ = Cp * T_;
     }
     he_.correctBoundaryConditions();
 
-    // NOTE: for compressible flow, Prt is defined in RAS-turbulenceProperties
-    // see EddyDiffusivity.C for reference
-    dimensionedScalar Prt1(
-        "Prt1",
-        dimless,
-        Prt_);
-
-    alphat_ = rho_ * daTurb_.getNut() / Prt1;
-    alphat_.correctBoundaryConditions();
+    // NOTE: alphat is updated in the correctNut function in DATurbulenceModel child classes
 }
 
 void DAResidualRhoSimpleFoam::correctBoundaryConditions()

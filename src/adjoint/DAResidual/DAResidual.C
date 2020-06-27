@@ -99,6 +99,8 @@ void DAResidual::masterFunction(
         options.setResVec: whether to assign the residuals (e.g., URes_) from the OpenFOAM fields
         to the resVec. If set to 0, nothing will be written to resVec
 
+        options.isPC: whether to compute residual for constructing PC matrix
+
         xvVec: the volume coordinates vector (flatten)
 
         wVec: the state variable vector

@@ -663,7 +663,6 @@ label DASolver::solveAdjoint(
         }
 
         this->calcPrimalResidualStatistics("print");
-
     }
 
     // ********************** compute dRdWTPC **********************

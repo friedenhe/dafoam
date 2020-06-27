@@ -201,6 +201,23 @@ bool DATurbulenceModel::writeData(Ostream& os) const
     return true;
 }
 
+void DATurbulenceModel::correctAlphat()
+{
+    // see src/TurbulenceModels/compressible/EddyDiffusivity/EddyDiffusivity.C
+    if (mesh_.thisDb().foundObject<volScalarField>("alphat"))
+    {
+        dimensionedScalar Prt(
+            "Prt1",
+            dimless,
+            Prt_);
+
+        volScalarField& alphat = const_cast<volScalarField&>(
+            mesh_.thisDb().lookupObject<volScalarField>("alphat"));
+        alphat = rho_ * nut_ / Prt;
+        alphat.correctBoundaryConditions();
+    }
+}
+
 tmp<volScalarField> DATurbulenceModel::nuEff() const
 {
     /*

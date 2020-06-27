@@ -196,13 +196,8 @@ void DASpalartAllmaras::correctNut()
 
     nut_.correctBoundaryConditions();
 
-    if (mesh_.thisDb().foundObject<volScalarField>("alphat"))
-    {
-        volScalarField& alphat = const_cast<volScalarField&>(
-            mesh_.thisDb().lookupObject<volScalarField>("alphat"));
-        alphat = rho_ * nut_ / Prt_;
-        alphat.correctBoundaryConditions();
-    }
+    // this is basically BasicTurbulenceModel::correctNut();
+    this->correctAlphat();
 
     return;
 }

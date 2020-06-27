@@ -19,4 +19,3 @@ if (nSolverIters % 100 == 0 || nSolverIters == 1)
 
 // bound U
 DAUtility::boundVar(allOptions, U);
-U.correctBoundaryConditions();

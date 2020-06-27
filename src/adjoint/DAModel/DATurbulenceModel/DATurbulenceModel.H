@@ -188,6 +188,9 @@ public:
     /// update wall distance for d_. Note: y_ will be automatically updated in mesh_ object
     void correctWallDist();
 
+    /// update alphat
+    void correctAlphat();
+
     /// update nut based on other turbulence variables and update the BCs
     virtual void correctNut() = 0;
 

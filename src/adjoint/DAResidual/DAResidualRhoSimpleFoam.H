@@ -75,7 +75,6 @@ protected:
     //@{
     scalar molWeight_;
     scalar Cp_;
-    scalar Prt_;
     //@}
 
 public:
