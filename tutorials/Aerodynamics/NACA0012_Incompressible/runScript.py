@@ -35,7 +35,10 @@ gcomm = MPI.COMM_WORLD
 
 UmagIn = 10.0
 CL_star = 0.5
-twist0 = 5.113547
+pitch0 = 5.113547
+LRef = 1.0
+ARef = 0.1
+rhoRef = 1.0
 
 # Set the parameters for optimization
 aeroOptions = {
@@ -56,7 +59,7 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["wing"],
                 "direction": [1.0, 0.0, 0.0],
-                "scale": 0.2,
+                "scale": 1.0 / (0.5 * rhoRef * UmagIn * UmagIn * ARef),
                 "addToAdjoint": True,
             }
         },
@@ -66,12 +69,12 @@ aeroOptions = {
                 "source": "patchToFace",
                 "patches": ["wing"],
                 "direction": [0.0, 1.0, 0.0],
-                "scale": 0.2,
+                "scale": 1.0 / (0.5 * rhoRef * UmagIn * UmagIn * ARef),
                 "addToAdjoint": True,
             }
         },
     },
-    "designVar": {"shapey": {"designVarType": "FFD"}, "twist": {"designVarType": "FFD"},},
+    "designVar": {"shapey": {"designVarType": "FFD"}, "pitch": {"designVarType": "FFD"},},
     "normalizeStates": {"U": UmagIn, "p": UmagIn*UmagIn/2.0, "nuTilda": 0.001, "phi": 1.0},
     "adjEpsDerivState": 1e-7,
     "adjEpsDerivFFD": 1e-3,
@@ -96,30 +99,21 @@ if args.opt == "snopt":
         "Minor feasibility tolerance": 1.0e-6,  # tolerance for constraint
         "Verify level": -1,
         "Function precision": 1.0e-6,
-        "Major iterations limit": 50,
+        "Major iterations limit": 40,
         "Nonderivative linesearch": None,
-        "Major step limit": 2.0,
-        "Penalty parameter": 0.0,  # initial penalty parameter
         "Print file": os.path.join(outPrefix + "_SNOPT_print.out"),
         "Summary file": os.path.join(outPrefix + "_SNOPT_summary.out"),
-    }
-elif args.opt == "psqp":
-    optOptions = {
-        "TOLG": 1.0e-6,  # tolerance for gradient
-        "TOLC": 1.0e-6,  # tolerance for constraint
-        "MIT": 50,  # max optimization iterations
-        "IFILE": os.path.join(outPrefix + "_PSQP.out"),
     }
 elif args.opt == "slsqp":
     optOptions = {
         "ACC": 1.0e-6,  # convergence accuracy
-        "MAXIT": 50,  # max optimization iterations
+        "MAXIT": 40,  # max optimization iterations
         "IFILE": os.path.join(outPrefix + "_SLSQP.out"),
     }
 elif args.opt == "ipopt":
     optOptions = {
         "tol": 1.0e-6,  # convergence accuracy
-        "max_iter": 50,  # max optimization iterations
+        "max_iter": 40,  # max optimization iterations
         "output_file": os.path.join(outPrefix + "_IPOPT.out"),
     }
 else:
@@ -133,26 +127,20 @@ else:
 FFDFile = "./FFD/wingFFD.xyz"
 DVGeo = DVGeometry(FFDFile)
 
-# ref axis
-x = [0.25, 0.25]
-y = [0.00, 0.00]
-z = [0.00, 0.10]
-c1 = pySpline.Curve(x=x, y=y, z=z, k=2)
-DVGeo.addRefAxis("bodyAxis", curve=c1, axis="z")
+# nTwists is the number of FFD points in the spanwise direction
+nTwists = DVGeo.addRefAxis("bodyAxis", xFraction=0.25, alignIndex="k")
 
-
-def twist(val, geo):
+def pitch(val, geo):
     # Set all the twist values
-    for i in range(2):
+    for i in range(nTwists):
         geo.rot_z["bodyAxis"].coef[i] = -val[0]
-
 
 # select points
 pts = DVGeo.getLocalIndex(0)
 indexList = pts[:, :, :].flatten()
 PS = geo_utils.PointSelect("list", indexList)
 DVGeo.addGeoDVLocal("shapey", lower=-1.0, upper=1.0, axis="y", scale=1.0, pointSelect=PS)
-DVGeo.addGeoDVGlobal("twist", twist0, twist, lower=-10.0, upper=10.0, scale=1.0)
+DVGeo.addGeoDVGlobal("pitch", [pitch0], pitch, lower=-10.0, upper=10.0, scale=1.0)
 
 # =================================================================================================
 # DAFoam
@@ -185,7 +173,7 @@ DVCon.setSurface(surf)
 leList = [[1e-4, 0.0, 1e-4], [1e-4, 0.0, 0.1 - 1e-4]]
 teList = [[0.998 - 1e-4, 0.0, 1e-4], [0.998 - 1e-4, 0.0, 0.1 - 1e-4]]
 
-DVCon.addVolumeConstraint(leList, teList, nSpan=2, nChord=20, lower=1.0, upper=3, scaled=True)
+DVCon.addVolumeConstraint(leList, teList, nSpan=2, nChord=10, lower=1.0, upper=3, scaled=True)
 DVCon.addThicknessConstraints2D(leList, teList, nSpan=2, nChord=10, lower=0.8, upper=3.0, scaled=True)
 
 # Create a linear constraint so that the curvature at the symmetry plane is zero
@@ -248,7 +236,7 @@ elif task == "run":
 
 elif task == "solveCL":
 
-    optFuncs.solveCL(CL_star, "twist", "CL")
+    optFuncs.solveCL(CL_star, "pitch", "CL")
 
 elif task == "testSensShape":
 
