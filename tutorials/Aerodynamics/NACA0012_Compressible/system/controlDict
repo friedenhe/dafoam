@@ -17,13 +17,13 @@ FoamFile
 
 
 application     simpleDAFoam;
-startFrom       latestTime;
+startFrom       startTime;
 startTime       0;
 stopAt          endTime;
-endTime         500;
+endTime         1000;
 deltaT          1;
 writeControl    timeStep;
-writeInterval   500;
+writeInterval   1000;
 purgeWrite      0;
 writeFormat     ascii;
 writePrecision  16;

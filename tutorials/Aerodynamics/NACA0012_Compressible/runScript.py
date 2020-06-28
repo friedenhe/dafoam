@@ -73,10 +73,9 @@ aeroOptions = {
     },
     "designVar": {"shapey": {"designVarType": "FFD"}, "twist": {"designVarType": "FFD"},},
     "normalizeStates": {"U": UmagIn, "p": 100000.0, "nuTilda": 0.001, "phi": 1.0, "T": 300.0},
-    "adjEpsDerivState": 1e-6,
+    "adjEpsDerivState": 1e-7,
     "adjEpsDerivFFD": 1e-3,
     "maxResConLv4JacPCMat": {"pRes": 2, "phiRes": 1, "URes": 2, "nuTildaRes": 2, "TRes": 2},
-    ########## misc setup ##########
 }
 
 # mesh warping parameters, users need to manually specify the symmetry plane

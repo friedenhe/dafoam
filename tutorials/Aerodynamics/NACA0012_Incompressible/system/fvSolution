@@ -46,17 +46,6 @@ SIMPLE
     }
 }
 
-PISO
-{
-    pRefCell                           0;
-    rDeltaTSmoothingCoeff              0.5;
-    nCorrectors                        2;
-    pRefValue                          0;
-    maxDeltaT                          0.5;
-    nNonOrthogonalCorrectors           0;
-    maxCo                              0.5;
-}
-
 solvers
 {
     "(p|p_rgh|G)Final"
@@ -150,11 +139,5 @@ potentialFlow
     PhiRefValue                        0;
 }
 
-stressAnalysis
-{
-    compactNormalStress                yes;
-    nCorrectors                        1;
-    D                                  1e-20;
-}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

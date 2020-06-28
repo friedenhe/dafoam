@@ -15,7 +15,7 @@ from mpi4py import MPI
 from dafoam import PYDAFOAM, optFuncs
 from pygeo import *
 from pyspline import *
-from idwarp import *
+from idwarp import USMesh
 from pyoptsparse import Optimization, OPT
 
 
@@ -73,7 +73,7 @@ aeroOptions = {
     },
     "designVar": {"shapey": {"designVarType": "FFD"}, "twist": {"designVarType": "FFD"},},
     "normalizeStates": {"U": UmagIn, "p": UmagIn*UmagIn/2.0, "nuTilda": 0.001, "phi": 1.0},
-    "adjEpsDerivState": 1e-6,
+    "adjEpsDerivState": 1e-7,
     "adjEpsDerivFFD": 1e-3,
     "maxResConLv4JacPCMat": {"pRes": 2, "phiRes": 1, "URes": 2, "nuTildaRes": 2},
     ########## misc setup ##########

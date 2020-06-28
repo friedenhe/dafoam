@@ -19,12 +19,10 @@ simulationType RAS;
 RAS 
 { 
     RASModel             SpalartAllmaras;
-
     turbulence           on;
-
-    printCoeffs          on;
+    printCoeffs          off;
     nuTildaMin           1e-16;
-    Prt                  0.700000;
+    Prt                  1.0;
 } 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
