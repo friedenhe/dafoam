@@ -740,6 +740,42 @@ label DASolver::solveAdjoint(
         daJacCon->clear();
     }
 
+    // ********************** Set up KSP **********************
+    // We will reuse the ksp to solve for all objectives
+    // first setup KSP options
+    dictionary kspOptions;
+    kspOptions.add(
+        "GMRESRestart",
+        daOptionPtr_->getSubDictOption<label>("adjEqnOption", "gmresRestart"));
+    kspOptions.add(
+        "GlobalPCIters",
+        daOptionPtr_->getSubDictOption<label>("adjEqnOption", "globalPCIters"));
+    kspOptions.add(
+        "ASMOverlap",
+        daOptionPtr_->getSubDictOption<label>("adjEqnOption", "asmOverlap"));
+    kspOptions.add(
+        "LocalPCIters",
+        daOptionPtr_->getSubDictOption<label>("adjEqnOption", "localPCIters"));
+    kspOptions.add(
+        "JacMatReOrdering",
+        daOptionPtr_->getSubDictOption<word>("adjEqnOption", "jacMatReOrdering"));
+    kspOptions.add(
+        "PCFillLevel",
+        daOptionPtr_->getSubDictOption<label>("adjEqnOption", "pcFillLevel"));
+    kspOptions.add(
+        "GMRESMaxIters",
+        daOptionPtr_->getSubDictOption<label>("adjEqnOption", "gmresMaxIters"));
+    kspOptions.add(
+        "GMRESRelTol",
+        daOptionPtr_->getSubDictOption<scalar>("adjEqnOption", "gmresRelTol"));
+    kspOptions.add(
+        "GMRESAbsTol",
+        daOptionPtr_->getSubDictOption<scalar>("adjEqnOption", "gmresAbsTol"));
+    kspOptions.add("printInfo", 1);
+    // create the multi-level Richardson KSP
+    KSP ksp;
+    daLinearEqn.createMLRKSP(kspOptions, dRdWT, dRdWTPC, &ksp);
+
     // ********************** compute dFdW **********************
     const dictionary& allOptions = daOptionPtr_->getAllOptions();
     dictionary objFuncDict = allOptions.subDict("objFunc");
@@ -880,45 +916,10 @@ label DASolver::solveAdjoint(
         {
 
             // NOTE: we use dFdWVecAllParts for adjoint
-            // first setup KSP options
-            dictionary kspOptions;
-            kspOptions.add(
-                "GMRESRestart",
-                daOptionPtr_->getSubDictOption<label>("adjEqnOption", "gmresRestart"));
-            kspOptions.add(
-                "GlobalPCIters",
-                daOptionPtr_->getSubDictOption<label>("adjEqnOption", "globalPCIters"));
-            kspOptions.add(
-                "ASMOverlap",
-                daOptionPtr_->getSubDictOption<label>("adjEqnOption", "asmOverlap"));
-            kspOptions.add(
-                "LocalPCIters",
-                daOptionPtr_->getSubDictOption<label>("adjEqnOption", "localPCIters"));
-            kspOptions.add(
-                "JacMatReOrdering",
-                daOptionPtr_->getSubDictOption<word>("adjEqnOption", "jacMatReOrdering"));
-            kspOptions.add(
-                "PCFillLevel",
-                daOptionPtr_->getSubDictOption<label>("adjEqnOption", "pcFillLevel"));
-            kspOptions.add(
-                "GMRESMaxIters",
-                daOptionPtr_->getSubDictOption<label>("adjEqnOption", "gmresMaxIters"));
-            kspOptions.add(
-                "GMRESRelTol",
-                daOptionPtr_->getSubDictOption<scalar>("adjEqnOption", "gmresRelTol"));
-            kspOptions.add(
-                "GMRESAbsTol",
-                daOptionPtr_->getSubDictOption<scalar>("adjEqnOption", "gmresAbsTol"));
-            kspOptions.add("printInfo", 1);
-
-            KSP ksp;
             // psi is the adjoint vector; the solution
             Vec psiVec;
             VecDuplicate(wVec, &psiVec);
             VecZeroEntries(psiVec);
-
-            // create the multi-level Richardson KSP
-            daLinearEqn.createMLRKSP(kspOptions, dRdWT, dRdWTPC, &ksp);
 
             // solve the linear equation and get psiVec
             daLinearEqn.solveLinearEqn(ksp, dFdWVecAllParts, psiVec);
@@ -933,10 +934,10 @@ label DASolver::solveAdjoint(
                 DAUtility::writeVectorASCII(psiVec, outputName);
                 DAUtility::writeVectorBinary(psiVec, outputName);
             }
-            KSPDestroy(&ksp);
         }
     }
 
+    KSPDestroy(&ksp);
     MatDestroy(&dRdWT);
     MatDestroy(&dRdWTPC);
 
