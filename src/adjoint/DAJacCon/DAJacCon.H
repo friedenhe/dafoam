@@ -157,6 +157,18 @@ protected:
         const List<List<word>> connectedStates,
         const label addFaces);
 
+    /// clear members in DAJacCon
+    void clearDAJacConMembers()
+    {
+        // Need to clean up all the matrices
+        MatDestroy(&jacCon_);
+        MatDestroy(&stateBoundaryCon_);
+        MatDestroy(&stateBoundaryConID_);
+        VecDestroy(&jacConColors_);
+        stateInfo_.clear();
+        neiBFaceGlobalCompact_.clear();
+    }
+
 public:
     /// Runtime type information
     TypeName("DAJacCon");
@@ -204,6 +216,9 @@ public:
 
     // Member functions
 
+    /// clear members in parent and child objects
+    virtual void clear() = 0;
+
     /// calculate the preallocation vector for initializing the JacCon mat, if necessary
     virtual void setupJacConPreallocation(const dictionary& options);
 
@@ -232,12 +247,6 @@ public:
 
     /// whether the coloring file exists
     label coloringExists(const word postFix = "") const;
-
-    /// delete the JacCon matrix to free the memory
-    void deleteJacCon()
-    {
-        MatDestroy(&jacCon_);
-    }
 
     /// return DAJacCon::jacConColors_
     Vec getJacConColor() const

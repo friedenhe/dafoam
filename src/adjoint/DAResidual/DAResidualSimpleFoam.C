@@ -33,6 +33,24 @@ DAResidualSimpleFoam::DAResidualSimpleFoam(
 {
 }
 
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+void DAResidualSimpleFoam::clear()
+{
+    /*
+    Description:
+        Clear all members to avoid memory leak because we will initalize 
+        multiple objects of DAResidual. Here we need to delete all members
+        in the parent and child classes
+    */
+    URes_.clear();
+    UResPartDeriv_.clear();
+    pRes_.clear();
+    pResPartDeriv_.clear();
+    phiRes_.clear();
+    phiResPartDeriv_.clear();
+}
+
 void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
 {
     /*

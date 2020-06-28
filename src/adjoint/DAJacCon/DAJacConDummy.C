@@ -39,6 +39,18 @@ void DAJacConDummy::initializeJacCon(const dictionary& options)
     // no need to do anything
 }
 
+void DAJacConDummy::clear()
+{
+    /*
+    Description:
+        Clear all members to avoid memory leak because we will initalize 
+        multiple objects of DAJacCon. Here we need to delete all members
+        in the parent and child classes
+    */
+    
+    // no need to do anything
+}
+
 } // End namespace Foam
 
 // ************************************************************************* //

@@ -151,6 +151,16 @@ public:
     {
     }
 
+    /// clear up members
+    void clear()
+    {
+        objFuncFaceSources_.clear();
+        objFuncCellSources_.clear();
+        objFuncFaceValues_.clear();
+        objFuncCellValues_.clear();
+        objFuncConInfo_.clear();
+    }
+
     /// calculate DAObjFunc::objFuncFaceSources_ and DAObjFunc::objFuncCellSources_
     void calcObjFuncSources(
         labelList& faceSources,

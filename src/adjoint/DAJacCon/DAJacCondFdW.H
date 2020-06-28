@@ -81,6 +81,9 @@ public:
         scalarList objFuncFaceValues,
         scalarList objFuncCellValues,
         Vec objFuncVec) const;
+    
+    /// clear members in parent and child objects
+    virtual void clear();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

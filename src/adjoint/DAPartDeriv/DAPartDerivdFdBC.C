@@ -92,7 +92,6 @@ void DAPartDerivdFdBC::calcPartDerivMat(
         jacMat: the partial derivative matrix dFdBC to compute
     */
 
-
     word objFuncName, objFuncPart;
     dictionary objFuncSubDictPart = options.subDict("objFuncSubDictPart");
     options.readEntry<word>("objFuncName", objFuncName);
@@ -136,7 +135,6 @@ void DAPartDerivdFdBC::calcPartDerivMat(
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
-
 }
 
 } // End namespace Foam

@@ -31,6 +31,22 @@ DAJacCondRdW::DAJacCondRdW(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+void DAJacCondRdW::clear()
+{
+    /*
+    Description:
+        Clear all members to avoid memory leak because we will initalize 
+        multiple objects of DAJacCon. Here we need to delete all members
+        in the parent and child classes
+    */
+
+    VecDestroy(&dRdWTPreallocOn_);
+    VecDestroy(&dRdWTPreallocOff_);
+    VecDestroy(&dRdWPreallocOn_);
+    VecDestroy(&dRdWPreallocOff_);
+
+    this->clearDAJacConMembers();
+}
 void DAJacCondRdW::initializePetscVecs()
 {
     /*

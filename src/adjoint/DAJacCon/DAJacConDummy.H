@@ -57,6 +57,9 @@ public:
     /// assign 1 to all non-zero elements for the Jacobian connecitivyt matrix
     virtual void setupJacCon(const dictionary& options);
 
+    /// clear members in parent and child objects
+    virtual void clear();
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

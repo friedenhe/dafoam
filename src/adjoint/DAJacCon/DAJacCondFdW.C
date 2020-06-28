@@ -32,6 +32,18 @@ DAJacCondFdW::DAJacCondFdW(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+void DAJacCondFdW::clear()
+{
+    /*
+    Description:
+        Clear all members to avoid memory leak because we will initalize 
+        multiple objects of DAJacCon. Here we need to delete all members
+        in the parent and child classes
+    */
+    globalObjFuncGeoNumbering_.reset(0);
+    this->clearDAJacConMembers();
+}
+
 void DAJacCondFdW::initializePetscVecs()
 {
     /*

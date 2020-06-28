@@ -96,6 +96,9 @@ public:
 
     // Members
 
+    /// clear the members
+    virtual void clear();
+
     /// compute residual
     virtual void calcResiduals(const dictionary& options);
 

@@ -90,6 +90,9 @@ public:
     virtual void preallocatedRdW(
         Mat dRMat,
         const label transposed) const;
+    
+    /// clear members in parent and child objects
+    virtual void clear();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

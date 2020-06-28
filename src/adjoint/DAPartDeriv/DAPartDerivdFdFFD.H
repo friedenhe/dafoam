@@ -28,8 +28,6 @@ class DAPartDerivdFdFFD
 {
 
 protected:
-    
-
 public:
     TypeName("dFdFFD");
     // Constructors

@@ -72,7 +72,7 @@ void ColoringCompressible::run()
             Info << "Calculating dRdW Coloring... Completed! " << mesh.time().elapsedClockTime() << " s" << endl;
 
             // clean up
-            daJacCon->deleteJacCon();
+            daJacCon->clear();
         }
     }
 
@@ -134,7 +134,7 @@ void ColoringCompressible::run()
                      << mesh.time().elapsedClockTime() << " s" << endl;
 
                 // clean up
-                daJacCon->deleteJacCon();
+                daJacCon->clear();
             }
         }
     }

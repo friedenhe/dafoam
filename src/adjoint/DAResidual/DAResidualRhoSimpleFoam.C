@@ -58,6 +58,24 @@ DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+void DAResidualRhoSimpleFoam::clear()
+{
+    /*
+    Description:
+        Clear all members to avoid memory leak because we will initalize 
+        multiple objects of DAResidual. Here we need to delete all members
+        in the parent and child classes
+    */
+    URes_.clear();
+    UResPartDeriv_.clear();
+    pRes_.clear();
+    pResPartDeriv_.clear();
+    TRes_.clear();
+    TResPartDeriv_.clear();
+    phiRes_.clear();
+    phiResPartDeriv_.clear();
+}
+
 void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
 {
     /*
@@ -197,9 +215,9 @@ void DAResidualRhoSimpleFoam::updateIntermediateVariables()
     // **************** NOTE ****************
     // need to relax rho to be consistent with the primal solver
     // However, the rho.relax() will mess up perturbation
-    // That being said, we comment out the rho.relax() call to 
+    // That being said, we comment out the rho.relax() call to
     // get the correct perturbed rho; however, the E residual will
-    // be a bit off compared with the ERes at the converged state 
+    // be a bit off compared with the ERes at the converged state
     // from the primal solver. TODO. Need to figure out how to improve this
     // **************** NOTE ****************
     // rho_.relax();
@@ -215,8 +233,8 @@ void DAResidualRhoSimpleFoam::updateIntermediateVariables()
     // Es = Hs - p/rho = Hs - T * R;
     // see Es() in src/thermophysicalModels/specie/thermo/thermo/thermoI.H
     // **************** NOTE ****************
-    // See the comment from the rho.relax() call, if we write he_=Cp*T-p/rho, the 
-    // accuracy of he_ may be impact by the inaccurate rho. So here we want to 
+    // See the comment from the rho.relax() call, if we write he_=Cp*T-p/rho, the
+    // accuracy of he_ may be impact by the inaccurate rho. So here we want to
     // rewrite he_ as he_ = Cp * T_ - T_ * R instead, such that we dont include rho
     // **************** NOTE ****************
     if (he_.name() == "e")

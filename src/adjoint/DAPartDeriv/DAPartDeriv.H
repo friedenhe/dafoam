@@ -149,6 +149,12 @@ public:
 
     // Member functions
 
+    /// clear members in parent and child objects
+    void clear()
+    {
+        MatDestroy(&dXvdFFDMat_);
+    }
+
     /// initialize partial derivative matrix
     virtual void initializePartDerivMat(
         const dictionary& options,

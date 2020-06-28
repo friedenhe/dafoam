@@ -663,6 +663,9 @@ label DASolver::solveAdjoint(
         }
 
         this->calcPrimalResidualStatistics("print");
+
+        // clear up
+        daJacCon->clear();
     }
 
     // ********************** compute dRdWTPC **********************
@@ -732,6 +735,9 @@ label DASolver::solveAdjoint(
         }
 
         this->calcPrimalResidualStatistics("print");
+
+        // clear up
+        daJacCon->clear();
     }
 
     // ********************** compute dFdW **********************
@@ -851,6 +857,12 @@ label DASolver::solveAdjoint(
                     DAUtility::writeVectorBinary(dFdWVec, outputName);
                     DAUtility::writeVectorASCII(dFdWVec, outputName);
                 }
+
+                MatDestroy(&dFdW);
+
+                // clear up
+                daJacCon->clear();
+                daObjFunc->clear();
             }
         }
 
@@ -921,8 +933,12 @@ label DASolver::solveAdjoint(
                 DAUtility::writeVectorASCII(psiVec, outputName);
                 DAUtility::writeVectorBinary(psiVec, outputName);
             }
+            KSPDestroy(&ksp);
         }
     }
+
+    MatDestroy(&dRdWT);
+    MatDestroy(&dRdWTPC);
 
     return 0;
 }
@@ -1115,6 +1131,9 @@ label DASolver::calcTotalDeriv(
                             DAUtility::writeVectorBinary(dFdBCVec, outputName);
                             DAUtility::writeVectorASCII(dFdBCVec, outputName);
                         }
+
+                        // clear up
+                        MatDestroy(&dFdBC);
                     }
                 }
 
@@ -1147,6 +1166,7 @@ label DASolver::calcTotalDeriv(
                 }
             }
         }
+        MatDestroy(&dRdBC);
     }
     // *****************************************************************************
     // ********************************* FFD dvType ********************************
@@ -1205,6 +1225,9 @@ label DASolver::calcTotalDeriv(
                 DAUtility::writeMatrixBinary(dRdFFD, outputName);
                 DAUtility::writeMatrixASCII(dRdFFD, outputName);
             }
+
+            // clear up dXvdFFD Mat in daPartDeriv
+            daPartDeriv->clear();
         }
 
         // ********************** compute dFdFFD **********************
@@ -1291,6 +1314,11 @@ label DASolver::calcTotalDeriv(
                             DAUtility::writeVectorBinary(dFdFFDVec, outputName);
                             DAUtility::writeVectorASCII(dFdFFDVec, outputName);
                         }
+
+                        MatDestroy(&dFdFFD);
+
+                        // clear up dXvdFFD Mat in daPartDeriv
+                        daPartDeriv->clear();
                     }
                 }
 
@@ -1326,6 +1354,7 @@ label DASolver::calcTotalDeriv(
 
         // need to destroy dXvdFFDMat_ to free memory
         MatDestroy(&dXvdFFDMat_);
+        MatDestroy(&dRdFFD);
     }
     else
     {
