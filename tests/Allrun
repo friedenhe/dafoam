@@ -23,13 +23,14 @@ cd ../../
 cd DAFoamCompressible && make && mpirun -np 4 python runTests.py || exit 1
 cd ../
 
-# test pyDAFoam.py
+# test DASimpleFoam
 rm -rf input
 tar -xvf input.tar.gz
 
 cd pyDAFoam && mpirun -np 4 python runTests_DASimpleFoam.py || exit 1
 cd ../
 
+# test DARhoSimpleFoam
 rm -rf input
 tar -xvf input.tar.gz
 

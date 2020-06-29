@@ -24,7 +24,10 @@ else:
 
 gcomm = MPI.COMM_WORLD
 
-CL_star = 12.6
+CL_target = 12.6
+CMZ_target = 5.82
+CMY_target = 1.71
+
 
 os.chdir("../input/CurvedCubeHexMesh")
 
@@ -67,6 +70,28 @@ aeroOptions = {
                 "addToAdjoint": True,
             }
         },
+        "CMZ": {
+            "part1": {
+                "type": "moment",
+                "source": "patchToFace",
+                "patches": ["walls", "wallsbump", "frontandback"],
+                "direction": [0.0, 0.0, 1.0],
+                "center": [0.5, 0.5, 0.5],
+                "scale": 1.0,
+                "addToAdjoint": True,
+            }
+        },
+        "CMY": {
+            "part1": {
+                "type": "moment",
+                "source": "patchToFace",
+                "patches": ["walls", "wallsbump", "frontandback"],
+                "direction": [0.0, 1.0, 0.0],
+                "center": [0.0, 0.0, 0.0],
+                "scale": 1.0,
+                "addToAdjoint": True,
+            }
+        },
     },
     "designVar": {"shapex": {"designVarType": "FFD"}, "shapey": {"designVarType": "FFD"}},
 }
@@ -91,10 +116,10 @@ DVGeo = DVGeometry(FFDFile)
 
 # select points
 pts = DVGeo.getLocalIndex(0)
-indexList = pts[:, :, :].flatten()
+indexList = pts[1:3, 1, 1:3].flatten()
 PS = geo_utils.PointSelect("list", indexList)
-DVGeo.addGeoDVLocal("shapey", lower=-0.05, upper=0.05, axis="y", scale=1.0, pointSelect=PS)
-DVGeo.addGeoDVLocal("shapex", lower=-0.05, upper=0.05, axis="x", scale=1.0, pointSelect=PS)
+DVGeo.addGeoDVLocal("shapey", lower=-0.1, upper=0.1, axis="y", scale=1.0, pointSelect=PS)
+DVGeo.addGeoDVLocal("shapex", lower=-0.1, upper=0.1, axis="x", scale=1.0, pointSelect=PS)
 
 # DAFoam
 CFDSolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
@@ -139,41 +164,45 @@ optFuncs.gcomm = gcomm
 
 # Opt
 CFDSolver.runColoring()
-optProb = Optimization("opt", optFuncs.getObjFuncValues, comm=gcomm)
+optProb = Optimization("opt", optFuncs.calcObjFuncValues, comm=gcomm)
 DVGeo.addVariablesPyOpt(optProb)
 DVCon.addConstraintsPyOpt(optProb)
 
 # Add objective
 optProb.addObj("CD", scale=1)
 # Add physical constraints
-optProb.addCon("CL", lower=CL_star, upper=CL_star, scale=1)
+optProb.addCon("CL", lower=CL_target, upper=CL_target, scale=1)
+optProb.addCon("CMZ", lower=CMZ_target, upper=CMZ_target, scale=1)
+optProb.addCon("CMY", lower=CMY_target, upper=CMY_target, scale=1)
 
 if gcomm.rank == 0:
     print(optProb)
 
 opt = OPT("slsqp", options=optOptions)
 histFile = "slsqp_hist.hst"
-sol = opt(optProb, sens=optFuncs.getObjFuncSens, storeHistory=histFile)
+sol = opt(optProb, sens=optFuncs.calcObjFuncSens, storeHistory=histFile)
 if gcomm.rank == 0:
     print(sol)
 
 if checkRegVal:
     xDVs = DVGeo.getValues()
 
-    l2_shapey = np.linalg.norm(xDVs["shapey"])
     l2_shapex = np.linalg.norm(xDVs["shapex"])
+    l2_shapey = np.linalg.norm(xDVs["shapey"])
 
-    ref_shapey = 0.16377918783065240
-    ref_shapex = 0.20529406551908677
+    if gcomm.rank == 0:
+        print("l2_shapex: ", l2_shapex)
+        print("l2_shapey: ", l2_shapey)
+
+    ref_shapex = 0.18792724386851453
+    ref_shapey = 0.1646036795038631
 
     diff_shapey = abs(l2_shapey - ref_shapey)
     diff_shapex = abs(l2_shapex - ref_shapex)
 
-    if diff_shapey > 1.0e-8 or diff_shapex > 1.0e-8:
+    dvTol = 1.0e-8
+    if diff_shapey > dvTol or diff_shapex > dvTol:
         print("Failed!")
-        if gcomm.rank == 0:
-            print("l2_shapex: ", l2_shapex)
-            print("l2_shapey: ", l2_shapey)
         exit(1)
     else:
         print("Succes!")

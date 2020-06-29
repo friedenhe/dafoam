@@ -20,7 +20,7 @@ import numpy as np
 np.set_printoptions(precision=16)
 
 
-def getObjFuncValues(xDV):
+def calcObjFuncValues(xDV):
     """
     Update the design surface and run the primal solver to get objective function values.
     """
@@ -57,7 +57,6 @@ def getObjFuncValues(xDV):
         print("Objective Functions: ", funcs)
         print("Flow Runtime: ", b - a)
 
-    funcs["fail"] = False
     fail = funcs["fail"]
 
     # flush the output to the screen/file
@@ -66,7 +65,7 @@ def getObjFuncValues(xDV):
     return funcs, fail
 
 
-def getObjFuncSens(xDV, funcs):
+def calcObjFuncSens(xDV, funcs):
     """
     Run the adjoint solver and get objective function sensitivities.
     """
@@ -117,9 +116,9 @@ def run():
     CFDSolver.runColoring()
     xDV = DVGeo.getValues()
     funcs = {}
-    funcs, fail = getObjFuncValues(xDV)
+    funcs, fail = calcObjFuncValues(xDV)
     funcsSens = {}
-    funcsSens, fail = getObjFuncSens(xDV, funcs)
+    funcsSens, fail = calcObjFuncSens(xDV, funcs)
 
 
 def solveCL(CL_star, alphaName, liftName):
@@ -133,7 +132,7 @@ def solveCL(CL_star, alphaName, liftName):
         # Solve the CFD problem
         xDVs[alphaName] = alpha
         funcs = {}
-        funcs, fail = getObjFuncValues(xDVs)
+        funcs, fail = calcObjFuncValues(xDVs)
         CL0 = funcs[liftName]
         if gcomm.rank == 0:
             print("alpha: %f, CL: %f" % (alpha.real, CL0))
@@ -146,7 +145,7 @@ def solveCL(CL_star, alphaName, liftName):
         alphaVal = alpha + eps
         xDVs[alphaName] = alphaVal
         funcsP = {}
-        funcsP, fail = getObjFuncValues(xDVs)
+        funcsP, fail = calcObjFuncValues(xDVs)
         CLP = funcsP[liftName]
         deltaAlpha = (CL_star - CL0) * eps / (CLP - CL0)
         alpha += deltaAlpha
@@ -168,8 +167,8 @@ def testSensShape():
 
     funcs = {}
     funcsSens = {}
-    funcs, fail = getObjFuncValues(xDV)
-    funcsSens, fail = getObjFuncSens(xDV, funcs)
+    funcs, fail = calcObjFuncValues(xDV)
+    funcsSens, fail = calcObjFuncSens(xDV, funcs)
     if gcomm.rank == 0:
         for funcName in evalFuncs:
             for shapeVar in xDV:
@@ -203,9 +202,9 @@ def testSensShape():
             funcp = {}
             funcm = {}
             xDV[shapeVar][i] += deltaX
-            funcp, fail = getObjFuncValues(xDV)
+            funcp, fail = calcObjFuncValues(xDV)
             xDV[shapeVar][i] -= 2.0 * deltaX
-            funcm, fail = getObjFuncValues(xDV)
+            funcm, fail = calcObjFuncValues(xDV)
             xDV[shapeVar][i] += deltaX
             for funcName in evalFuncs:
                 gradFD[funcName][shapeVar][i] = (funcp[funcName] - funcm[funcName]) / (2.0 * deltaX)
