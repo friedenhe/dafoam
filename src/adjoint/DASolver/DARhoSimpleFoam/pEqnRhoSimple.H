@@ -2,9 +2,10 @@ volScalarField rAU(1.0 / UEqn.A());
 surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho* rAU));
 //volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
 //***************** NOTE *******************
-// we should not use the constrainHbyA function above since it
-// will degrade the accuracy of shape derivatives. Basically, we should
-// not constrain any variable because it will create discontinuity
+// constrainHbyA has been used since OpenFOAM-v1606; however, We do NOT use the constrainHbyA
+// function in DAFoam because we found it significantly degrades the accuracy of shape derivatives. 
+// Basically, we should not constrain any variable because it will create discontinuity.
+// Instead, we use the old implementation used in OpenFOAM-3.0+ and before
 volVectorField HbyA("HbyA", U);
 HbyA = rAU * UEqn.H();
 tUEqn.clear();

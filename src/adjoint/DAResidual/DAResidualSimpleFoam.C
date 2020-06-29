@@ -101,9 +101,10 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
     volScalarField rAU(1.0 / UEqn.A());
     //volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U_, p_));
     //***************** NOTE *******************
-    // we should not use the constrainHbyA function above since it
-    // will degrade the accuracy of shape derivatives. Basically, we should
-    // not constrain any variable because it will create discontinuity
+    // constrainHbyA has been used since OpenFOAM-v1606; however, We do NOT use the constrainHbyA
+    // function in DAFoam because we found it significantly degrades the accuracy of shape derivatives. 
+    // Basically, we should not constrain any variable because it will create discontinuity.
+    // Instead, we use the old implementation used in OpenFOAM-3.0+ and before
     volVectorField HbyA("HbyA", U_);
     HbyA = rAU * UEqn.H();
 

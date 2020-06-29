@@ -447,7 +447,8 @@ void DASpalartAllmaras::calcResiduals(const dictionary& options)
         DAUtility::boundVar(allOptions_, nuTilda_);
         nuTilda_.correctBoundaryConditions();
 
-        // NOTE: in the original SA, it is correctNut(fv1) and fv1 is not
+        // ***************** NOTE*****************
+        // In the original SA, it is correctNut(fv1) and fv1 is not
         // updated based on the latest nuTilda. We use correctNut which
         // recompute fv1 with the latest nuTilda
         this->correctNut();

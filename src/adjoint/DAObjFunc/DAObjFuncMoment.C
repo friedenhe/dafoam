@@ -50,7 +50,7 @@ DAObjFuncMoment::DAObjFuncMoment(
     if (fabs(mag(momentDir_) - 1.0) > 1.0e-4)
     {
         FatalErrorIn(" ") << "the magnitude of the direction parameter in "
-                          << objFuncName << " " << objFuncPart << " is not 1.0!" 
+                          << objFuncName << " " << objFuncPart << " is not 1.0!"
                           << abort(FatalError);
     }
 
@@ -151,7 +151,7 @@ void DAObjFuncMoment::calcObjFunc(
         // r vector
         vector rVec = mesh_.Cf().boundaryField()[patchI][faceI] - momentCenter_;
         // compute moment
-        objFuncFaceValues[idxI] = scale_ * ((fN + fT) ^ rVec) & momentDir_;
+        objFuncFaceValues[idxI] = scale_ * (rVec ^ (fN + fT)) & momentDir_;
 
         objFuncValue += objFuncFaceValues[idxI];
     }
