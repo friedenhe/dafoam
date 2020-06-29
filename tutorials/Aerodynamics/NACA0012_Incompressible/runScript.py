@@ -34,7 +34,8 @@ outputDirectory = args.output
 gcomm = MPI.COMM_WORLD
 
 UmagIn = 10.0
-CL_star = 0.5
+CL_target = 0.5
+CMZ_target = -0.007273
 pitch0 = 5.113547
 LRef = 1.0
 ARef = 0.1
@@ -73,9 +74,20 @@ aeroOptions = {
                 "addToAdjoint": True,
             }
         },
+        "CMZ": {
+            "part1": {
+                "type": "moment",
+                "source": "patchToFace",
+                "patches": ["wing"],
+                "direction": [0.0, 0.0, 1.0],
+                "center": [0.25, 0.0, 0.0],
+                "scale": 1.0 / (0.5 * rhoRef * UmagIn * UmagIn * ARef * LRef),
+                "addToAdjoint": True,
+            }
+        },
     },
     "designVar": {"shapey": {"designVarType": "FFD"}, "pitch": {"designVarType": "FFD"},},
-    "normalizeStates": {"U": UmagIn, "p": UmagIn*UmagIn/2.0, "nuTilda": 0.001, "phi": 1.0},
+    "normalizeStates": {"U": UmagIn, "p": UmagIn * UmagIn / 2.0, "nuTilda": 0.001, "phi": 1.0},
     "adjEpsDerivState": 1e-7,
     "adjEpsDerivFFD": 1e-3,
     "maxResConLv4JacPCMat": {"pRes": 2, "phiRes": 1, "URes": 2, "nuTildaRes": 2},
@@ -130,10 +142,12 @@ DVGeo = DVGeometry(FFDFile)
 # nTwists is the number of FFD points in the spanwise direction
 nTwists = DVGeo.addRefAxis("bodyAxis", xFraction=0.25, alignIndex="k")
 
+
 def pitch(val, geo):
     # Set all the twist values
     for i in range(nTwists):
         geo.rot_z["bodyAxis"].coef[i] = -val[0]
+
 
 # select points
 pts = DVGeo.getLocalIndex(0)
@@ -160,7 +174,7 @@ for funcName in objFuncs:
         if objFuncs[funcName][funcPart]["addToAdjoint"] == True:
             if not funcName in evalFuncs:
                 evalFuncs.append(funcName)
-                
+
 # =================================================================================================
 # DVCon
 # =================================================================================================
@@ -191,7 +205,7 @@ DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=-1.0, low
 pts1 = DVGeo.getLocalIndex(0)
 indSetA = []
 indSetB = []
-for i in [0, nFFDs_x-1]:
+for i in [0, nFFDs_x - 1]:
     for k in [0]:  # do not constrain k=1 because it is linked in the above symmetry constraint
         indSetA.append(pts1[i, 0, k])
         indSetB.append(pts1[i, 1, k])
@@ -219,7 +233,8 @@ if task == "opt":
     # Add objective
     optProb.addObj("CD", scale=1)
     # Add physical constraints
-    optProb.addCon("CL", lower=CL_star, upper=CL_star, scale=1)
+    optProb.addCon("CL", lower=CL_target, upper=CL_target, scale=1)
+    optProb.addCon("CMZ", lower=CMZ_target, upper=CMZ_target, scale=1)
 
     if gcomm.rank == 0:
         print(optProb)
