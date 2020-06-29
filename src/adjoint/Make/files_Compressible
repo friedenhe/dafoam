@@ -25,6 +25,7 @@ DAField/DAField.C
 
 DAObjFunc/DAObjFunc.C
 DAObjFunc/DAObjFuncForce.C
+DAObjFunc/DAObjFuncMoment.C
 
 DAResidual/DAResidual.C
 DAResidual/DAResidualRhoSimpleFoam.C

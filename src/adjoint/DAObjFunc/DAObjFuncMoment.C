@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAObjFuncForce.H"
+#include "DAObjFuncMoment.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAObjFuncForce, 0);
-addToRunTimeSelectionTable(DAObjFunc, DAObjFuncForce, dictionary);
+defineTypeNameAndDebug(DAObjFuncMoment, 0);
+addToRunTimeSelectionTable(DAObjFunc, DAObjFuncMoment, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAObjFuncForce::DAObjFuncForce(
+DAObjFuncMoment::DAObjFuncMoment(
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel,
@@ -37,26 +37,32 @@ DAObjFuncForce::DAObjFuncForce(
       daTurb_(daModel.getDATurbulenceModel())
 {
 
-    // for computing force, first read in some parameters from objFuncDict_
-    // these parameters are only for force objective
+    // for computing moment, first read in some parameters from objFuncDict_
+    // these parameters are only for moment objective
     objFuncDict_.readEntry<word>("type", objFuncType_);
 
     scalarList dir;
     objFuncDict_.readEntry<scalarList>("direction", dir);
-    forceDir_[0] = dir[0];
-    forceDir_[1] = dir[1];
-    forceDir_[2] = dir[2];
+    momentDir_[0] = dir[0];
+    momentDir_[1] = dir[1];
+    momentDir_[2] = dir[2];
 
-    if (fabs(mag(forceDir_) - 1.0) > 1.0e-4)
+    if (fabs(mag(momentDir_) - 1.0) > 1.0e-4)
     {
         FatalErrorIn(" ") << "the magnitude of the direction parameter in "
                           << objFuncName << " " << objFuncPart << " is not 1.0!" 
                           << abort(FatalError);
     }
 
+    scalarList center;
+    objFuncDict_.readEntry<scalarList>("center", center);
+    momentCenter_[0] = center[0];
+    momentCenter_[1] = center[1];
+    momentCenter_[2] = center[2];
+
     objFuncDict_.readEntry<scalar>("scale", scale_);
 
-    // setup the connectivity for force, this is needed in Foam::DAJacCondFdW
+    // setup the connectivity for moment, this is needed in Foam::DAJacCondFdW
     // need to determine the name of pressure because some buoyant OF solver use
     // p_rgh as pressure
     word pName = "p";
@@ -85,7 +91,7 @@ DAObjFuncForce::DAObjFuncForce(
 }
 
 /// calculate the value of objective function
-void DAObjFuncForce::calcObjFunc(
+void DAObjFuncMoment::calcObjFunc(
     const labelList& objFuncFaceSources,
     const labelList& objFuncCellSources,
     scalarList& objFuncFaceValues,
@@ -94,8 +100,9 @@ void DAObjFuncForce::calcObjFunc(
 {
     /*
     Description:
-        Calculate the force which consist of pressure and viscous components.
-        This code is modified based on:
+        Calculate the moment which consist of pressure and viscous components
+        of force cross-producting the r vector wrt to a ref point
+        This code for computiong force is modified based on:
         src/functionObjects/forcces/forces.C
 
     Input:
@@ -141,8 +148,10 @@ void DAObjFuncForce::calcObjFunc(
         vector fN(Sfb[patchI][faceI] * p.boundaryField()[patchI][faceI]);
         // tangential force
         vector fT(Sfb[patchI][faceI] & devRhoReffb[patchI][faceI]);
-        // project the force to forceDir
-        objFuncFaceValues[idxI] = scale_ * ((fN + fT) & forceDir_);
+        // r vector
+        vector rVec = mesh_.Cf().boundaryField()[patchI][faceI] - momentCenter_;
+        // compute moment
+        objFuncFaceValues[idxI] = scale_ * ((fN + fT) ^ rVec) & momentDir_;
 
         objFuncValue += objFuncFaceValues[idxI];
     }

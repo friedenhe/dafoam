@@ -4,12 +4,12 @@
     Version : v2
 
     Description:
-        Child class for force 
+        Child class for moment
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAObjFuncForce_H
-#define DAObjFuncForce_H
+#ifndef DAObjFuncMoment_H
+#define DAObjFuncMoment_H
 
 #include "DAObjFunc.H"
 #include "addToRunTimeSelectionTable.H"
@@ -20,26 +20,29 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAObjFuncForce Declaration
+      Class DAObjFuncMoment Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAObjFuncForce
+class DAObjFuncMoment
     : public DAObjFunc
 {
 
 protected:
-    /// the direction of the force
-    vector forceDir_;
+    /// the direction of the moment
+    vector momentDir_;
+
+    /// the center of rotation for moment
+    vector momentCenter_;
 
     /// DATurbulenceModel object
     const DATurbulenceModel& daTurb_;
 
 public:
-    TypeName("force");
+    TypeName("moment");
     // Constructors
 
     //- Construct from components
-    DAObjFuncForce(
+    DAObjFuncMoment(
         const fvMesh& mesh,
         const DAOption& daOption,
         const DAModel& daModel,
@@ -50,7 +53,7 @@ public:
         const dictionary& objFuncDict);
 
     //- Destructor
-    virtual ~DAObjFuncForce()
+    virtual ~DAObjFuncMoment()
     {
     }
 
