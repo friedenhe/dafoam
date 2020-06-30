@@ -143,6 +143,12 @@ public:
     {
         DASolverPtr_->setdXvdFFDMat(dXvdFFDMat);
     }
+
+    /// update the allOptions_ dict in DAOption based on the pyOptions from pyDAFoam
+    void updateDAOption(PyObject* pyOptions)
+    {
+        DASolverPtr_->updateDAOption(pyOptions);
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

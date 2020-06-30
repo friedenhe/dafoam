@@ -260,6 +260,12 @@ public:
 
     /// set the value for DASolver::dXvdFFDMat_
     void setdXvdFFDMat(const Mat dXvdFFDMat);
+
+    /// update the allOptions_ dict in DAOption based on the pyOptions from pyDAFoam
+    void updateDAOption(PyObject* pyOptions)
+    {
+        daOptionPtr_->updateDAOption(pyOptions);
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

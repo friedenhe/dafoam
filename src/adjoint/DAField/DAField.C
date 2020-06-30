@@ -758,6 +758,7 @@ void DAField::setPrimalBoundaryConditions()
                 }
             }
 
+            /*
             // ------ k ----------
             if (turbVar == "k" && db.foundObject<volScalarField>("k"))
             {
@@ -910,6 +911,7 @@ void DAField::setPrimalBoundaryConditions()
                     }
                 }
             }
+            */
         }
     }
 }

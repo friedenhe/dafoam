@@ -263,67 +263,91 @@ void DAPartDeriv::perturbBC(
 
         options.patchName: the name of the boundary patches to perturb, do not support
         multiple patches yet
-    
-        options.fieldType: the type of the OpenFOAM field for this variable
-
-        options.bcType: the boundary type, fixedValue?
 
         optoins.comp: the component to perturb
 
         delta: the delta value to perturb
     */
 
-    word varName, patchName, fieldType, bcType;
+    word varName, patchName, fieldType;
     label comp;
     options.readEntry<word>("varName", varName);
     options.readEntry<word>("patchName", patchName);
-    options.readEntry<word>("fieldType", fieldType);
-    options.readEntry<word>("bcType", bcType);
     options.readEntry<label>("comp", comp);
 
     label patchI = mesh_.boundaryMesh().findPatchID(patchName);
 
-    if (bcType == "fixedValue")
+    if (mesh_.thisDb().foundObject<volVectorField>(varName))
     {
-        if (fieldType == "volVectorField")
-        {
-            volVectorField& var(
-                const_cast<volVectorField&>(
-                    mesh_.thisDb().lookupObject<volVectorField>(varName)));
+        volVectorField& state(const_cast<volVectorField&>(
+            mesh_.thisDb().lookupObject<volVectorField>(varName)));
 
-            if (mesh_.boundaryMesh()[patchI].size() > 0)
+        // for decomposed domain, don't set BC if the patch is empty
+        if (mesh_.boundaryMesh()[patchI].size() > 0)
+        {
+            if (state.boundaryFieldRef()[patchI].type() == "fixedValue")
             {
-                forAll(var.boundaryField()[patchI], faceI)
+                forAll(state.boundaryField()[patchI], faceI)
                 {
-                    var.boundaryFieldRef()[patchI][faceI][comp] += delta;
+                    state.boundaryFieldRef()[patchI][faceI][comp] += delta;
                 }
             }
-        }
-        else if (fieldType == "volScalarField")
-        {
-            volScalarField& var(
-                const_cast<volScalarField&>(
-                    mesh_.thisDb().lookupObject<volScalarField>(varName)));
-
-            if (mesh_.boundaryMesh()[patchI].size() > 0)
+            else if (state.boundaryFieldRef()[patchI].type() == "inletOutlet"
+                     || state.boundaryFieldRef()[patchI].type() == "outletInlet")
             {
-                forAll(var.boundaryField()[patchI], faceI)
-                {
-                    var.boundaryFieldRef()[patchI][faceI] += delta;
-                }
+                // perturb inletValue
+                mixedFvPatchField<vector>& inletOutletPatch =
+                    refCast<mixedFvPatchField<vector>>(state.boundaryFieldRef()[patchI]);
+                vector perturbedValue = inletOutletPatch.refValue()[0];
+                perturbedValue[comp] += delta;
+                inletOutletPatch.refValue() = perturbedValue;
+            }
+            else
+            {
+                FatalErrorIn("") << "boundaryType: " << state.boundaryFieldRef()[patchI].type()
+                                 << " not supported!"
+                                 << "Avaiable options are: fixedValue, inletOutlet, outletInlet"
+                                 << abort(FatalError);
             }
         }
-        else
+    }
+    else if (mesh_.thisDb().foundObject<volScalarField>(varName))
+    {
+        volScalarField& state(const_cast<volScalarField&>(
+            mesh_.thisDb().lookupObject<volScalarField>(varName)));
+
+        // for decomposed domain, don't set BC if the patch is empty
+        if (mesh_.boundaryMesh()[patchI].size() > 0)
         {
-            FatalErrorIn("") << "fieldType: "
-                             << fieldType << " not supported"
-                             << abort(FatalError);
+            if (state.boundaryFieldRef()[patchI].type() == "fixedValue")
+            {
+                forAll(state.boundaryField()[patchI], faceI)
+                {
+                    state.boundaryFieldRef()[patchI][faceI] += delta;
+                }
+            }
+            else if (state.boundaryFieldRef()[patchI].type() == "inletOutlet"
+                     || state.boundaryFieldRef()[patchI].type() == "outletInlet")
+            {
+                // perturb inletValue
+                mixedFvPatchField<scalar>& inletOutletPatch =
+                    refCast<mixedFvPatchField<scalar>>(state.boundaryFieldRef()[patchI]);
+                scalar perturbedValue = inletOutletPatch.refValue()[0];
+                perturbedValue += delta;
+                inletOutletPatch.refValue() = perturbedValue;
+            }
+            else
+            {
+                FatalErrorIn("") << "boundaryType: " << state.boundaryFieldRef()[patchI].type()
+                                 << " not supported!"
+                                 << "Avaiable options are: fixedValue, inletOutlet, outletInlet"
+                                 << abort(FatalError);
+            }
         }
     }
     else
     {
-        FatalErrorIn("") << "bcType: "
-                         << bcType << " not supported"
+        FatalErrorIn("") << varName << " is neither volVectorField nor volScalarField!"
                          << abort(FatalError);
     }
 }

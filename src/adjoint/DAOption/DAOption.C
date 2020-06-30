@@ -47,6 +47,23 @@ DAOption::~DAOption()
 {
 }
 
+void DAOption::updateDAOption(PyObject* pyOptions)
+{
+    /*
+    Description:
+        Update the allOptions_ dict in DAOption based on the pyOptions from pyDAFoam
+    Input:
+        pyOptions: A Python dictionary from pyDAFoam
+    Output:
+        allOptions_: the OpenFOAM dictionary used in DAOption
+    */
+
+    // clear up the existing allOptions_
+    allOptions_.clear();
+    // assign allOptions_ based on pyOptions
+    DAUtility::pyDict2OFDict(pyOptions, allOptions_);
+}
+
 // this is a virtual function for regIOobject
 bool DAOption::writeData(Ostream& os) const
 {

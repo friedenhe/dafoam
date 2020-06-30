@@ -997,10 +997,6 @@ label DASolver::calcTotalDeriv(
         word varName = dvSubDict.getWord("varName");
         // name of the boundary patch
         word patchName = dvSubDict.getWord("patchName");
-        // the vol field type, e.g., volScalarField
-        word fieldType = dvSubDict.getWord("fieldType");
-        // the type of this BC, e.g., fixedValue
-        word bcType = dvSubDict.getWord("bcType");
         // the compoent of a vector variable, ignore when it is a scalar
         label comp = dvSubDict.getLabel("comp");
 
@@ -1031,8 +1027,6 @@ label DASolver::calcTotalDeriv(
             dictionary options;
             options.set("varName", varName);
             options.set("patchName", patchName);
-            options.set("fieldType", fieldType);
-            options.set("bcType", bcType);
             options.set("comp", comp);
             options.set("isPC", 0);
 
@@ -1101,8 +1095,6 @@ label DASolver::calcTotalDeriv(
                         options.set("objFuncSubDictPart", objFuncSubDictPart);
                         options.set("varName", varName);
                         options.set("patchName", patchName);
-                        options.set("fieldType", fieldType);
-                        options.set("bcType", bcType);
                         options.set("comp", comp);
 
                         // initialize dFdBC

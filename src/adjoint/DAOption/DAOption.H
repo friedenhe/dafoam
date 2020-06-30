@@ -83,6 +83,9 @@ public:
 
     /// this is a virtual function for regIOobject
     bool writeData(Ostream& os) const;
+
+    /// update the allOptions_ dict in DAOption based on the pyOptions from pyDAFoam
+    void updateDAOption(PyObject* pyOptions);
 };
 
 template<class classType>
@@ -129,6 +132,7 @@ void DAOption::setOption(
     Description:
         Set an option to DAOption::allOptions_. 
         NOTE: the value can not be a dictionary. 
+        NOTE: changing allOptions_ will not change self.options in pyDAFoam
 
     Input:
         key: the key in the DAOption::allOptions_ dictionary
@@ -202,6 +206,7 @@ void DAOption::setSubDictOption(
     /*
     Description:
         Set a sub dictionary option to allOptions_
+        NOTE: changing allOptions_ will not change self.options in pyDAFoam
 
     Input:
         subDict: the name of the subDict
