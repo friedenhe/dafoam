@@ -41,6 +41,11 @@ aeroOptions = {
     "flowCondition": "Incompressible",
     "designSurfaceFamily": "designSurface",
     "designSurfaces": ["wallsbump"],
+    "primalBC": {
+        "bc1": {"variable": "U", "patch": "inlet", "value": [10.0, 0.0, 0.0]},
+        "bc2": {"variable": "p", "patch": "outlet", "value": [0.0]},
+        "bc3": {"variable": "nuTilda", "patch": "inlet", "value": [0.00015], "useWallFunction": True},
+    },
     "objFunc": {
         "CD": {
             "part1": {
