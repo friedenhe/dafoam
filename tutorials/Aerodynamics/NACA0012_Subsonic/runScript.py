@@ -7,10 +7,7 @@ DAFoam run script for the NACA0012 airfoil at subsonic speed
 # Imports
 # =================================================================================================
 import os
-import time
 import argparse
-import sys
-import numpy as np
 from mpi4py import MPI
 from dafoam import PYDAFOAM, optFuncs
 from pygeo import *
@@ -34,12 +31,13 @@ outputDirectory = args.output
 gcomm = MPI.COMM_WORLD
 
 UmagIn = 100.0
-CL_target = 0.5
-CMZ_target = -0.001421
-pitch0 = 3.856366
-LRef = 1.0
+pIn = 101325.0
+nuTildaIn = 4.5e-5
+TIn = 300.0
 ARef = 0.1
 rhoRef = 1.0
+CL_target = 0.5
+pitch0 = 3.856366
 
 # Set the parameters for optimization
 aeroOptions = {
@@ -51,6 +49,12 @@ aeroOptions = {
     "solverName": "DARhoSimpleFoam",
     "turbulenceModel": "SpalartAllmaras",
     "flowCondition": "Compressible",
+    "primalBC": {
+        "bc1": {"variable": "U", "patch": "inout", "value": [UmagIn, 0.0, 0.0]},
+        "bc2": {"variable": "p", "patch": "inout", "value": [pIn]},
+        "bc3": {"variable": "T", "patch": "inout", "value": [TIn]},
+        "bc4": {"variable": "nuTilda", "patch": "inout", "value": [nuTildaIn], "useWallFunction": True},
+    },
     # adjoint setup
     "adjUseColoring": True,
     "objFunc": {
@@ -74,23 +78,14 @@ aeroOptions = {
                 "addToAdjoint": True,
             }
         },
-        "CMZ": {
-            "part1": {
-                "type": "moment",
-                "source": "patchToFace",
-                "patches": ["wing"],
-                "direction": [0.0, 0.0, 1.0],
-                "center": [0.25, 0.0, 0.0],
-                "scale": 1.0 / (0.5 * rhoRef * UmagIn * UmagIn * ARef * LRef),
-                "addToAdjoint": True,
-            }
-        },
     },
-    "designVar": {"shapey": {"designVarType": "FFD"}, "pitch": {"designVarType": "FFD"},},
-    "normalizeStates": {"U": UmagIn, "p": 100000.0, "nuTilda": 0.001, "phi": 1.0, "T": 300.0},
+    "adjEqnOption": {"pcFillLevel": 1},
+    "normalizeStates": {"U": UmagIn, "p": pIn, "nuTilda": nuTildaIn * 10.0, "phi": 1.0, "T": TIn},
     "adjEpsDerivState": 1e-7,
     "adjEpsDerivFFD": 1e-3,
     "maxResConLv4JacPCMat": {"pRes": 2, "phiRes": 1, "URes": 2, "nuTildaRes": 2, "TRes": 2},
+    # Design variable setup
+    "designVar": {"shapey": {"designVarType": "FFD"}, "pitch": {"designVarType": "FFD"}},
 }
 
 # mesh warping parameters, users need to manually specify the symmetry plane
@@ -106,26 +101,26 @@ meshOptions = {
 outPrefix = outputDirectory + task + optVars[0]
 if args.opt == "snopt":
     optOptions = {
-        "Major feasibility tolerance": 1.0e-6,  # tolerance for constraint
-        "Major optimality tolerance": 1.0e-6,  # tolerance for gradient
-        "Minor feasibility tolerance": 1.0e-6,  # tolerance for constraint
+        "Major feasibility tolerance": 1.0e-7,  # tolerance for constraint
+        "Major optimality tolerance": 1.0e-7,  # tolerance for gradient
+        "Minor feasibility tolerance": 1.0e-7,  # tolerance for constraint
         "Verify level": -1,
-        "Function precision": 1.0e-6,
-        "Major iterations limit": 40,
+        "Function precision": 1.0e-7,
+        "Major iterations limit": 50,
         "Nonderivative linesearch": None,
         "Print file": os.path.join(outPrefix + "_SNOPT_print.out"),
         "Summary file": os.path.join(outPrefix + "_SNOPT_summary.out"),
     }
 elif args.opt == "slsqp":
     optOptions = {
-        "ACC": 1.0e-6,  # convergence accuracy
-        "MAXIT": 40,  # max optimization iterations
+        "ACC": 1.0e-7,  # convergence accuracy
+        "MAXIT": 50,  # max optimization iterations
         "IFILE": os.path.join(outPrefix + "_SLSQP.out"),
     }
 elif args.opt == "ipopt":
     optOptions = {
-        "tol": 1.0e-6,  # convergence accuracy
-        "max_iter": 40,  # max optimization iterations
+        "tol": 1.0e-7,  # convergence accuracy
+        "max_iter": 50,  # max optimization iterations
         "output_file": os.path.join(outPrefix + "_IPOPT.out"),
     }
 else:
@@ -171,8 +166,8 @@ evalFuncs = []
 objFuncs = CFDSolver.getOption("objFunc")
 for funcName in objFuncs:
     for funcPart in objFuncs[funcName]:
-        if objFuncs[funcName][funcPart]["addToAdjoint"] == True:
-            if not funcName in evalFuncs:
+        if objFuncs[funcName][funcPart]["addToAdjoint"] is True:
+            if funcName not in evalFuncs:
                 evalFuncs.append(funcName)
 
 # =================================================================================================
@@ -235,7 +230,6 @@ if task == "opt":
     optProb.addObj("CD", scale=1)
     # Add physical constraints
     optProb.addCon("CL", lower=CL_target, upper=CL_target, scale=1)
-    optProb.addCon("CMZ", lower=CMZ_target, upper=CMZ_target, scale=1)
 
     if gcomm.rank == 0:
         print(optProb)
@@ -252,7 +246,7 @@ elif task == "run":
 
 elif task == "solveCL":
 
-    optFuncs.solveCL(CL_star, "twist", "CL")
+    optFuncs.solveCL(CL_target, "twist", "CL")
 
 elif task == "testSensShape":
 
