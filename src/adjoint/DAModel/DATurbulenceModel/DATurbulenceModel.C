@@ -166,8 +166,10 @@ autoPtr<DATurbulenceModel> DATurbulenceModel::New(
     const fvMesh& mesh,
     const DAOption& daOption)
 {
-
-    Info << "Selecting " << modelType << " for DATurbulenceModel" << endl;
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "Selecting " << modelType << " for DATurbulenceModel" << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);

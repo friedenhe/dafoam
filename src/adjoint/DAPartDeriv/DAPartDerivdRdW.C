@@ -133,13 +133,23 @@ void DAPartDerivdRdW::calcPartDerivMat(
 
     label nColors = daJacCon_.getNJacConColors();
 
+    word partDerivName = modelType_;
+    if (transposed)
+    {
+        partDerivName += "T";
+    }
+    if (options.getLabel("isPC"))
+    {
+        partDerivName += "PC";
+    }
+
     for (label color = 0; color < nColors; color++)
     {
         label eTime = mesh_.time().elapsedClockTime();
         // print progress
         if (color % 100 == 0 or color == nColors - 1)
         {
-            Info << modelType_ << ": " << color << " of " << nColors
+            Info << partDerivName << ": " << color << " of " << nColors
                  << ", ExecutionTime: " << eTime << " s" << endl;
         }
 

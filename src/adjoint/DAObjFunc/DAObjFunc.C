@@ -75,8 +75,11 @@ autoPtr<DAObjFunc> DAObjFunc::New(
     word modelType;
     objFuncDict.readEntry<word>("type", modelType);
 
-    Info << "Selecting type: " << modelType << " for DAObjFunc. Name: " << objFuncName
-         << " part: " << objFuncPart << endl;
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "Selecting type: " << modelType << " for DAObjFunc. Name: " << objFuncName
+             << " part: " << objFuncPart << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);

@@ -44,7 +44,10 @@ autoPtr<DAResidual> DAResidual::New(
 {
     // standard setup for runtime selectable classes
 
-    Info << "Selecting " << modelType << " for DAResidual" << endl;
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "Selecting " << modelType << " for DAResidual" << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);

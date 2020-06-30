@@ -57,7 +57,10 @@ autoPtr<DASolver> DASolver::New(
     word modelType;
     allOptions.readEntry<word>("solverName", modelType);
 
-    Info << "Selecting " << modelType << " for DASolver" << endl;
+    if (allOptions.getLabel("debug"))
+    {
+        Info << "Selecting " << modelType << " for DASolver" << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);
@@ -608,7 +611,6 @@ label DASolver::solveAdjoint(
     // ********************** compute dRdWT **********************
     Mat dRdWT;
     {
-
         // initialize DAJacCon object
         word modelType = "dRdW";
         autoPtr<DAJacCon> daJacCon(DAJacCon::New(
@@ -659,10 +661,9 @@ label DASolver::solveAdjoint(
 
         if (daOptionPtr_->getOption<label>("debug"))
         {
+            this->calcPrimalResidualStatistics("print");
             DAUtility::writeMatrixBinary(dRdWT, "dRdWT");
         }
-
-        this->calcPrimalResidualStatistics("print");
 
         // clear up
         daJacCon->clear();
@@ -731,10 +732,9 @@ label DASolver::solveAdjoint(
 
         if (daOptionPtr_->getOption<label>("debug"))
         {
+            this->calcPrimalResidualStatistics("print");
             DAUtility::writeMatrixBinary(dRdWTPC, "dRdWTPC");
         }
-
-        this->calcPrimalResidualStatistics("print");
 
         // clear up
         daJacCon->clear();

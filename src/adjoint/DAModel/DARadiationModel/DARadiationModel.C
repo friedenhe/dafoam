@@ -44,8 +44,10 @@ autoPtr<DARadiationModel> DARadiationModel::New(
     const fvMesh& mesh,
     const DAOption& daOption)
 {
-
-    Info << "Selecting " << modelType << " for DARadiationModel" << endl;
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "Selecting " << modelType << " for DARadiationModel" << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);

@@ -47,8 +47,10 @@ autoPtr<DAJacCon> DAJacCon::New(
     const DAModel& daModel,
     const DAIndex& daIndex)
 {
-
-    Info << "Selecting " << modelType << " for DAJacCon" << endl;
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "Selecting " << modelType << " for DAJacCon" << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);

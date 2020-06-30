@@ -48,7 +48,10 @@ autoPtr<DAStateInfo> DAStateInfo::New(
 {
     // standard setup for runtime selectable classes
 
-    Info << "Selecting " << modelType << " for DAStateInfo" << endl;
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "Selecting " << modelType << " for DAStateInfo" << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);
@@ -77,7 +80,6 @@ autoPtr<DAStateInfo> DAStateInfo::New(
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

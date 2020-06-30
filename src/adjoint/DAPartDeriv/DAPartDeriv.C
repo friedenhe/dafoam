@@ -53,8 +53,10 @@ autoPtr<DAPartDeriv> DAPartDeriv::New(
     const DAJacCon& daJacCon,
     const DAResidual& daResidual)
 {
-
-    Info << "Selecting " << modelType << " for DAPartDeriv" << endl;
+    if (daOption.getOption<label>("debug"))
+    {
+        Info << "Selecting " << modelType << " for DAPartDeriv" << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);
