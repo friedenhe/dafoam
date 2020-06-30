@@ -134,6 +134,7 @@ class PYDAFOAM(object):
         self.runDecomposePar()
 
         # initialize the pySolvers
+        self.solverInitialized = 0
         self._initSolver()
 
         # initialize mesh information and read grids
@@ -548,11 +549,7 @@ class PYDAFOAM(object):
 
         # If 'options' is None raise an error
         if options is None:
-            raise Error(
-                "The 'options' keyword argument must be passed \
-            pyDAFoam. The options dictionary must contain (at least) the gridFile \
-            entry for the grid"
-            )
+            raise Error("The 'options' keyword argument must be passed pyDAFoam.")
 
         # set immutable options that users should not change during the optimization
         self.imOptions = self._getImmutableOptions()
@@ -562,6 +559,7 @@ class PYDAFOAM(object):
 
         # Set options based on defaultOptions
         # we basically overwrite defaultOptions with the given options
+        # first assign self.defaultOptions to self.options
         self.options = OrderedDict()
         for key in self.defaultOptions:
             if len(self.defaultOptions[key]) != 2:
@@ -570,7 +568,8 @@ class PYDAFOAM(object):
                     Example: {'iters' : [int, 1]}"
                     % key
                 )
-            self.setOption(key, self.defaultOptions[key][1])
+            self.options[key] = self.defaultOptions[key]
+        # now set options to self.options
         for key in options:
             self.setOption(key, options[key])
 
@@ -703,6 +702,9 @@ class PYDAFOAM(object):
         Initialize the solvers. This needs to be called before calling any runs
         """
 
+        if self.solverInitialized == 1:
+            raise Error("pyDAFoam: self._initSolver has been called! One shouldn't initialize solvers twice!")
+
         solverName = self.getOption("solverName")
         solverArg = solverName + " -python " + self.parallelFlag
         if self.getOption("flowCondition") == "Incompressible":
@@ -721,6 +723,8 @@ class PYDAFOAM(object):
         self.solver.initSolver()
 
         self.solver.printAllOptions()
+
+        self.solverInitialized = 1
 
         return
 
@@ -848,7 +852,7 @@ class PYDAFOAM(object):
                     dXvdFFDMat[idx, i] = deltaVal
             # reset the perturbation of the dv
             xDV[designVarName][i] -= epsFFD
-        
+
         # reset the volume mesh coordinates
         self.DVGeo.setDesignVars(xDV)
         self.updateVolumePoints()
@@ -1339,14 +1343,62 @@ class PYDAFOAM(object):
 
     def setOption(self, name, value):
         """
-        Set a value to options
-
+        Set a value to options.  
+        NOTE: calling this function will only change the values in self.options
+        It will NOT change values for allOptions_ in DAOption. To make the options changes
+        from pyDAFoam to DASolvers, call self.updateDAOption()
+        
         Parameters
         ----------
         name : str
            Name of option to set. Not case sensitive
         value : varies
            Value to set. Type is checked for consistency.
+
+        Examples
+        --------
+        If self.options reads:
+        self.options =
+        {
+            'solverName': [str, 'DASimpleFoam'],
+            'flowEndTime': [float, 1.0]
+        }
+        Then, calling self.options('solverName', 'DARhoSimpleFoam') will give:
+        self.options =
+        {
+            'solverName': [str, 'DARhoSimpleFoam'],
+            'flowEndTime': [float, 1.0]
+        }
+
+
+        NOTE: if 'value' is of dict type, we will set all the subKey values in
+        'value' dict to self.options, instead of overiding it
+
+        For example, if self.options reads
+        self.options =
+        {
+            'objFunc': [dict, {
+                'name': 'CD',
+                'direction': [1.0, 0.0, 0.0],
+                'scale': 1.0}]
+        }
+
+        Then, calling self.setOption('objFunc', {'name': 'CL'}) will give:
+
+        self.options =
+        {
+            'objFunc': [dict, {
+                'name': 'CL',
+                'direction': [1.0, 0.0, 0.0],
+                'scale': 1.0}]
+        }
+
+        INSTEAD OF
+
+        self.options =
+        {
+            'objFunc': [dict, {'name': 'CL'}]
+        }
         """
 
         try:
@@ -1361,8 +1413,16 @@ class PYDAFOAM(object):
 
         # Now we know the option exists, lets check if the type is ok:
         if isinstance(value, self.defaultOptions[name][0]):
-            # Just set:
-            self.options[name] = [type(value), value]
+            # the type matches, now we need to check if the 'value' is of dict type, if yes, we only
+            # replace the subKey values of 'value', instead of overiding all the subKey values
+            if isinstance(value, dict):
+                for subKey in value:
+                    # no need to set self.options[name][0] since it has the right type
+                    self.options[name][1][subKey] = value[subKey]
+            else:
+                # It is not dict, just set
+                # no need to set self.options[name][0] since it has the right type
+                self.options[name][1] = value
         else:
             raise Error(
                 "Datatype for Option %-35s was not valid \n "
@@ -1389,6 +1449,19 @@ class PYDAFOAM(object):
             return self.options[name][1]
         else:
             raise Error("%s is not a valid option name." % name)
+    
+    def updateDAOption(self):
+        """
+        Update the allOptions_ in DAOption based on the latest self.options in
+        pyDAFoam. This will pass the changes of self.options from pyDAFoam
+        to DASolvers. NOTE: need to call this function after calling
+        self.initSolver
+        """
+
+        if self.solverInitialized == 0:
+            raise Error("self._initSolver not called!")
+
+        self.solver.updateDAOption(self.options)
 
     def _printCurrentOptions(self):
         """
