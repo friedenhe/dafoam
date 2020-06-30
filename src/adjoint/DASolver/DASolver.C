@@ -994,9 +994,9 @@ label DASolver::calcTotalDeriv(
     {
         // get info from dvSubDict. This needs to be defined in the pyDAFoam
         // name of the variable for changing the boundary condition
-        word varName = dvSubDict.getWord("varName");
+        word varName = dvSubDict.getWord("variable");
         // name of the boundary patch
-        word patchName = dvSubDict.getWord("patchName");
+        word patchName = dvSubDict.getWord("patch");
         // the compoent of a vector variable, ignore when it is a scalar
         label comp = dvSubDict.getLabel("comp");
 
@@ -1025,8 +1025,8 @@ label DASolver::calcTotalDeriv(
 
             // setup options to compute dRdBC
             dictionary options;
-            options.set("varName", varName);
-            options.set("patchName", patchName);
+            options.set("variable", varName);
+            options.set("patch", patchName);
             options.set("comp", comp);
             options.set("isPC", 0);
 
@@ -1093,8 +1093,8 @@ label DASolver::calcTotalDeriv(
                         options.set("objFuncName", objFuncName);
                         options.set("objFuncPart", objFuncPart);
                         options.set("objFuncSubDictPart", objFuncSubDictPart);
-                        options.set("varName", varName);
-                        options.set("patchName", patchName);
+                        options.set("variable", varName);
+                        options.set("patch", patchName);
                         options.set("comp", comp);
 
                         // initialize dFdBC

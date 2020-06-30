@@ -271,8 +271,8 @@ void DAPartDeriv::perturbBC(
 
     word varName, patchName, fieldType;
     label comp;
-    options.readEntry<word>("varName", varName);
-    options.readEntry<word>("patchName", patchName);
+    options.readEntry<word>("variable", varName);
+    options.readEntry<word>("patch", patchName);
     options.readEntry<label>("comp", comp);
 
     label patchI = mesh_.boundaryMesh().findPatchID(patchName);
