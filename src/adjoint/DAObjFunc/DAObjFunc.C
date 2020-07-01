@@ -147,6 +147,9 @@ void DAObjFunc::calcObjFuncSources(
 
     */
 
+    // all avaiable source type are in src/meshTools/sets/cellSources
+    // Example of IO parameters os in applications/utilities/mesh/manipulation/topoSet
+
     word objSource;
     objFuncDict_.readEntry("source", objSource);
     if (objSource == "patchToFace")

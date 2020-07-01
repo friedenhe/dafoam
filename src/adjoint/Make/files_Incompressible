@@ -27,6 +27,10 @@ DAObjFunc/DAObjFunc.C
 DAObjFunc/DAObjFuncForce.C
 DAObjFunc/DAObjFuncMoment.C
 
+DASource/DASource.C
+DASource/DASourceActuatorDisk.C
+DASource/DASourceDummy.C
+
 DAResidual/DAResidual.C
 DAResidual/DAResidualSimpleFoam.C
 
