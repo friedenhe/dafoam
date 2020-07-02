@@ -25,7 +25,8 @@ DASimpleFoam::DASimpleFoam(
       UPtr_(nullptr),
       phiPtr_(nullptr),
       laminarTransportPtr_(nullptr),
-      turbulencePtr_(nullptr)
+      turbulencePtr_(nullptr),
+      daFvSourcePtr_(nullptr)
 {
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -36,7 +37,7 @@ void DASimpleFoam::initSolver()
     Description:
         Initialize variables for DASolver
     */
-    
+
     Info << "Initializing fields for DASimpleFoam" << endl;
     Time& runTime = runTimePtr_();
     fvMesh& mesh = meshPtr_();
@@ -45,6 +46,17 @@ void DASimpleFoam::initSolver()
 #include "createAdjointIncompressible.H"
     // initialize checkMesh
     daCheckMeshPtr_.reset(new DACheckMesh(runTime, mesh));
+
+    // initialize fvSource and compute the source term
+    const dictionary& allOptions = daOptionPtr_->getAllOptions();
+    if (allOptions.subDict("fvSource").toc().size() != 0)
+    {
+        word sourceName = allOptions.subDict("fvSource").toc()[0];
+        word fvSourceType = allOptions.subDict("fvSource").subDict(sourceName).getWord("type");
+        daFvSourcePtr_.reset(DAFvSource::New(
+            fvSourceType, mesh, daOptionPtr_(), daModelPtr_(), daIndexPtr_()));
+        daFvSourcePtr_->calcFvSource(fvSource);
+    }
 }
 
 label DASimpleFoam::solvePrimal(
@@ -64,13 +76,13 @@ label DASimpleFoam::solvePrimal(
 
 #include "createRefsSimple.H"
 
-    // first check if we need to change the boundary conditions based on 
-    // the primalBC dict in DAOption. NOTE: this will overwrite whatever 
+    // first check if we need to change the boundary conditions based on
+    // the primalBC dict in DAOption. NOTE: this will overwrite whatever
     // boundary conditions defined in the "0" folder
     dictionary bcDict = daOptionPtr_->getAllOptions().subDict("primalBC");
-    if (bcDict.toc().size()!=0)
+    if (bcDict.toc().size() != 0)
     {
-        Info<<"Setting up primal boundary conditions based on pyOptions: "<<endl;
+        Info << "Setting up primal boundary conditions based on pyOptions: " << endl;
         daFieldPtr_->setPrimalBoundaryConditions();
     }
 

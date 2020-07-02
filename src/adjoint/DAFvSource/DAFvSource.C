@@ -5,7 +5,7 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DASource.H"
+#include "DAFvSource.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -14,12 +14,12 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(DASource, 0);
-defineRunTimeSelectionTable(DASource, dictionary);
+defineTypeNameAndDebug(DAFvSource, 0);
+defineRunTimeSelectionTable(DAFvSource, dictionary);
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DASource::DASource(
+DAFvSource::DAFvSource(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -35,7 +35,7 @@ DASource::DASource(
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
 
-autoPtr<DASource> DASource::New(
+autoPtr<DAFvSource> DAFvSource::New(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -46,7 +46,7 @@ autoPtr<DASource> DASource::New(
 
     if (daOption.getOption<label>("debug"))
     {
-        Info << "Selecting " << modelType << " for DASource" << endl;
+        Info << "Selecting " << modelType << " for DAFvSource" << endl;
     }
 
     dictionaryConstructorTable::iterator cstrIter =
@@ -56,7 +56,7 @@ autoPtr<DASource> DASource::New(
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorIn(
-            "DASource::New"
+            "DAFvSource::New"
             "("
             "    const word,"
             "    const fvMesh&,"
@@ -64,15 +64,15 @@ autoPtr<DASource> DASource::New(
             "    const DAModel&,"
             "    const DAIndex&"
             ")")
-            << "Unknown DASource type "
+            << "Unknown DAFvSource type "
             << modelType << nl << nl
-            << "Valid DASource types:" << endl
+            << "Valid DAFvSource types:" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalError);
     }
 
     // child class found
-    return autoPtr<DASource>(
+    return autoPtr<DAFvSource>(
         cstrIter()(modelType, mesh, daOption, daModel, daIndex));
 }
 

@@ -5,31 +5,31 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DASourceActuatorDisk.H"
+#include "DAFvSourceActuatorDisk.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DASourceActuatorDisk, 0);
-addToRunTimeSelectionTable(DASource, DASourceActuatorDisk, dictionary);
+defineTypeNameAndDebug(DAFvSourceActuatorDisk, 0);
+addToRunTimeSelectionTable(DAFvSource, DAFvSourceActuatorDisk, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DASourceActuatorDisk::DASourceActuatorDisk(
+DAFvSourceActuatorDisk::DAFvSourceActuatorDisk(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
     const DAModel& daModel,
     const DAIndex& daIndex)
-    : DASource(modelType, mesh, daOption, daModel, daIndex)
+    : DAFvSource(modelType, mesh, daOption, daModel, daIndex)
 {
     const dictionary& allOptions = daOption_.getAllOptions();
     fvSourceSubDict_ = allOptions.subDict("fvSource");
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-void DASourceActuatorDisk::calcSource(volVectorField& source)
+void DAFvSourceActuatorDisk::calcFvSource(volVectorField& fvSource)
 {
     /*
     Description:
@@ -74,17 +74,17 @@ void DASourceActuatorDisk::calcSource(volVectorField& source)
         }
     */
 
-    forAll(source, idxI)
+    forAll(fvSource, idxI)
     {
-        source[idxI] = vector::zero;
+        fvSource[idxI] = vector::zero;
     }
 
     // loop over all the cell indices for all actuator disks
-    forAll(sourceCellIndices_.toc(), idxI)
+    forAll(fvSourceCellIndices_.toc(), idxI)
     {
 
         // name of this disk
-        word diskName = sourceCellIndices_.toc()[idxI];
+        word diskName = fvSourceCellIndices_.toc()[idxI];
 
         // sub dictionary with all parameters for this disk
         dictionary diskSubDict = fvSourceSubDict_.subDict(diskName);
@@ -108,10 +108,10 @@ void DASourceActuatorDisk::calcSource(volVectorField& source)
         // loop over all cell indices for this disk and computer the source term
         scalar thrustSourceSum = 0.0;
         scalar torqueSourceSum = 0.0;
-        forAll(sourceCellIndices_[diskName], idxJ)
+        forAll(fvSourceCellIndices_[diskName], idxJ)
         {
             // cell index
-            label cellI = sourceCellIndices_[diskName][idxJ];
+            label cellI = fvSourceCellIndices_[diskName][idxJ];
 
             // the cell center coordinates of this cellI
             vector cellC = mesh_.C()[cellI];
@@ -166,7 +166,7 @@ void DASourceActuatorDisk::calcSource(volVectorField& source)
             scalar fCirc = fAxial * POD / constant::mathematical::pi / rPrime;
             vector sourceVec = (fAxial * diskDirNorm + fCirc * cellC2AVecCNorm);
             // the source is the force normalized by the cell volume
-            source[cellI] += sourceVec;
+            fvSource[cellI] += sourceVec;
             thrustSourceSum += fAxial * mesh_.V()[cellI];
             torqueSourceSum += fCirc * mesh_.V()[cellI];
         }
@@ -179,7 +179,7 @@ void DASourceActuatorDisk::calcSource(volVectorField& source)
     }
 }
 
-void DASourceActuatorDisk::calcSourceCellIndices(HashTable<labelList>& sourceCellIndices)
+void DAFvSourceActuatorDisk::calcFvSourceCellIndices(HashTable<labelList>& fvSourceCellIndices)
 {
     /*
     Description:
@@ -187,11 +187,11 @@ void DASourceActuatorDisk::calcSourceCellIndices(HashTable<labelList>& sourceCel
         NOTE: we support multiple actuator disks.
     
     Output:
-        sourceCellIndices: Hash table that contains the lists of cell indices that 
+        fvSourceCellIndices: Hash table that contains the lists of cell indices that 
         are within the actuator disk space. The hash key is the name of the disk. We support
-        multiple disks. An example of sourceCellIndices can be:
+        multiple disks. An example of fvSourceCellIndices can be:
 
-        sourceCellIndices=
+        fvSourceCellIndices=
         {
             "disk1": {1,2,3,4,5},
             "disk2": {6,7,8,9,10,11,12}
@@ -242,7 +242,7 @@ void DASourceActuatorDisk::calcSourceCellIndices(HashTable<labelList>& sourceCel
     {
         word diskName = fvSourceSubDict_.toc()[idxI];
 
-        sourceCellIndices[diskName] = {};
+        fvSourceCellIndices[diskName] = {};
 
         dictionary diskSubDict = fvSourceSubDict_.subDict(diskName);
         word sourceType = diskSubDict.getWord("source");
@@ -294,14 +294,14 @@ void DASourceActuatorDisk::calcSourceCellIndices(HashTable<labelList>& sourceCel
             // this special for loop
             for (const label i : currentSet())
             {
-                sourceCellIndices[diskName].append(i);
+                fvSourceCellIndices[diskName].append(i);
             }
         }
         else
         {
-            FatalErrorIn("calcSourceCells") << "source: " << sourceType << " not supported!"
-                                            << "Options are: cylinderAnnulusToCell!"
-                                            << abort(FatalError);
+            FatalErrorIn("calcFvSourceCells") << "source: " << sourceType << " not supported!"
+                                              << "Options are: cylinderAnnulusToCell!"
+                                              << abort(FatalError);
         }
     }
 }

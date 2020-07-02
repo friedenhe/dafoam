@@ -9,8 +9,8 @@
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DASource_H
-#define DASource_H
+#ifndef DAFvSource_H
+#define DAFvSource_H
 
 #include "runTimeSelectionTables.H"
 #include "fvOptions.H"
@@ -27,18 +27,18 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class DASource Declaration
+                    Class DAFvSource Declaration
 \*---------------------------------------------------------------------------*/
 
-class DASource
+class DAFvSource
 {
 
 private:
     /// Disallow default bitwise copy construct
-    DASource(const DASource&);
+    DAFvSource(const DAFvSource&);
 
     /// Disallow default bitwise assignment
-    void operator=(const DASource&);
+    void operator=(const DAFvSource&);
 
 protected:
     /// fvMesh
@@ -55,12 +55,12 @@ protected:
 
 public:
     /// Runtime type information
-    TypeName("DASource");
+    TypeName("DAFvSource");
 
     // Declare run-time constructor selection table
     declareRunTimeSelectionTable(
         autoPtr,
-        DASource,
+        DAFvSource,
         dictionary,
         (const word modelType,
          const fvMesh& mesh,
@@ -72,7 +72,7 @@ public:
     // Constructors
 
     //- Construct from components
-    DASource(
+    DAFvSource(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
@@ -82,7 +82,7 @@ public:
     // Selectors
 
     //- Return a reference to the selected model
-    static autoPtr<DASource> New(
+    static autoPtr<DAFvSource> New(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
@@ -90,12 +90,12 @@ public:
         const DAIndex& daIndex);
 
     //- Destructor
-    virtual ~DASource()
+    virtual ~DAFvSource()
     {
     }
 
-    /// compute the source term
-    virtual void calcSource(volVectorField& source) = 0;
+    /// compute the FvSource term
+    virtual void calcFvSource(volVectorField& fvSource);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -18,6 +18,7 @@
 #include "simpleControl.H"
 #include "DARegDbSinglePhaseTransportModel.H"
 #include "DARegDbTurbulenceModelIncompressible.H"
+#include "DAFvSource.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -51,6 +52,9 @@ protected:
 
     /// turbulence pointer
     autoPtr<incompressible::turbulenceModel> turbulencePtr_;
+
+    /// DASource pointer
+    autoPtr<DAFvSource> daFvSourcePtr_;
 
     /// continuity error
     scalar cumulativeContErr_ = 0.0;

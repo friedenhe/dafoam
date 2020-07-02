@@ -4,14 +4,14 @@
     Version : v2
 
     Description:
-        Child class for Dummy disk source
+        Child class for ActuatorDisk disk source
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DASourceDummy_H
-#define DASourceDummy_H
+#ifndef DAFvSourceActuatorDisk_H
+#define DAFvSourceActuatorDisk_H
 
-#include "DASource.H"
+#include "DAFvSource.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -20,19 +20,30 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DASourceDummy Declaration
+      Class DAFvSourceActuatorDisk Declaration
 \*---------------------------------------------------------------------------*/
 
-class DASourceDummy
-    : public DASource
+class DAFvSourceActuatorDisk
+    : public DAFvSource
 {
 
+protected:
+
+    /// HashTable that contains lists of cell indices that are within the actuator disk space
+    HashTable<labelList> fvSourceCellIndices_;
+
+    /// calculate DAFvSourceActuatorDisk::fvSourceCellIndices_
+    void calcFvSourceCellIndices(HashTable<labelList>& fvSourceCellIndices);
+
+    /// the subDict of fvSource in DAOption
+    dictionary fvSourceSubDict_;
+
 public:
-    TypeName("dummy");
+    TypeName("actuatorDisk");
     // Constructors
 
     //- Construct from components
-    DASourceDummy(
+    DAFvSourceActuatorDisk(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
@@ -40,12 +51,12 @@ public:
         const DAIndex& daIndex);
 
     //- Destructor
-    virtual ~DASourceDummy()
+    virtual ~DAFvSourceActuatorDisk()
     {
     }
 
-    /// compute the source term
-    virtual void calcSource(volVectorField& source);
+    /// compute the FvSource term
+    virtual void calcFvSource(volVectorField& fvSource);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

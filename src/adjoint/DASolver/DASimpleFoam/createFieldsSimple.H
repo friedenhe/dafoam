@@ -26,6 +26,19 @@ volVectorField& U = UPtr_();
 
 #include "createPhiPython.H"
 
+// actuator related stuff
+Info << "Creating source term. " << endl;
+volVectorField fvSource(
+    IOobject(
+        "fvSource",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE),
+    mesh,
+    dimensionedVector("fvSource", dimensionSet(0, 1, -2, 0, 0, 0, 0), vector::zero),
+    zeroGradientFvPatchVectorField::typeName);
+
 setRefCell(p, simple.dict(), pRefCell_, pRefValue_);
 mesh.setFluxRequired(p.name());
 
