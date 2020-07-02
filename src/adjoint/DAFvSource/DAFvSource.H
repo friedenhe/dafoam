@@ -41,6 +41,10 @@ private:
     void operator=(const DAFvSource&);
 
 protected:
+
+    /// model name
+    const word& modelType_;
+    
     /// fvMesh
     const fvMesh& mesh_;
 

@@ -59,6 +59,7 @@ class PYDAFOAM(object):
             "flowCondition": [str, "Incompressible"],
             "turbulenceModel": [str, "SpalartAllmaras"],
             "primalBC": [dict, {}],
+            "fvSource": [dict, {}],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivState": [float, 1.0e-5],

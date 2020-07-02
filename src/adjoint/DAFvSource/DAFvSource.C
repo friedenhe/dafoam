@@ -25,12 +25,12 @@ DAFvSource::DAFvSource(
     const DAOption& daOption,
     const DAModel& daModel,
     const DAIndex& daIndex)
-    : mesh_(mesh),
+    : modelType_(modelType),
+      mesh_(mesh),
       daOption_(daOption),
       daModel_(daModel),
       daIndex_(daIndex)
 {
-
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
@@ -78,6 +78,18 @@ autoPtr<DAFvSource> DAFvSource::New(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+void DAFvSource::calcFvSource(volVectorField& fvSource)
+{
+    /*
+    Description:
+        Calculate the fvSource term
+        NOTE: this need to be implemented in the child class, if not,
+        print an error!
+    */
+    FatalErrorIn("") << "calcFvSource not implemented " << endl
+                     << " in the child class for " << modelType_
+                     << abort(FatalError);
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
