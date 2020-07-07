@@ -84,7 +84,19 @@ class PYDAFOAM(object):
             ],
             "normalizeStates": [dict, {}],
             "normalizeResiduals": [list, ["URes", "pRes", "nuTildaRes", "phiRes", "TRes"]],
-            "maxResConLv4JacPCMat": [dict, {}],
+            "maxResConLv4JacPCMat": [
+                dict,
+                {
+                    "pRes": 2,
+                    "phiRes": 1,
+                    "URes": 2,
+                    "nuTildaRes": 2,
+                    "kRes": 2,
+                    "epsilonRes": 2,
+                    "omegaRes": 2,
+                    "p_rghRes": 2,
+                },
+            ],
             "transonicPCOption": [int, -1],
             # optimization options
             "designVar": [dict, {}],
@@ -1453,7 +1465,7 @@ class PYDAFOAM(object):
             return self.options[name][1]
         else:
             raise Error("%s is not a valid option name." % name)
-    
+
     def updateDAOption(self):
         """
         Update the allOptions_ in DAOption based on the latest self.options in

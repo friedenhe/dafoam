@@ -745,31 +745,31 @@ label DASolver::solveAdjoint(
     // first setup KSP options
     dictionary kspOptions;
     kspOptions.add(
-        "GMRESRestart",
+        "gmresRestart",
         daOptionPtr_->getSubDictOption<label>("adjEqnOption", "gmresRestart"));
     kspOptions.add(
-        "GlobalPCIters",
+        "globalPCIters",
         daOptionPtr_->getSubDictOption<label>("adjEqnOption", "globalPCIters"));
     kspOptions.add(
-        "ASMOverlap",
+        "asmOverlap",
         daOptionPtr_->getSubDictOption<label>("adjEqnOption", "asmOverlap"));
     kspOptions.add(
-        "LocalPCIters",
+        "localPCIters",
         daOptionPtr_->getSubDictOption<label>("adjEqnOption", "localPCIters"));
     kspOptions.add(
-        "JacMatReOrdering",
+        "jacMatReOrdering",
         daOptionPtr_->getSubDictOption<word>("adjEqnOption", "jacMatReOrdering"));
     kspOptions.add(
-        "PCFillLevel",
+        "pcFillLevel",
         daOptionPtr_->getSubDictOption<label>("adjEqnOption", "pcFillLevel"));
     kspOptions.add(
-        "GMRESMaxIters",
+        "gmresMaxIters",
         daOptionPtr_->getSubDictOption<label>("adjEqnOption", "gmresMaxIters"));
     kspOptions.add(
-        "GMRESRelTol",
+        "gmresRelTol",
         daOptionPtr_->getSubDictOption<scalar>("adjEqnOption", "gmresRelTol"));
     kspOptions.add(
-        "GMRESAbsTol",
+        "gmresAbsTol",
         daOptionPtr_->getSubDictOption<scalar>("adjEqnOption", "gmresAbsTol"));
     kspOptions.add("printInfo", 1);
     // create the multi-level Richardson KSP

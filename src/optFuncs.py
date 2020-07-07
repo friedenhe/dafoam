@@ -28,7 +28,7 @@ def calcObjFuncValues(xDV):
     if gcomm.rank == 0:
         print("\n")
         print("+--------------------------------------------------------------------------+")
-        print("|                  Evaluating Objective Functions %03d                      |" % CFDSolver.nSolvePrimals)
+        print("|                  Evaluating Objective Functions %03d                      |" % DASolver.nSolvePrimals)
         print("+--------------------------------------------------------------------------+")
         print("Design Variables: ", xDV)
 
@@ -39,16 +39,16 @@ def calcObjFuncValues(xDV):
 
     # Set the current design variables in the DV object
     DVGeo.setDesignVars(xDV)
-    CFDSolver.setDesignVars(xDV)
+    DASolver.setDesignVars(xDV)
 
     # Evaluate the geometric constraints and add them to the funcs dictionary
     DVCon.evalFunctions(funcs)
 
     # Solve the CFD problem
-    CFDSolver()
+    DASolver()
 
     # Populate the required values from the CFD problem
-    CFDSolver.evalFunctions(funcs, evalFuncs=evalFuncs)
+    DASolver.evalFunctions(funcs, evalFuncs=evalFuncs)
 
     b = time.time()
 
@@ -74,7 +74,7 @@ def calcObjFuncSens(xDV, funcs):
         print("\n")
         print("+--------------------------------------------------------------------------+")
         print(
-            "|              Evaluating Objective Function Sensitivities %03d             |" % CFDSolver.nSolveAdjoints
+            "|              Evaluating Objective Function Sensitivities %03d             |" % DASolver.nSolveAdjoints
         )
         print("+--------------------------------------------------------------------------+")
 
@@ -87,11 +87,11 @@ def calcObjFuncSens(xDV, funcs):
     DVCon.evalFunctionsSens(funcsSens)
 
     # Solve the adjoint
-    CFDSolver.solveAdjoint()
-    CFDSolver.calcTotalDeriv()
+    DASolver.solveAdjoint()
+    DASolver.calcTotalDeriv()
 
     # Evaluate the CFD derivatives
-    CFDSolver.evalFunctionsSens(funcsSens, evalFuncs=evalFuncs)
+    DASolver.evalFunctionsSens(funcsSens, evalFuncs=evalFuncs)
 
     b = time.time()
 
@@ -113,7 +113,7 @@ def run():
     Just run the primal and adjoint
     """
 
-    CFDSolver.runColoring()
+    DASolver.runColoring()
     xDV = DVGeo.getValues()
     funcs = {}
     funcs, fail = calcObjFuncValues(xDV)
@@ -123,7 +123,7 @@ def run():
 
 def solveCL(CL_star, alphaName, liftName):
 
-    CFDSolver.setOption("adjUseColoring", False)
+    DASolver.setOption("adjUseColoring", False)
 
     xDVs = DVGeo.getValues()
     alpha = xDVs[alphaName]
@@ -156,7 +156,7 @@ def testSensShape():
     Verify the FFD sensitivity against finite-difference references
     """
 
-    CFDSolver.runColoring()
+    DASolver.runColoring()
 
     xDV = DVGeo.getValues()
 
@@ -183,7 +183,7 @@ def testSensShape():
                     fOut.flush()
 
     # gradFD
-    deltaX = CFDSolver.getOption("adjEpsDerivFFD")
+    deltaX = DASolver.getOption("adjEpsDerivFFD")
     # initialize gradFD
     gradFD = {}
     for funcName in evalFuncs:

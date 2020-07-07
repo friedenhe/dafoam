@@ -17,7 +17,6 @@ FoamFile
 
 SIMPLE
 {
-    consistent                         false;
     nNonOrthogonalCorrectors           0;
     residualControl
     {
@@ -101,13 +100,15 @@ relaxationFactors
 {
     fields
     {
-        p                              0.30;
+        p                              1.00;
+        rho                            1.00;
     }
     equations
     {
-        U                              0.70;
-        T                              0.70;
-        nuTilda                        0.70;
+        nuTilda                        0.80;
+        p                              1.00;
+        U                              0.80;
+        e                              0.80;
     }
 
 }

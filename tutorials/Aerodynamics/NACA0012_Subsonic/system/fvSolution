@@ -17,18 +17,6 @@ FoamFile
 
 SIMPLE
 {
-    consistent                         false;
-    pLowerBound                        20000;
-    eUpperBound                        800000;
-    eLowerBound                        50000;
-    hLowerBound                        50000;
-    pUpperBound                        1000000;
-    rhoUpperBound                      10.0;
-    rhoLowerBound                      0.2;
-    transonic                          false;
-    UUpperBound                        1000;
-    ULowerBound                        -1000;
-    hUpperBound                        800000;
     nNonOrthogonalCorrectors           0;
     residualControl
     {
@@ -125,6 +113,7 @@ relaxationFactors
     }
 
 }
+
 potentialFlow
 {
     nNonOrthogonalCorrectors           20;

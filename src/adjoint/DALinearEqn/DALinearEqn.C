@@ -36,27 +36,27 @@ void DALinearEqn::createMLRKSP(
         up parameters for solving the linear equations
     
     Input:
-        options.GMRESRestart: how many Krylov spaces to keep before resetting them.
-        Usually, this is set to the GMRESMaxIters
+        options.gmresRestart: how many Krylov spaces to keep before resetting them.
+        Usually, this is set to the gmresMaxIters
 
-        options.GMRESMaxIters: how many GMRES iteration to run at most
+        options.gmresMaxIters: how many GMRES iteration to run at most
 
-        options.GMRESRelTol: the relative tolerance for GMRES
+        options.gmresRelTol: the relative tolerance for GMRES
 
-        options.GMRESAbsTol: the absolute tolerance for GMRES
+        options.gmresAbsTol: the absolute tolerance for GMRES
 
-        options.GlobalPCIters: globa iteration for PC, usually set it to 0
+        options.globalPCIters: globa iteration for PC, usually set it to 0
 
-        options.ASMOverlap: ASM overlap for solving the linearEqn in parallel. 
+        options.asmOverlap: ASM overlap for solving the linearEqn in parallel. 
         Usually set it to 1. Setting a higher number increases the convergence but
         significantly increase the memory usage
 
-        options.LocalPCIters: local iteraction for PC. usually set it to 1
+        options.localPCIters: local iteraction for PC. usually set it to 1
         
-        options.JacMatReOrdering: re-order the lhs matrix to reduce memory usage.
+        options.jacMatReOrdering: re-order the lhs matrix to reduce memory usage.
         Usually we use nd, rcm, or natural (not re-ordered)
     
-        options.PCFillLevel: how many leve fill-in to use for PC. This is a critical
+        options.pcFillLevel: how many leve fill-in to use for PC. This is a critical
         parameters for convergence rate. Usually set it to 1. Setting it to a higher
         number increase the convergence, however, the memory usage generally grows 
         exponetially. We rarely set it more than 2.
@@ -118,7 +118,7 @@ void DALinearEqn::createMLRKSP(
 
     KSPSetType(*genksp, kspObjectType);
     // Set the gmres restart
-    PetscInt restartGMRES = readLabel(options.lookup("GMRESRestart"));
+    PetscInt restartGMRES = readLabel(options.lookup("gmresRestart"));
 
     KSPGMRESSetRestart(*genksp, restartGMRES);
     // Set the GMRES refinement type
@@ -128,7 +128,7 @@ void DALinearEqn::createMLRKSP(
     KSPSetPCSide(*genksp, PC_RIGHT);
 
     // Set global and local PC iters
-    PetscInt globalPreConIts = readLabel(options.lookup("GlobalPCIters"));
+    PetscInt globalPreConIts = readLabel(options.lookup("globalPCIters"));
 
     // Since there is an extraneous matMult required when using the
     // richardson precondtiter with only 1 iteration, only use it when we need
@@ -170,7 +170,7 @@ void DALinearEqn::createMLRKSP(
     PCSetType(MLRGlobalPC, PCASM);
 
     // Set the overlap required
-    MLRoverlap = readLabel(options.lookup("ASMOverlap"));
+    MLRoverlap = readLabel(options.lookup("asmOverlap"));
     PCASMSetOverlap(MLRGlobalPC, MLRoverlap);
 
     //label KSPCalcEigen = readLabel(options.lookup("KSPCalcEigen"));
@@ -187,9 +187,9 @@ void DALinearEqn::createMLRKSP(
 
     //Loop over the local blocks, setting various KSP options
     //for each block.
-    PetscInt localPreConIts = readLabel(options.lookup("LocalPCIters"));
-    word matOrdering = word(options.lookup("JacMatReOrdering"));
-    PetscInt localFillLevel = readLabel(options.lookup("PCFillLevel"));
+    PetscInt localPreConIts = readLabel(options.lookup("localPCIters"));
+    word matOrdering = word(options.lookup("jacMatReOrdering"));
+    PetscInt localFillLevel = readLabel(options.lookup("pcFillLevel"));
     for (PetscInt i = 0; i < MLRnlocal; i++)
     {
         // Since there is an extraneous matMult required when using the
@@ -270,10 +270,10 @@ void DALinearEqn::createMLRKSP(
         KSPMonitorSet(*genksp, myKSPMonitor, this, 0);
     }
 
-    PetscInt maxIts = readLabel(options.lookup("GMRESMaxIters"));
+    PetscInt maxIts = readLabel(options.lookup("gmresMaxIters"));
     PetscScalar rtol, atol;
-    rtol = readScalar(options.lookup("GMRESRelTol"));
-    atol = readScalar(options.lookup("GMRESAbsTol"));
+    rtol = readScalar(options.lookup("gmresRelTol"));
+    atol = readScalar(options.lookup("gmresAbsTol"));
     KSPSetTolerances(*genksp, rtol, atol, PETSC_DEFAULT, maxIts);
 
     if (readLabel(options.lookup("printInfo")))

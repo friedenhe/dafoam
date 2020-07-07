@@ -14,6 +14,7 @@ from pygeo import *
 from pyspline import *
 from idwarp import USMesh
 from pyoptsparse import Optimization, OPT
+import numpy as np
 
 
 # =============================================================================
@@ -34,7 +35,7 @@ UmagIn = 10.0
 pIn = 0.0
 nuTildaIn = 4.5e-5
 CL_target = 0.5
-pitch0 = 5.113547
+alpha0 = 5.529564
 ARef = 0.1
 
 # Set the parameters for optimization
@@ -48,9 +49,9 @@ aeroOptions = {
     "turbulenceModel": "SpalartAllmaras",
     "flowCondition": "Incompressible",
     "primalBC": {
-        "bc1": {"variable": "U", "patch": "inout", "value": [UmagIn, 0.0, 0.0]},
-        "bc2": {"variable": "p", "patch": "inout", "value": [pIn]},
-        "bc3": {"variable": "nuTilda", "patch": "inout", "value": [nuTildaIn], "useWallFunction": True},
+        "UIn": {"variable": "U", "patch": "inout", "value": [UmagIn, 0.0, 0.0]},
+        "pIn": {"variable": "p", "patch": "inout", "value": [pIn]},
+        "nuTildaIn": {"variable": "nuTilda", "patch": "inout", "value": [nuTildaIn], "useWallFunction": True},
     },
     # adjoint setup
     "adjUseColoring": True,
@@ -60,7 +61,8 @@ aeroOptions = {
                 "type": "force",
                 "source": "patchToFace",
                 "patches": ["wing"],
-                "direction": [1.0, 0.0, 0.0],
+                "directionMode": "parallelToFlow",
+                "alphaName": "alpha",
                 "scale": 1.0 / (0.5 * UmagIn * UmagIn * ARef),
                 "addToAdjoint": True,
             }
@@ -70,19 +72,22 @@ aeroOptions = {
                 "type": "force",
                 "source": "patchToFace",
                 "patches": ["wing"],
-                "direction": [0.0, 1.0, 0.0],
+                "directionMode": "normalToFlow",
+                "alphaName": "alpha",
                 "scale": 1.0 / (0.5 * UmagIn * UmagIn * ARef),
                 "addToAdjoint": True,
             }
         },
     },
-    "adjEqnOption": {"pcFillLevel": 1},
+    "adjEqnOption": {"pcFillLevel": 1, "jacMatReOrdering": "rcm"},
     "normalizeStates": {"U": UmagIn, "p": UmagIn * UmagIn / 2.0, "nuTilda": nuTildaIn * 10.0, "phi": 1.0},
     "adjEpsDerivState": 1e-7,
     "adjEpsDerivFFD": 1e-3,
-    "maxResConLv4JacPCMat": {"pRes": 2, "phiRes": 1, "URes": 2, "nuTildaRes": 2},
     # Design variable setup
-    "designVar": {"shapey": {"designVarType": "FFD"}, "pitch": {"designVarType": "FFD"}}
+    "designVar": {
+        "shapey": {"designVarType": "FFD"},
+        "alpha": {"designVarType": "AOA", "patch": "inout", "xAxisIndex": 0, "yAxisIndex": 1},
+    }
     ########## misc setup ##########
 }
 
@@ -90,7 +95,6 @@ aeroOptions = {
 meshOptions = {
     "gridFile": os.getcwd(),
     "fileType": "openfoam",
-    "userotations": False,
     # point and normal for the symmetry plane
     "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1], [0.0, 0.0, 1.0]]],
 }
@@ -136,10 +140,11 @@ DVGeo = DVGeometry(FFDFile)
 nTwists = DVGeo.addRefAxis("bodyAxis", xFraction=0.25, alignIndex="k")
 
 
-def pitch(val, geo):
-    # Set all the twist values
-    for i in range(nTwists):
-        geo.rot_z["bodyAxis"].coef[i] = -val[0]
+def alpha(val, geo):
+    aoa = val[0] * np.pi / 180.0
+    inletU = [float(UmagIn * np.cos(aoa)), float(UmagIn * np.sin(aoa)), 0]
+    DASolver.setOption("primalBC", {"UIn": {"variable": "U", "patch": "inout", "value": inletU}})
+    DASolver.updateDAOption()
 
 
 # select points
@@ -147,21 +152,21 @@ pts = DVGeo.getLocalIndex(0)
 indexList = pts[:, :, :].flatten()
 PS = geo_utils.PointSelect("list", indexList)
 DVGeo.addGeoDVLocal("shapey", lower=-1.0, upper=1.0, axis="y", scale=1.0, pointSelect=PS)
-DVGeo.addGeoDVGlobal("pitch", [pitch0], pitch, lower=-10.0, upper=10.0, scale=1.0)
+DVGeo.addGeoDVGlobal("alpha", [alpha0], alpha, lower=-10.0, upper=10.0, scale=1.0)
 
 # =================================================================================================
 # DAFoam
 # =================================================================================================
-CFDSolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
-CFDSolver.setDVGeo(DVGeo)
+DASolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
+DASolver.setDVGeo(DVGeo)
 mesh = USMesh(options=meshOptions, comm=gcomm)
-CFDSolver.addFamilyGroup(CFDSolver.getOption("designSurfaceFamily"), CFDSolver.getOption("designSurfaces"))
+DASolver.addFamilyGroup(DASolver.getOption("designSurfaceFamily"), DASolver.getOption("designSurfaces"))
 if MPI.COMM_WORLD.rank == 0:
-    CFDSolver.printFamilyList()
-CFDSolver.setMesh(mesh)
+    DASolver.printFamilyList()
+DASolver.setMesh(mesh)
 # set evalFuncs
 evalFuncs = []
-objFuncs = CFDSolver.getOption("objFunc")
+objFuncs = DASolver.getOption("objFunc")
 for funcName in objFuncs:
     for funcPart in objFuncs[funcName]:
         if objFuncs[funcName][funcPart]["addToAdjoint"] is True:
@@ -173,7 +178,7 @@ for funcName in objFuncs:
 # =================================================================================================
 DVCon = DVConstraints()
 DVCon.setDVGeo(DVGeo)
-[p0, v1, v2] = CFDSolver.getTriangulatedMeshSurface(groupName=CFDSolver.getOption("designSurfaceFamily"))
+[p0, v1, v2] = DASolver.getTriangulatedMeshSurface(groupName=DASolver.getOption("designSurfaceFamily"))
 surf = [p0, v1, v2]
 DVCon.setSurface(surf)
 
@@ -207,7 +212,7 @@ DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=1.0, lowe
 # ================================================================================================
 # optFuncs
 # =================================================================================================
-optFuncs.CFDSolver = CFDSolver
+optFuncs.DASolver = DASolver
 optFuncs.DVGeo = DVGeo
 optFuncs.DVCon = DVCon
 optFuncs.evalFuncs = evalFuncs
@@ -218,7 +223,7 @@ optFuncs.gcomm = gcomm
 # =================================================================================================
 if task == "opt":
 
-    CFDSolver.runColoring()
+    DASolver.runColoring()
     optProb = Optimization("opt", optFuncs.calcObjFuncValues, comm=gcomm)
     DVGeo.addVariablesPyOpt(optProb)
     DVCon.addConstraintsPyOpt(optProb)
@@ -243,7 +248,7 @@ elif task == "run":
 
 elif task == "solveCL":
 
-    optFuncs.solveCL(CL_target, "pitch", "CL")
+    optFuncs.solveCL(CL_target, "alpha", "CL")
 
 elif task == "testSensShape":
 

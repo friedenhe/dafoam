@@ -30,14 +30,14 @@ task = args.task
 outputDirectory = args.output
 gcomm = MPI.COMM_WORLD
 
-UmagIn = 100.0
+UmagIn = 238.0
 pIn = 101325.0
 nuTildaIn = 4.5e-5
 TIn = 300.0
 ARef = 0.1
 rhoRef = 1.0
 CL_target = 0.5
-alpha0 = 3.856366
+alpha0 = 2.764442
 
 # Set the parameters for optimization
 aeroOptions = {
@@ -46,7 +46,7 @@ aeroOptions = {
     "designSurfaceFamily": "designSurfaces",
     "designSurfaces": ["wing"],
     # flow setup
-    "solverName": "DARhoSimpleFoam",
+    "solverName": "DARhoSimpleCFoam",
     "turbulenceModel": "SpalartAllmaras",
     "flowCondition": "Compressible",
     "primalBC": {
@@ -91,6 +91,7 @@ aeroOptions = {
         },
     },
     "adjEqnOption": {"pcFillLevel": 1, "jacMatReOrdering": "rcm"},
+    "transonicPCOption": 1,
     "normalizeStates": {"U": UmagIn, "p": pIn, "nuTilda": nuTildaIn * 10.0, "phi": 1.0, "T": TIn},
     "adjEpsDerivState": 1e-7,
     "adjEpsDerivFFD": 1e-3,
@@ -105,6 +106,7 @@ aeroOptions = {
 meshOptions = {
     "gridFile": os.getcwd(),
     "fileType": "openfoam",
+    "userotations": False,
     # point and normal for the symmetry plane
     "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1], [0.0, 0.0, 1.0]]],
 }
