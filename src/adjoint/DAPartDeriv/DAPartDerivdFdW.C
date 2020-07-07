@@ -160,11 +160,12 @@ void DAPartDerivdFdW::calcPartDerivMat(
 
     label nColors = daJacCon_.getNJacConColors();
 
+    label printInterval = daOption_.getOption<label>("printInterval");
     for (label color = 0; color < nColors; color++)
     {
         label eTime = mesh_.time().elapsedClockTime();
         // print progress
-        if (color % 100 == 0 or color == nColors - 1)
+        if (color % printInterval == 0 or color == nColors - 1)
         {
             Info << modelType_ << ": " << color << " of " << nColors
                  << ", ExecutionTime: " << eTime << " s" << endl;

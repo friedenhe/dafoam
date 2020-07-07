@@ -119,9 +119,6 @@ void DAPartDerivdRdBC::calcPartDerivMat(
     // compute residual
     daResidual.masterFunction(mOptions, xvVec, wVec, resVec);
 
-    // reset perturbation
-    this->perturbBC(options, -1.0 * delta);
-
     // compute residual partial using finite-difference
     VecAXPY(resVec, -1.0, resVecRef);
     VecScale(resVec, rDelta);
@@ -139,6 +136,11 @@ void DAPartDerivdRdBC::calcPartDerivMat(
         MatSetValue(jacMat, i, 0, val, INSERT_VALUES);
     }
     VecRestoreArrayRead(resVec, &resVecArray);
+
+    // reset perturbation
+    this->perturbBC(options, -1.0 * delta);
+    // call masterFunction again to reset the wVec to OpenFOAM field
+    daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);

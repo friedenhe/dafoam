@@ -274,9 +274,9 @@ void DAUtility::pyStrList2OFWordList(
         else
         {
             FatalErrorIn("pyStrList2OFWordList") << "Type: " << keyIType
-                                          << " for the pyList is not supported!"
-                                          << " The only option is: str!"
-                                          << abort(FatalError);
+                                                 << " for the pyList is not supported!"
+                                                 << " The only option is: str!"
+                                                 << abort(FatalError);
         }
     }
 }
@@ -545,13 +545,16 @@ void DAUtility::boundVar(
         }
     }
 
-    if (useUpperBound)
+    if (allOptions.getLabel("debug"))
     {
-        Info << "Bounding " << var.name() << "<" << varMax << endl;
-    }
-    if (useLowerBound)
-    {
-        Info << "Bounding " << var.name() << ">" << varMin << endl;
+        if (useUpperBound)
+        {
+            Info << "Bounding " << var.name() << "<" << varMax << endl;
+        }
+        if (useLowerBound)
+        {
+            Info << "Bounding " << var.name() << ">" << varMin << endl;
+        }
     }
 
     return;
@@ -634,13 +637,16 @@ void DAUtility::boundVar(
         }
     }
 
-    if (useUpperBound)
+    if (allOptions.getLabel("debug"))
     {
-        Info << "Bounding " << var.name() << "<" << varMax << endl;
-    }
-    if (useLowerBound)
-    {
-        Info << "Bounding " << var.name() << ">" << varMin << endl;
+        if (useUpperBound)
+        {
+            Info << "Bounding " << var.name() << "<" << varMax << endl;
+        }
+        if (useLowerBound)
+        {
+            Info << "Bounding " << var.name() << ">" << varMin << endl;
+        }
     }
 
     return;
@@ -697,7 +703,6 @@ globalIndex DAUtility::genGlobalIndex(const label localIndexSize)
     globalIndex result(localIndexSize);
     return result;
 }
-
 
 label DAUtility::isValueCloseToRef(
     const scalar val,

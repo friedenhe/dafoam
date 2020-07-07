@@ -20,6 +20,7 @@ DAColoring::DAColoring(
     const DAModel& daModel,
     const DAIndex& daIndex)
     : mesh_(mesh),
+      daOption_(daOption),
       daIndex_(daIndex)
 {
 }
@@ -344,9 +345,10 @@ void DAColoring::parallelD2Coloring(
     VecGetArray(globalColumnStat, &globalStat);
 
     // Loop over the maximum number of colors
+    label printInterval = daOption_.getOption<label>("printInterval");
     for (label n = 0; n < maxColors; n++)
     {
-        if (n % 100 == 0)
+        if (n % printInterval == 0)
         {
             Info << "ColorSweep: " << n << "   " << mesh_.time().elapsedClockTime() << " s" << endl;
         }
@@ -494,7 +496,7 @@ void DAColoring::parallelD2Coloring(
         reduce(notColored, sumOp<label>());
         reduce(colorCounter, sumOp<label>());
 
-        if (n % 100 == 0)
+        if (n % printInterval == 0)
         {
             Info << "number of uncolored: " << colorCounter << " " << notColored << endl;
         }
@@ -566,7 +568,7 @@ void DAColoring::parallelD2Coloring(
     // Loop over the maximum number of colors
     for (label n = 0; n < maxColors; n++)
     {
-        if (n % 100 == 0)
+        if (n % printInterval == 0)
         {
             Info << "Global ColorSweep: " << n << "   " << mesh_.time().elapsedClockTime() << " s" << endl;
         }
@@ -728,7 +730,7 @@ void DAColoring::parallelD2Coloring(
         //check the coloring for completeness
         label colorCounter = 0;
         this->coloringComplete(colors, colorCounter, notColored);
-        if (n % 100 == 0)
+        if (n % printInterval == 0)
         {
             Info << "Number of Uncolored: " << colorCounter << " " << notColored << endl;
         }

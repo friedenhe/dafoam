@@ -271,7 +271,7 @@ void DAPartDeriv::perturbBC(
         delta: the delta value to perturb
     */
 
-    word varName, patchName, fieldType;
+    word varName, patchName;
     label comp;
     options.readEntry<word>("variable", varName);
     options.readEntry<word>("patch", patchName);
@@ -350,6 +350,112 @@ void DAPartDeriv::perturbBC(
     else
     {
         FatalErrorIn("") << varName << " is neither volVectorField nor volScalarField!"
+                         << abort(FatalError);
+    }
+}
+
+void DAPartDeriv::perturbAOA(
+    const dictionary options,
+    const scalar delta)
+{
+    /*
+    Descripton:
+        Perturb angle of attack in boundary conditions of the OpenFOAM fields
+        Note, OpenFOAM does not have angle of attack BC so we need to specify the
+        x and y components of velocity fields instead.
+        To determine the delta U_x and delta U_y to perturb, we solve
+
+        (U_x_new)^2 + (U_y_new)^2 = U_mag^2
+        tan(AOA+dAOA) = U_y_new/U_x_new
+
+        where U_x_new is the perturbed velocity (x component), AOA is the baseline angle
+        of attack and dAOA=delta from input, U_mag is the magnitude of velocity. So the
+        solution of the above equations are:
+
+        U_x_new = U_mag / sqrt( 1+tan(AOA+dAOA)^2 )
+        U_y_new = U_x_new*tan(AOA+dAOA)
+    
+    Input:
+        options.varName: the name of the variable to perturb
+
+        options.patchName: the name of the boundary patches to perturb, do not support
+        multiple patches yet
+
+        optoins.xAxisIndex: the component x index, aoa will be atan(U_y/U_x)
+
+        optoins.yAxisIndex: the component y index, aoa will be atan(U_y/U_x)
+
+        delta: the delta value to perturb
+    */
+
+    word varName = "U", patchName;
+    label xAxisIndex, yAxisIndex;
+    options.readEntry<word>("patch", patchName);
+    options.readEntry<label>("xAxisIndex", xAxisIndex);
+    options.readEntry<label>("yAxisIndex", yAxisIndex);
+
+    label patchI = mesh_.boundaryMesh().findPatchID(patchName);
+
+    if (mesh_.thisDb().foundObject<volVectorField>(varName))
+    {
+        volVectorField& state(const_cast<volVectorField&>(
+            mesh_.thisDb().lookupObject<volVectorField>(varName)));
+
+        // for decomposed domain, don't set BC if the patch is empty
+        if (mesh_.boundaryMesh()[patchI].size() > 0)
+        {
+            if (state.boundaryFieldRef()[patchI].type() == "fixedValue")
+            {
+                scalar UmagIn = mag(state.boundaryField()[patchI][0]);
+                scalar Uratio =
+                    state.boundaryField()[patchI][0][yAxisIndex] / state.boundaryField()[patchI][0][xAxisIndex];
+                scalar aoa = Foam::radToDeg(Foam::atan(Uratio)); // we want the partials in degree
+                scalar aoaNew = aoa + delta;
+                scalar aoaNewArc = Foam::degToRad(aoaNew);
+
+                scalar UxNew = UmagIn / Foam::sqrt(1 + Foam::tan(aoaNewArc) * Foam::tan(aoaNewArc));
+                scalar UyNew = UxNew * Foam::tan(aoaNewArc);
+
+                forAll(state.boundaryField()[patchI], faceI)
+                {
+                    state.boundaryFieldRef()[patchI][faceI][xAxisIndex] = UxNew;
+                    state.boundaryFieldRef()[patchI][faceI][yAxisIndex] = UyNew;
+                }
+            }
+            else if (state.boundaryFieldRef()[patchI].type() == "inletOutlet")
+            {
+                // perturb inletValue
+                mixedFvPatchField<vector>& inletOutletPatch =
+                    refCast<mixedFvPatchField<vector>>(state.boundaryFieldRef()[patchI]);
+                scalar UmagIn = mag(inletOutletPatch.refValue()[0]);
+
+                scalar Uratio =
+                    inletOutletPatch.refValue()[0][yAxisIndex] / inletOutletPatch.refValue()[0][xAxisIndex];
+                scalar aoa = Foam::radToDeg(Foam::atan(Uratio)); // we want the partials in degree
+                scalar aoaNew = aoa + delta;
+                scalar aoaNewArc = Foam::degToRad(aoaNew);
+
+                scalar UxNew = UmagIn / Foam::sqrt(1 + Foam::tan(aoaNewArc) * Foam::tan(aoaNewArc));
+                scalar UyNew = UxNew * Foam::tan(aoaNewArc);
+
+                vector UNew = vector::zero;
+                UNew[xAxisIndex] = UxNew;
+                UNew[yAxisIndex] = UyNew;
+
+                inletOutletPatch.refValue() = UNew;
+            }
+            else
+            {
+                FatalErrorIn("") << "boundaryType: " << state.boundaryFieldRef()[patchI].type()
+                                 << " not supported!"
+                                 << "Avaiable options are: fixedValue, inletOutlet"
+                                 << abort(FatalError);
+            }
+        }
+    }
+    else
+    {
+        FatalErrorIn("") << "U is not found in volVectorField!"
                          << abort(FatalError);
     }
 }

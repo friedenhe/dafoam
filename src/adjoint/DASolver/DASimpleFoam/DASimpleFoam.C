@@ -26,7 +26,8 @@ DASimpleFoam::DASimpleFoam(
       phiPtr_(nullptr),
       laminarTransportPtr_(nullptr),
       turbulencePtr_(nullptr),
-      daFvSourcePtr_(nullptr)
+      daFvSourcePtr_(nullptr),
+      fvSourcePtr_(nullptr)
 {
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -51,6 +52,7 @@ void DASimpleFoam::initSolver()
     const dictionary& allOptions = daOptionPtr_->getAllOptions();
     if (allOptions.subDict("fvSource").toc().size() != 0)
     {
+        Info<<"Computing fvSource"<<endl;
         word sourceName = allOptions.subDict("fvSource").toc()[0];
         word fvSourceType = allOptions.subDict("fvSource").subDict(sourceName).getWord("type");
         daFvSourcePtr_.reset(DAFvSource::New(
@@ -104,9 +106,10 @@ label DASimpleFoam::solvePrimal(
 
     label nSolverIters = 1;
     //while (simple.loop()) // using simple.loop() will have seg fault in parallel
+    label printInterval = daOptionPtr_->getOption<label>("printInterval");
     while (this->loop(runTime))
     {
-        if (nSolverIters % 100 == 0 || nSolverIters == 1)
+        if (nSolverIters % printInterval == 0 || nSolverIters == 1)
         {
             Info << "Time = " << runTime.timeName() << nl << endl;
         }
@@ -122,7 +125,7 @@ label DASimpleFoam::solvePrimal(
         laminarTransport.correct();
         daTurbulenceModelPtr_->correct();
 
-        if (nSolverIters % 100 == 0 || nSolverIters == 1)
+        if (nSolverIters % printInterval == 0 || nSolverIters == 1)
         {
             this->printAllObjFuncs();
 

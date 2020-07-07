@@ -49,6 +49,18 @@ surfaceScalarField phi(
         IOobject::AUTO_WRITE),
     linearInterpolate(rho* U) & mesh.Sf());
 
+// fvSource term
+volVectorField fvSource(
+    IOobject(
+        "fvSource",
+        mesh.time().timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE),
+    mesh,
+    dimensionedVector("fvSource", dimensionSet(0, 1, -2, 0, 0, 0, 0), vector::zero),
+    zeroGradientFvPatchVectorField::typeName);
+    
 autoPtr<compressible::turbulenceModel> turbulence(
     compressible::turbulenceModel::New(
         rho,

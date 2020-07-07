@@ -60,11 +60,13 @@ class PYDAFOAM(object):
             "turbulenceModel": [str, "SpalartAllmaras"],
             "primalBC": [dict, {}],
             "fvSource": [dict, {}],
+            "printInterval": [int, 100],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivState": [float, 1.0e-5],
             "adjEpsDerivFFD": [float, 1.0e-3],
             "adjEpsDerivBC": [float, 1.0e-2],
+            "adjEpsDerivAOA": [float, 1.0e-3],
             "adjStateOrdering": [str, "state"],
             "adjEqnOption": [
                 dict,
@@ -83,6 +85,7 @@ class PYDAFOAM(object):
             "normalizeStates": [dict, {}],
             "normalizeResiduals": [list, ["URes", "pRes", "nuTildaRes", "phiRes", "TRes"]],
             "maxResConLv4JacPCMat": [dict, {}],
+            "transonicPCOption": [int, -1],
             # optimization options
             "designVar": [dict, {}],
             # system options

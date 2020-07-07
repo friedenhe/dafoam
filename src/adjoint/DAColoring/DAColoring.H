@@ -44,6 +44,9 @@ protected:
    /// fvMesh object
    const fvMesh& mesh_;
 
+   /// DAOption object
+   const DAOption& daOption_;
+
     /// DAIndex object
    const DAIndex& daIndex_;
 

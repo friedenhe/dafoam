@@ -24,7 +24,6 @@ DAField::DAField(
       daModel_(daModel),
       daIndex_(daIndex)
 {
-    Info << "Initialzing DAField..." << endl;
     // initialize stateInfo_
     word solverName = daOption.getOption<word>("solverName");
     autoPtr<DAStateInfo> daStateInfo(DAStateInfo::New(solverName, mesh, daOption, daModel));

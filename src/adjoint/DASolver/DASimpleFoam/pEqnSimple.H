@@ -38,7 +38,7 @@
         // and final residuals
         SolverPerformance<scalar> solverP = pEqn.solve();
 
-        if (nSolverIters % 100 == 0 || nSolverIters == 1)
+        if (nSolverIters % printInterval == 0 || nSolverIters == 1)
         {
             Info << "p Initial residual: " << solverP.initialResidual() << endl
                  << "    Final residual: " << solverP.finalResidual() << endl;
@@ -50,7 +50,7 @@
         }
     }
 
-    if (nSolverIters % 100 == 0 || nSolverIters == 1)
+    if (nSolverIters % printInterval == 0 || nSolverIters == 1)
     {
 #include "continuityErrsPython.H"
     }

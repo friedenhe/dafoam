@@ -72,6 +72,9 @@ protected:
     /// whether to solve for turb states
     label solveTurbState_ = 0;
 
+    /// time step interval to print residual 
+    label printInterval_;
+
 public:
     TypeName("SpalartAllmaras");
     // Constructors

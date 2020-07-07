@@ -1162,6 +1162,180 @@ label DASolver::calcTotalDeriv(
         MatDestroy(&dRdBC);
     }
     // *****************************************************************************
+    // ********************************* AOA dvType ********************************
+    // *****************************************************************************
+    // angle of attack as the design variable
+    else if (designVarType == "AOA")
+    {
+        // get info from dvSubDict. This needs to be defined in the pyDAFoam
+        // name of the boundary patch
+        word patchName = dvSubDict.getWord("patch");
+        // the x compoent of aoa, aoa = tan( U_y/U_x )
+        label xAxisIndex = dvSubDict.getLabel("xAxisIndex");
+        label yAxisIndex = dvSubDict.getLabel("yAxisIndex");
+
+        // no coloring is need for BC, so we create a dummy DAJacCon
+        word dummyType = "dummy";
+        autoPtr<DAJacCon> daJacCon(DAJacCon::New(
+            dummyType,
+            meshPtr_(),
+            daOptionPtr_(),
+            daModelPtr_(),
+            daIndexPtr_()));
+
+        // ********************** compute dRdAOA **********************
+        Mat dRdAOA;
+        {
+            // create DAPartDeriv object
+            word modelType = "dRdAOA";
+            autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+                modelType,
+                meshPtr_(),
+                daOptionPtr_(),
+                daModelPtr_(),
+                daIndexPtr_(),
+                daJacCon(),
+                daResidualPtr_()));
+
+            // setup options to compute dRdAOA
+            dictionary options;
+            options.set("patch", patchName);
+            options.set("xAxisIndex", xAxisIndex);
+            options.set("yAxisIndex", yAxisIndex);
+            options.set("isPC", 0);
+
+            // initialize the dRdAOA matrix
+            daPartDeriv->initializePartDerivMat(options, &dRdAOA);
+
+            // compute it using brute force finite-difference
+            daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dRdAOA);
+
+            if (daOptionPtr_->getOption<label>("debug"))
+            {
+                word outputName = "dRdAOA_" + designVarName;
+                DAUtility::writeMatrixBinary(dRdAOA, outputName);
+                DAUtility::writeMatrixASCII(dRdAOA, outputName);
+            }
+        }
+
+        // ********************** compute dFdAOA **********************
+        dictionary objFuncDict = allOptions.subDict("objFunc");
+
+        // loop over all objFuncName in the objFunc dict
+        forAll(objFuncDict.toc(), idxJ)
+        {
+
+            word objFuncName = objFuncDict.toc()[idxJ];
+
+            // we only solve adjoint for objectives that have addToAdjoint = True
+            if (DAUtility::isInList<word>(objFuncName, objFuncNames4Adj_))
+            {
+                // the dFdAOAVecAllParts vector contains the sum of dFdAOAVec from all parts for this objFuncName
+                Vec dFdAOAVecAllParts;
+                VecCreate(PETSC_COMM_WORLD, &dFdAOAVecAllParts);
+                VecSetSizes(dFdAOAVecAllParts, PETSC_DETERMINE, 1);
+                VecSetFromOptions(dFdAOAVecAllParts);
+                VecZeroEntries(dFdAOAVecAllParts);
+
+                dictionary objFuncSubDict = objFuncDict.subDict(objFuncName);
+                // loop over all parts of this objFuncName
+                forAll(objFuncSubDict.toc(), idxK)
+                {
+                    word objFuncPart = objFuncSubDict.toc()[idxK];
+                    dictionary objFuncSubDictPart = objFuncSubDict.subDict(objFuncPart);
+
+                    // we only compute total derivative for objFuncs with addToAdjoint = True
+                    label addToAdjoint = objFuncSubDictPart.getLabel("addToAdjoint");
+                    if (addToAdjoint)
+                    {
+
+                        Mat dFdAOA;
+
+                        // initialize DAPartDeriv for dFdAOA
+                        word modelType = "dFdAOA";
+                        autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+                            modelType,
+                            meshPtr_(),
+                            daOptionPtr_(),
+                            daModelPtr_(),
+                            daIndexPtr_(),
+                            daJacCon(),
+                            daResidualPtr_()));
+
+                        // initialize options
+                        dictionary options;
+                        options.set("objFuncName", objFuncName);
+                        options.set("objFuncPart", objFuncPart);
+                        options.set("objFuncSubDictPart", objFuncSubDictPart);
+                        options.set("patch", patchName);
+                        options.set("xAxisIndex", xAxisIndex);
+                        options.set("yAxisIndex", yAxisIndex);
+
+                        // initialize dFdAOA
+                        daPartDeriv->initializePartDerivMat(options, &dFdAOA);
+
+                        // calculate it
+                        daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdAOA);
+
+                        // now we need to add all the rows of dFdAOA together to get dFdAOAVec
+                        // NOTE: dFdAOA is a 1 by 1 matrix but we just do a matrix-vector product
+                        // to convert dFdAOA from a matrix to a vector
+                        Vec dFdAOAVec, oneVec;
+                        VecDuplicate(dFdAOAVecAllParts, &oneVec);
+                        VecSet(oneVec, 1.0);
+                        VecDuplicate(dFdAOAVecAllParts, &dFdAOAVec);
+                        VecZeroEntries(dFdAOAVec);
+                        // dFdAOAVec = dFdAOA * oneVec
+                        MatMult(dFdAOA, oneVec, dFdAOAVec);
+
+                        // we need to add dFdAOAVec to dFdAOAVecAllParts because we want to sum
+                        // all dFdAOAVec for all parts of this objFuncName.
+                        VecAXPY(dFdAOAVecAllParts, 1.0, dFdAOAVec);
+
+                        if (daOptionPtr_->getOption<label>("debug"))
+                        {
+                            word outputName = "dFdAOAVec_" + designVarName;
+                            DAUtility::writeVectorBinary(dFdAOAVec, outputName);
+                            DAUtility::writeVectorASCII(dFdAOAVec, outputName);
+                        }
+
+                        // clear up
+                        MatDestroy(&dFdAOA);
+                    }
+                }
+
+                // now we can compute totalDeriv = dFdAOAVecAllParts - psiVec * dRdAOA
+                Vec psiVec, totalDerivVec;
+                VecDuplicate(dFdAOAVecAllParts, &totalDerivVec);
+                VecZeroEntries(totalDerivVec);
+                VecDuplicate(wVec, &psiVec);
+                VecZeroEntries(psiVec);
+
+                // now we can assign DASolver::psiVecDict_ to psiVec for this objFuncName
+                // NOTE: DASolver::psiVecDict_ should be set in the DASolver::solveAdjoint
+                // function. i.e., we need to call solveAdjoint before calling calcTotalDeriv
+                this->getPsiVec(objFuncName, psiVec);
+
+                // totalDeriv = dFdAOAVecAllParts - psiVec * dRdAOA
+                MatMultTranspose(dRdAOA, psiVec, totalDerivVec);
+                VecAXPY(totalDerivVec, -1.0, dFdAOAVecAllParts);
+                VecScale(totalDerivVec, -1.0);
+
+                // assign totalDerivVec to DASolver::totalDerivDict_ such that we can
+                // get the totalDeriv in the python layer later
+                this->setTotalDerivDict(objFuncName, designVarName, totalDerivVec, totalDerivDict_);
+
+                if (daOptionPtr_->getOption<label>("debug"))
+                {
+                    word outputName = "dFdAOATotal_" + objFuncName + "_" + designVarName;
+                    DAUtility::writeVectorBinary(totalDerivVec, outputName);
+                    DAUtility::writeVectorASCII(totalDerivVec, outputName);
+                }
+            }
+        }
+        MatDestroy(&dRdAOA);
+    }
+    // *****************************************************************************
     // ********************************* FFD dvType ********************************
     // *****************************************************************************
     // FFD movement as the design variable

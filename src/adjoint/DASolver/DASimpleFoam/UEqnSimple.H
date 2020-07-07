@@ -2,7 +2,8 @@
 
 tmp<fvVectorMatrix> tUEqn(
     fvm::div(phi, U)
-    + turbulencePtr_->divDevReff(U));
+    + turbulencePtr_->divDevReff(U)
+    - fvSource);
 fvVectorMatrix& UEqn = tUEqn.ref();
 
 UEqn.relax();
@@ -13,7 +14,7 @@ if (simple.momentumPredictor())
     // and final residuals
     SolverPerformance<vector> solverU = solve(UEqn == -fvc::grad(p));
 
-    if (nSolverIters % 100 == 0 || nSolverIters == 1)
+    if (nSolverIters % printInterval == 0 || nSolverIters == 1)
     {
         Info << "U Initial residual: " << solverU.initialResidual() << endl
              << "    Final residual: " << solverU.finalResidual() << endl;

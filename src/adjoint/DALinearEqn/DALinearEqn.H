@@ -80,6 +80,9 @@ public:
 
     /// return the runtime for the adjoint solver
     label getRunTime();
+
+    /// return printInterval from DAOption
+    label getPrintInterval();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

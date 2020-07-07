@@ -18,6 +18,7 @@ DAModel/DAModel.C
 
 DAStateInfo/DAStateInfo.C
 DAStateInfo/DAStateInfoRhoSimpleFoam.C
+DAStateInfo/DAStateInfoRhoSimpleCFoam.C
 
 DAIndex/DAIndex.C
 
@@ -32,6 +33,7 @@ DAFvSource/DAFvSourceActuatorDisk.C
 
 DAResidual/DAResidual.C
 DAResidual/DAResidualRhoSimpleFoam.C
+DAResidual/DAResidualRhoSimpleCFoam.C
 
 DAColoring/DAColoring.C
 
@@ -47,11 +49,14 @@ DAPartDeriv/DAPartDerivdFdBC.C
 DAPartDeriv/DAPartDerivdRdBC.C
 DAPartDeriv/DAPartDerivdRdFFD.C
 DAPartDeriv/DAPartDerivdFdFFD.C
+DAPartDeriv/DAPartDerivdFdAOA.C
+DAPartDeriv/DAPartDerivdRdAOA.C
 
 DALinearEqn/DALinearEqn.C
 
 
 DASolver/DASolver.C
 DASolver/DARhoSimpleFoam/DARhoSimpleFoam.C
+DASolver/DARhoSimpleCFoam/DARhoSimpleCFoam.C
 
 LIB = $(FOAM_USER_LIBBIN)/libDAFoamCompressible

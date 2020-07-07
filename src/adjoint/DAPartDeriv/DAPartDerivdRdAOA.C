@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAPartDerivdFdBC.H"
+#include "DAPartDerivdRdAOA.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAPartDerivdFdBC, 0);
-addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdFdBC, dictionary);
+defineTypeNameAndDebug(DAPartDerivdRdAOA, 0);
+addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdRdAOA, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAPartDerivdFdBC::DAPartDerivdFdBC(
+DAPartDerivdRdAOA::DAPartDerivdRdAOA(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -37,7 +37,7 @@ DAPartDerivdFdBC::DAPartDerivdFdBC(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void DAPartDerivdFdBC::initializePartDerivMat(
+void DAPartDerivdRdAOA::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
@@ -46,16 +46,19 @@ void DAPartDerivdFdBC::initializePartDerivMat(
         Initialize jacMat
     
     Input:
-        options. This is not used
+        options. this is not used
     */
 
-    // create dFdBC
+    // now initialize the memory for the jacobian itself
+    label localSize = daIndex_.nLocalAdjointStates;
+
+    // create dRdAOAT
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
         *jacMat,
+        localSize,
         PETSC_DECIDE,
-        PETSC_DECIDE,
-        1,
+        PETSC_DETERMINE,
         1);
     MatSetFromOptions(*jacMat);
     MatMPIAIJSetPreallocation(*jacMat, 1, NULL, 1, NULL);
@@ -66,7 +69,7 @@ void DAPartDerivdFdBC::initializePartDerivMat(
     Info << "Partial deriative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
 
-void DAPartDerivdFdBC::calcPartDerivMat(
+void DAPartDerivdRdAOA::calcPartDerivMat(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec,
@@ -74,69 +77,74 @@ void DAPartDerivdFdBC::calcPartDerivMat(
 {
     /*
     Description:
-        Compute jacMat. Note for dFdBC, we have only one column so we can do brute 
-        force finite-difference there is no need to do coloring
+        Compute jacMat. We use brute-force finite-difference
     
     Input:
-        options.objFuncSubDictPart: the objFunc subDict, obtained from DAOption
 
-        options.objFuncName: the name of the objective
-
-        options.objFuncPart: the part of the objective
+        options.isPC: whether to compute the jacMat for preconditioner
 
         xvVec: the volume mesh coordinate vector
 
         wVec: the state variable vector
     
     Output:
-        jacMat: the partial derivative matrix dFdBC to compute
+        jacMat: the partial derivative matrix dRdAOA to compute
     */
 
-    word objFuncName, objFuncPart;
-    dictionary objFuncSubDictPart = options.subDict("objFuncSubDictPart");
-    options.readEntry<word>("objFuncName", objFuncName);
-    options.readEntry<word>("objFuncPart", objFuncPart);
-
-    autoPtr<DAObjFunc> daObjFunc(
-        DAObjFunc::New(
-            mesh_,
-            daOption_,
-            daModel_,
-            daIndex_,
-            daResidual_,
-            objFuncName,
-            objFuncPart,
-            objFuncSubDictPart)
-            .ptr());
+    DAResidual& daResidual = const_cast<DAResidual&>(daResidual_);
 
     // zero all the matrices
     MatZeroEntries(jacMat);
 
+    // initialize residual vectors
+    Vec resVecRef, resVec;
+    VecDuplicate(wVec, &resVec);
+    VecDuplicate(wVec, &resVecRef);
+    VecZeroEntries(resVec);
+    VecZeroEntries(resVecRef);
+
     dictionary mOptions;
     mOptions.set("updateState", 1);
     mOptions.set("updateMesh", 0);
-    scalar fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    mOptions.set("setResVec", 1);
+    mOptions.set("isPC", options.getLabel("isPC"));
+    daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivBC");
+    scalar delta = daOption_.getOption<scalar>("adjEpsDerivAOA");
     scalar rDelta = 1.0 / delta;
 
-    // perturb BC
-    this->perturbBC(options, delta);
+    // perturb angle of attack
+    this->perturbAOA(options, delta);
 
-    // compute object
-    scalar fNew = daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    // compute residual
+    daResidual.masterFunction(mOptions, xvVec, wVec, resVec);
 
-    scalar partDeriv = (fNew - fRef) * rDelta;
+    // compute residual partial using finite-difference
+    VecAXPY(resVec, -1.0, resVecRef);
+    VecScale(resVec, rDelta);
 
-    MatSetValue(jacMat, 0, 0, partDeriv, INSERT_VALUES);
+    // assign resVec to jacMat
+    PetscInt Istart, Iend;
+    VecGetOwnershipRange(resVec, &Istart, &Iend);
+
+    const PetscScalar* resVecArray;
+    VecGetArrayRead(resVec, &resVecArray);
+    for (label i = Istart; i < Iend; i++)
+    {
+        label relIdx = i - Istart;
+        scalar val = resVecArray[relIdx];
+        MatSetValue(jacMat, i, 0, val, INSERT_VALUES);
+    }
+    VecRestoreArrayRead(resVec, &resVecArray);
 
     // reset perturbation
-    this->perturbBC(options, -1.0 * delta);
+    this->perturbAOA(options, -1.0 * delta);
     // call masterFunction again to reset the wVec to OpenFOAM field
-    daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    daResidual.masterFunction(mOptions, xvVec, wVec, resVec);
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
+
 }
 
 } // End namespace Foam

@@ -85,6 +85,7 @@ DASpalartAllmaras::DASpalartAllmaras(
           nuTildaRes_),
       y_(mesh.thisDb().lookupObject<volScalarField>("yWall"))
 {
+    printInterval_ = daOption.getOption<label>("printInterval");
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -438,7 +439,7 @@ void DASpalartAllmaras::calcResiduals(const dictionary& options)
         // get the solver performance info such as initial
         // and final residuals
         SolverPerformance<scalar> solverNuTilda = solve(nuTildaEqn);
-        if (nSolverIters % 100 == 0 || nSolverIters == 1)
+        if (nSolverIters % printInterval_ == 0 || nSolverIters == 1)
         {
             Info << "nuTilda Initial residual: " << solverNuTilda.initialResidual() << endl
                  << "          Final residual: " << solverNuTilda.finalResidual() << endl;

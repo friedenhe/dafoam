@@ -1,5 +1,7 @@
+rho = thermo.rho();
+
 volScalarField rAU(1.0 / UEqn.A());
-surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho* rAU));
+volScalarField rAtU(1.0 / (1.0 / rAU - UEqn.H1()));
 //volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
 //***************** NOTE *******************
 // constrainHbyA has been used since OpenFOAM-v1606; however, We do NOT use the constrainHbyA
@@ -14,15 +16,29 @@ bool closedVolume = false;
 
 surfaceScalarField phiHbyA("phiHbyA", fvc::interpolate(rho) * fvc::flux(HbyA));
 
-// NOTE: we don't support transonic = true
+// NOTE: we don't support transonic = false
 
-closedVolume = adjustPhi(phiHbyA, U, p);
+volScalarField rhorAtU("rhorAtU", rho* rAtU);
+
+surfaceScalarField phid(
+    "phid",
+    (fvc::interpolate(psi) / fvc::interpolate(rho)) * phiHbyA);
+
+phiHbyA +=
+    fvc::interpolate(rho * (rAtU - rAU)) * fvc::snGrad(p) * mesh.magSf()
+    - fvc::interpolate(psi * p) * phiHbyA / fvc::interpolate(rho);
+
+HbyA -= (rAU - rAtU) * fvc::grad(p);
 
 while (simple.correctNonOrthogonal())
 {
     fvScalarMatrix pEqn(
         fvc::div(phiHbyA)
-        - fvm::laplacian(rhorAUf, p));
+        + fvm::div(phid, p)
+        - fvm::laplacian(rhorAtU, p));
+
+    // Relax the pressure equation to maintain diagonal dominance
+    pEqn.relax();
 
     pEqn.setReference(
         pressureControl.refCell(),
@@ -55,7 +71,7 @@ p.relax();
 // bound p
 DAUtility::boundVar(allOptions, p);
 
-U = HbyA - rAU * fvc::grad(p);
+U = HbyA - rAtU * fvc::grad(p);
 // bound U
 DAUtility::boundVar(allOptions, U);
 U.correctBoundaryConditions();
@@ -76,8 +92,6 @@ if (pLimited || closedVolume)
 }
 
 rho = thermo.rho();
-
-rho.relax();
 
 // bound rho
 DAUtility::boundVar(allOptions, rho);

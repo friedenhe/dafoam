@@ -4,21 +4,21 @@
     Version : v2
 
     Description:
-        Child class for DASimpleFoam
+        Child class for DARhoSimpleCFoam
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DASimpleFoam_H
-#define DASimpleFoam_H
+#ifndef DARhoSimpleCFoam_H
+#define DARhoSimpleCFoam_H
 
 #include "DASolver.H"
 #include "addToRunTimeSelectionTable.H"
-#include "singlePhaseTransportModel.H"
-#include "turbulentTransportModel.H"
+#include "fluidThermo.H"
+#include "turbulentFluidThermoModel.H"
 #include "simpleControl.H"
-#include "DARegDbSinglePhaseTransportModel.H"
-#include "DARegDbTurbulenceModelIncompressible.H"
-#include "DAFvSource.H"
+#include "pressureControl.H"
+#include "DARegDbFluidThermo.H"
+#include "DARegDbTurbulenceModelCompressible.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -26,10 +26,10 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DASimpleFoam Declaration
+      Class DARhoSimpleCFoam Declaration
 \*---------------------------------------------------------------------------*/
 
-class DASimpleFoam
+class DARhoSimpleCFoam
     : public DASolver
 {
 
@@ -38,8 +38,14 @@ protected:
     /// simple pointer
     autoPtr<simpleControl> simplePtr_;
 
+    /// thermal model
+    autoPtr<fluidThermo> pThermoPtr_;
+
     /// pressure field pointer
     autoPtr<volScalarField> pPtr_;
+
+    /// density field pointer
+    autoPtr<volScalarField> rhoPtr_;
 
     /// velocity field pointer
     autoPtr<volVectorField> UPtr_;
@@ -47,39 +53,29 @@ protected:
     /// surface flux field pointer
     autoPtr<surfaceScalarField> phiPtr_;
 
-    /// laminar transport properties pointer
-    autoPtr<singlePhaseTransportModel> laminarTransportPtr_;
+    /// pressure control pointer
+    autoPtr<pressureControl> pressureControlPtr_;
 
     /// turbulence pointer
-    autoPtr<incompressible::turbulenceModel> turbulencePtr_;
+    autoPtr<compressible::turbulenceModel> turbulencePtr_;
 
-    /// DASource pointer
-    autoPtr<DAFvSource> daFvSourcePtr_;
-
-    /// fvSource term 
-    autoPtr<volVectorField> fvSourcePtr_;
+    /// initial mass
+    dimensionedScalar initialMass_;
 
     /// continuity error
     scalar cumulativeContErr_ = 0.0;
 
-    /// pressure referefence cell id
-    label pRefCell_ = 0;
-
-    /// pressure reference value
-    scalar pRefValue_ = 0.0;
-
-    
 public:
-    TypeName("DASimpleFoam");
+    TypeName("DARhoSimpleCFoam");
     // Constructors
 
     //- Construct from components
-    DASimpleFoam(
+    DARhoSimpleCFoam(
         char* argsAll,
         PyObject* pyOptions);
 
     //- Destructor
-    virtual ~DASimpleFoam()
+    virtual ~DARhoSimpleCFoam()
     {
     }
 

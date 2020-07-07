@@ -123,11 +123,12 @@ void DAPartDerivdRdFFD::calcPartDerivMat(
     VecDuplicate(xvVec, &xvVecNew);
     VecZeroEntries(xvVecNew);
 
+    label printInterval = daOption_.getOption<label>("printInterval");
     for (label i = 0; i < nDesignVars; i++)
     {
         label eTime = mesh_.time().elapsedClockTime();
         // print progress
-        if (i % 100 == 0 or i == nDesignVars - 1)
+        if (i % printInterval == 0 or i == nDesignVars - 1)
         {
             Info << modelType_ << ": " << i << " of " << nDesignVars
                  << ", ExecutionTime: " << eTime << " s" << endl;

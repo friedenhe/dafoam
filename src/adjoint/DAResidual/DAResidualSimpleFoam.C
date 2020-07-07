@@ -27,6 +27,8 @@ DAResidualSimpleFoam::DAResidualSimpleFoam(
       setResidualClassMemberVector(U, dimensionSet(0, 1, -2, 0, 0, 0, 0)),
       setResidualClassMemberScalar(p, dimensionSet(0, 0, -1, 0, 0, 0, 0)),
       setResidualClassMemberPhi(phi),
+      fvSource_(const_cast<volVectorField&>(
+          mesh_.thisDb().lookupObject<volVectorField>("fvSource"))),
       daTurb_(const_cast<DATurbulenceModel&>(daModel.getDATurbulenceModel())),
       // create simpleControl
       simple_(const_cast<fvMesh&>(mesh))
@@ -77,14 +79,15 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
 
     label isPC = options.getLabel("isPC");
 
-    if (isPC) 
+    if (isPC)
     {
         divUScheme = "div(pc)";
     }
 
     tmp<fvVectorMatrix> tUEqn(
         fvm::div(phi_, U_, divUScheme)
-        + daTurb_.divDevReff(U_));
+        + daTurb_.divDevReff(U_)
+        - fvSource_);
     fvVectorMatrix& UEqn = tUEqn.ref();
 
     UEqn.relax();
@@ -102,7 +105,7 @@ void DAResidualSimpleFoam::calcResiduals(const dictionary& options)
     //volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U_, p_));
     //***************** NOTE *******************
     // constrainHbyA has been used since OpenFOAM-v1606; however, We do NOT use the constrainHbyA
-    // function in DAFoam because we found it significantly degrades the accuracy of shape derivatives. 
+    // function in DAFoam because we found it significantly degrades the accuracy of shape derivatives.
     // Basically, we should not constrain any variable because it will create discontinuity.
     // Instead, we use the old implementation used in OpenFOAM-3.0+ and before
     volVectorField HbyA("HbyA", U_);
@@ -148,14 +151,13 @@ void DAResidualSimpleFoam::updateIntermediateVariables()
     // nothing to update for DASimpleFoam
 }
 
-
 void DAResidualSimpleFoam::correctBoundaryConditions()
 {
     /* 
     Description:
         Update the boundary condition for all the states in the selected solver
     */
-    
+
     U_.correctBoundaryConditions();
     p_.correctBoundaryConditions();
 }

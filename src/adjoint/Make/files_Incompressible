@@ -47,6 +47,8 @@ DAPartDeriv/DAPartDerivdFdBC.C
 DAPartDeriv/DAPartDerivdRdBC.C
 DAPartDeriv/DAPartDerivdRdFFD.C
 DAPartDeriv/DAPartDerivdFdFFD.C
+DAPartDeriv/DAPartDerivdFdAOA.C
+DAPartDeriv/DAPartDerivdRdAOA.C
 
 DALinearEqn/DALinearEqn.C
 

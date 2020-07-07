@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAResidualRhoSimpleFoam.H"
+#include "DAResidualRhoSimpleCFoam.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAResidualRhoSimpleFoam, 0);
-addToRunTimeSelectionTable(DAResidual, DAResidualRhoSimpleFoam, dictionary);
+defineTypeNameAndDebug(DAResidualRhoSimpleCFoam, 0);
+addToRunTimeSelectionTable(DAResidual, DAResidualRhoSimpleCFoam, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
+DAResidualRhoSimpleCFoam::DAResidualRhoSimpleCFoam(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -58,7 +58,7 @@ DAResidualRhoSimpleFoam::DAResidualRhoSimpleFoam(
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-void DAResidualRhoSimpleFoam::clear()
+void DAResidualRhoSimpleCFoam::clear()
 {
     /*
     Description:
@@ -76,7 +76,7 @@ void DAResidualRhoSimpleFoam::clear()
     phiResPartDeriv_.clear();
 }
 
-void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
+void DAResidualRhoSimpleCFoam::calcResiduals(const dictionary& options)
 {
     /*
     Description:
@@ -99,6 +99,7 @@ void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
 
     word divUScheme = "div(phi,U)";
     word divHEScheme = "div(phi,e)";
+    word divPhidPScheme = "div(phid,p)";
 
     if (he_.name() == "h")
     {
@@ -109,6 +110,7 @@ void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
     {
         divUScheme = "div(pc)";
         divHEScheme = "div(pc)";
+        divPhidPScheme = "div(pc)";
     }
 
     // ******** U Residuals **********
@@ -143,11 +145,11 @@ void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
     // ******** p and phi Residuals **********
     // copied and modified from pEqn.H
     volScalarField rAU(1.0 / UEqn.A());
-    surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho_ * rAU));
+    volScalarField rAtU(1.0 / (1.0 / rAU - UEqn.H1()));
     //volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
     //***************** NOTE *******************
     // constrainHbyA has been used since OpenFOAM-v1606; however, We do NOT use the constrainHbyA
-    // function in DAFoam because we found it significantly degrades the accuracy of shape derivatives. 
+    // function in DAFoam because we found it significantly degrades the accuracy of shape derivatives.
     // Basically, we should not constrain any variable because it will create discontinuity.
     // Instead, we use the old implementation used in OpenFOAM-3.0+ and before
     volVectorField HbyA("HbyA", U_);
@@ -156,13 +158,33 @@ void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
 
     surfaceScalarField phiHbyA("phiHbyA", fvc::interpolate(rho_) * fvc::flux(HbyA));
 
-    // NOTE: we don't support transonic = true
+    volScalarField rhorAtU("rhorAtU", rho_ * rAtU);
 
-    adjustPhi(phiHbyA, U_, p_);
+    // NOTE: we don't support transonic = false
+
+    surfaceScalarField phid(
+        "phid",
+        (fvc::interpolate(psi_) / fvc::interpolate(rho_)) * phiHbyA);
+
+    phiHbyA +=
+        fvc::interpolate(rho_ * (rAtU - rAU)) * fvc::snGrad(p_) * mesh_.magSf()
+        - fvc::interpolate(psi_ * p_) * phiHbyA / fvc::interpolate(rho_);
+
+    HbyA -= (rAU - rAtU) * fvc::grad(p_);
 
     fvScalarMatrix pEqn(
         fvc::div(phiHbyA)
-        - fvm::laplacian(rhorAUf, p_));
+        + fvm::div(phid, p_, divPhidPScheme)
+        - fvm::laplacian(rhorAtU, p_));
+
+    // for PC we do not include the div(phid, p) term, this improves the convergence
+    if (isPC && daOption_.getOption<label>("transonicPCOption") == 1)
+    {
+        pEqn -= fvm::div(phid, p_, divPhidPScheme);
+    }
+
+    // Relax the pressure equation to maintain diagonal dominance
+    pEqn.relax();
 
     pEqn.setReference(pressureControl_.refCell(), pressureControl_.refValue());
 
@@ -173,9 +195,10 @@ void DAResidualRhoSimpleFoam::calcResiduals(const dictionary& options)
     // copied and modified from pEqn.H
     phiRes_ = phiHbyA + pEqn.flux() - phi_;
     normalizePhiResiduals(phiRes);
+
 }
 
-void DAResidualRhoSimpleFoam::updateIntermediateVariables()
+void DAResidualRhoSimpleCFoam::updateIntermediateVariables()
 {
     /* 
     Description:
@@ -249,7 +272,7 @@ void DAResidualRhoSimpleFoam::updateIntermediateVariables()
     // NOTE: alphat is updated in the correctNut function in DATurbulenceModel child classes
 }
 
-void DAResidualRhoSimpleFoam::correctBoundaryConditions()
+void DAResidualRhoSimpleCFoam::correctBoundaryConditions()
 {
     /* 
     Description:

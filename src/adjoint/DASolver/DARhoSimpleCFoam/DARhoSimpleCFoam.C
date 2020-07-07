@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DARhoSimpleFoam.H"
+#include "DARhoSimpleCFoam.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DARhoSimpleFoam, 0);
-addToRunTimeSelectionTable(DASolver, DARhoSimpleFoam, dictionary);
+defineTypeNameAndDebug(DARhoSimpleCFoam, 0);
+addToRunTimeSelectionTable(DASolver, DARhoSimpleCFoam, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DARhoSimpleFoam::DARhoSimpleFoam(
+DARhoSimpleCFoam::DARhoSimpleCFoam(
     char* argsAll,
     PyObject* pyOptions)
     : DASolver(argsAll, pyOptions),
@@ -33,25 +33,25 @@ DARhoSimpleFoam::DARhoSimpleFoam(
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-void DARhoSimpleFoam::initSolver()
+void DARhoSimpleCFoam::initSolver()
 {
     /*
     Description:
         Initialize variables for DASolver
     */
 
-    Info << "Initializing fields for DARhoSimpleFoam" << endl;
+    Info << "Initializing fields for DARhoSimpleCFoam" << endl;
     Time& runTime = runTimePtr_();
     fvMesh& mesh = meshPtr_();
     argList& args = argsPtr_();
 #include "createSimpleControlPython.H"
-#include "createFieldsRhoSimple.H"
+#include "createFieldsRhoSimpleC.H"
 #include "createAdjointCompressible.H"
     // initialize checkMesh
     daCheckMeshPtr_.reset(new DACheckMesh(runTime, mesh));
 }
 
-label DARhoSimpleFoam::solvePrimal(
+label DARhoSimpleCFoam::solvePrimal(
     const Vec xvVec,
     Vec wVec)
 {
@@ -66,7 +66,7 @@ label DARhoSimpleFoam::solvePrimal(
         wVec: state variable vector
     */
 
-#include "createRefsRhoSimple.H"
+#include "createRefsRhoSimpleC.H"
 
     // first check if we need to change the boundary conditions based on 
     // the primalBC dict in DAOption. NOTE: this will overwrite whatever 
@@ -108,9 +108,9 @@ label DARhoSimpleFoam::solvePrimal(
         rho.storePrevIter();
 
         // Pressure-velocity SIMPLE corrector
-#include "UEqnRhoSimple.H"
-#include "EEqnRhoSimple.H"
-#include "pEqnRhoSimple.H"
+#include "UEqnRhoSimpleC.H"
+#include "EEqnRhoSimpleC.H"
+#include "pEqnRhoSimpleC.H"
 
         daTurbulenceModelPtr_->correct();
 

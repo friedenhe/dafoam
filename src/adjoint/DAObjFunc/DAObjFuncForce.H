@@ -31,6 +31,21 @@ protected:
     /// the direction of the force
     vector forceDir_;
 
+    /// if dynamically adjusting the angle what mode to use
+    word dirMode_;
+
+    /// the patch name from the alpha design variable dict
+    word inoutPatch_;
+
+    /// xAxisIndex from the alpha design variable dict with aoa=tan(U_y/U_x)
+    label xAxisIndex_;
+
+    /// yAxisIndex from the alpha design variable dict with aoa=tan(U_y/U_x)
+    label yAxisIndex_;
+
+    /// dynamically adjust the force direction
+    void updateForceDir(vector& forceDir);
+
     /// DATurbulenceModel object
     const DATurbulenceModel& daTurb_;
 

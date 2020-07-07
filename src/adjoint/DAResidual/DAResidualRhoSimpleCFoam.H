@@ -4,17 +4,19 @@
     Version : v2
 
     Description:
-        Child class for DASimpleFoam
+        Child class for DARhoSimpleCFoam
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAResidualSimpleFoam_H
-#define DAResidualSimpleFoam_H
+#ifndef DAResidualRhoSimpleCFoam_H
+#define DAResidualRhoSimpleCFoam_H
 
 #include "DAResidual.H"
 #include "addToRunTimeSelectionTable.H"
 #include "simpleControl.H"
 #include "adjustPhi.H"
+#include "thermodynamicConstants.H"
+#include "pressureControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -22,12 +24,13 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAResidualSimpleFoam Declaration
+      Class DAResidualRhoSimpleCFoam Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAResidualSimpleFoam
+class DAResidualRhoSimpleCFoam
     : public DAResidual
 {
+
 protected:
     /// \name These are state variables, state residuals, and partial derivatives
     //@{
@@ -39,13 +42,25 @@ protected:
     volScalarField pRes_;
     volScalarField pResPartDeriv_;
 
+    volScalarField& T_;
+    volScalarField TRes_;
+    volScalarField TResPartDeriv_;
+
     surfaceScalarField& phi_;
     surfaceScalarField phiRes_;
     surfaceScalarField phiResPartDeriv_;
     //@}
 
-    /// fvSource term
-    volVectorField& fvSource_;
+    /// thermophysical property
+    fluidThermo& thermo_;
+
+    /// \name These are intermediate variables
+    //@{
+    volScalarField& he_;
+    volScalarField& rho_;
+    volScalarField& alphat_;
+    volScalarField& psi_;
+    //@}
 
     /// DATurbulenceModel object
     DATurbulenceModel& daTurb_;
@@ -53,12 +68,21 @@ protected:
     /// simpleControl object which will be initialized in this class
     simpleControl simple_;
 
+    /// pressureControl object to set ref pressure
+    pressureControl pressureControl_;
+
+    /// \name These are constants to update the intermediate variables
+    //@{
+    scalar molWeight_;
+    scalar Cp_;
+    //@}
+
 public:
-    TypeName("DASimpleFoam");
+    TypeName("DARhoSimpleCFoam");
     // Constructors
 
     //- Construct from components
-    DAResidualSimpleFoam(
+    DAResidualRhoSimpleCFoam(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
@@ -66,7 +90,7 @@ public:
         const DAIndex& daIndex);
 
     //- Destructor
-    virtual ~DAResidualSimpleFoam()
+    virtual ~DAResidualRhoSimpleCFoam()
     {
     }
 
@@ -74,7 +98,7 @@ public:
 
     /// clear the members
     virtual void clear();
-    
+
     /// compute residual
     virtual void calcResiduals(const dictionary& options);
 

@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAPartDerivdFdBC.H"
+#include "DAPartDerivdFdAOA.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAPartDerivdFdBC, 0);
-addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdFdBC, dictionary);
+defineTypeNameAndDebug(DAPartDerivdFdAOA, 0);
+addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdFdAOA, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAPartDerivdFdBC::DAPartDerivdFdBC(
+DAPartDerivdFdAOA::DAPartDerivdFdAOA(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -37,7 +37,7 @@ DAPartDerivdFdBC::DAPartDerivdFdBC(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void DAPartDerivdFdBC::initializePartDerivMat(
+void DAPartDerivdFdAOA::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
@@ -49,7 +49,7 @@ void DAPartDerivdFdBC::initializePartDerivMat(
         options. This is not used
     */
 
-    // create dFdBC
+    // create dFdAOA
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
         *jacMat,
@@ -66,7 +66,7 @@ void DAPartDerivdFdBC::initializePartDerivMat(
     Info << "Partial deriative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
 
-void DAPartDerivdFdBC::calcPartDerivMat(
+void DAPartDerivdFdAOA::calcPartDerivMat(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec,
@@ -74,7 +74,7 @@ void DAPartDerivdFdBC::calcPartDerivMat(
 {
     /*
     Description:
-        Compute jacMat. Note for dFdBC, we have only one column so we can do brute 
+        Compute jacMat. Note for dFdAOA, we have only one column so we can do brute 
         force finite-difference there is no need to do coloring
     
     Input:
@@ -84,12 +84,21 @@ void DAPartDerivdFdBC::calcPartDerivMat(
 
         options.objFuncPart: the part of the objective
 
+        options.varName: the name of the variable to perturb
+
+        options.patchName: the name of the boundary patches to perturb, do not support
+        multiple patches yet
+
+        optoins.xAxisIndex: the component x index, aoa will be atan(U_y/U_x)
+
+        optoins.yAxisIndex: the component y index, aoa will be atan(U_y/U_x)
+
         xvVec: the volume mesh coordinate vector
 
         wVec: the state variable vector
     
     Output:
-        jacMat: the partial derivative matrix dFdBC to compute
+        jacMat: the partial derivative matrix dFdAOA to compute
     */
 
     word objFuncName, objFuncPart;
@@ -117,11 +126,11 @@ void DAPartDerivdFdBC::calcPartDerivMat(
     mOptions.set("updateMesh", 0);
     scalar fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivBC");
+    scalar delta = daOption_.getOption<scalar>("adjEpsDerivAOA");
     scalar rDelta = 1.0 / delta;
 
-    // perturb BC
-    this->perturbBC(options, delta);
+    // perturb AOA
+    this->perturbAOA(options, delta);
 
     // compute object
     scalar fNew = daObjFunc->masterFunction(mOptions, xvVec, wVec);
@@ -131,7 +140,7 @@ void DAPartDerivdFdBC::calcPartDerivMat(
     MatSetValue(jacMat, 0, 0, partDeriv, INSERT_VALUES);
 
     // reset perturbation
-    this->perturbBC(options, -1.0 * delta);
+    this->perturbAOA(options, -1.0 * delta);
     // call masterFunction again to reset the wVec to OpenFOAM field
     daObjFunc->masterFunction(mOptions, xvVec, wVec);
 

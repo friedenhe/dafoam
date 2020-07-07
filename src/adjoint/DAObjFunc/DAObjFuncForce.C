@@ -41,16 +41,38 @@ DAObjFuncForce::DAObjFuncForce(
     // these parameters are only for force objective
     objFuncDict_.readEntry<word>("type", objFuncType_);
 
-    scalarList dir;
-    objFuncDict_.readEntry<scalarList>("direction", dir);
-    forceDir_[0] = dir[0];
-    forceDir_[1] = dir[1];
-    forceDir_[2] = dir[2];
+    // we support three direction modes
+    dirMode_ = objFuncDict_.getWord("directionMode");
+    if (dirMode_ == "fixedDirection")
+    {
+        scalarList dir;
+        objFuncDict_.readEntry<scalarList>("direction", dir);
+        forceDir_[0] = dir[0];
+        forceDir_[1] = dir[1];
+        forceDir_[2] = dir[2];
+    }
+    else if (dirMode_ == "parallelToFlow" || dirMode_ == "normalToFlow")
+    {
+        // initial value for forceDir_. it will be dynamically adjusted later
+        forceDir_ = {1.0, 0.0, 0.0};
+        word alphaName = objFuncDict_.getWord("alphaName");
+        dictionary alphaSubDict = daOption_.getAllOptions().subDict("designVar").subDict(alphaName);
+        inoutPatch_ = alphaSubDict.getWord("patch");
+        xAxisIndex_ = alphaSubDict.getLabel("xAxisIndex");
+        yAxisIndex_ = alphaSubDict.getLabel("yAxisIndex");
+    }
+    else
+    {
+        FatalErrorIn(" ") << "directionMode for "
+                          << objFuncName << " " << objFuncPart << " not valid!"
+                          << "Options: fixedDirection, parallelToFlow, normalToFlow."
+                          << abort(FatalError);
+    }
 
-    if (fabs(mag(forceDir_) - 1.0) > 1.0e-4)
+    if (fabs(mag(forceDir_) - 1.0) > 1.0e-8)
     {
         FatalErrorIn(" ") << "the magnitude of the direction parameter in "
-                          << objFuncName << " " << objFuncPart << " is not 1.0!" 
+                          << objFuncName << " " << objFuncPart << " is not 1.0!"
                           << abort(FatalError);
     }
 
@@ -113,6 +135,11 @@ void DAObjFuncForce::calcObjFunc(
         objFuncValue: the sum of objective, reduced across all processsors and scaled by "scale"
     */
 
+    if (dirMode_ != "fixedDirection")
+    {
+        this->updateForceDir(forceDir_);
+    }
+
     // initialize faceValues to zero
     forAll(objFuncFaceValues, idxI)
     {
@@ -152,6 +179,75 @@ void DAObjFuncForce::calcObjFunc(
 
     return;
 }
+
+void DAObjFuncForce::updateForceDir(vector& forceDir)
+{
+    /*
+    Description:
+        Dynamically adjust the force direction based on the flow direction from
+        far field
+
+    Output:
+        forceDir: the force direction vector
+    */
+
+    label patchI = mesh_.boundaryMesh().findPatchID(inoutPatch_);
+
+    volVectorField& U =
+        const_cast<volVectorField&>(mesh_.thisDb().lookupObject<volVectorField>("U"));
+
+    vector flowDir = {-1e16, -1e16, -1e16};
+
+    // for decomposed domain, don't set BC if the patch is empty
+    if (mesh_.boundaryMesh()[patchI].size() > 0)
+    {
+        if (U.boundaryField()[patchI].type() == "fixedValue")
+        {
+            flowDir = U.boundaryField()[patchI][0];
+            flowDir = flowDir / mag(flowDir);
+        }
+        else if (U.boundaryField()[patchI].type() == "inletOutlet")
+        {
+            // perturb inletValue
+            mixedFvPatchField<vector>& inletOutletPatch =
+                refCast<mixedFvPatchField<vector>>(U.boundaryFieldRef()[patchI]);
+            flowDir = inletOutletPatch.refValue()[0];
+            flowDir = flowDir / mag(flowDir);
+        }
+        else
+        {
+            FatalErrorIn("") << "boundaryType: " << U.boundaryField()[patchI].type()
+                             << " not supported!"
+                             << "Avaiable options are: fixedValue, inletOutlet"
+                             << abort(FatalError);
+        }
+    }
+
+    // need to reduce the sum of force across all processors, this is becasue some of 
+    // the processor might not own the inoutPatch_ so their flowDir will be -1e16, but
+    // when calling the following reduce function, they will get the correct flowDir
+    // computed by other processors
+    reduce(flowDir[0], maxOp<scalar>());
+    reduce(flowDir[1], maxOp<scalar>());
+    reduce(flowDir[2], maxOp<scalar>());
+
+    if (dirMode_ == "parallelToFlow")
+    {
+        forceDir = flowDir;
+    }
+    else if (dirMode_ == "normalToFlow")
+    {
+        forceDir[xAxisIndex_] = -flowDir[yAxisIndex_];
+        forceDir[yAxisIndex_] = flowDir[xAxisIndex_];
+    }
+    else
+    {
+        FatalErrorIn(" ") << "directionMode not valid!"
+                          << "Options: parallelToFlow, normalToFlow."
+                          << abort(FatalError);
+    }
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

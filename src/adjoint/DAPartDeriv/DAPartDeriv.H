@@ -90,6 +90,11 @@ protected:
         const Vec coloredColumn,
         const label transposed,
         Mat jacMat) const;
+    
+    /// perturb the angle of attack
+    void perturbAOA(
+        const dictionary options,
+        const scalar delta);
 
     /// volume mesh coordinates wrt the ffd point coordinate partials
     Mat dXvdFFDMat_;

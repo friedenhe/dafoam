@@ -359,7 +359,8 @@ PetscErrorCode DALinearEqn::myKSPMonitor(
 
     DALinearEqn* daLinearEqn = (DALinearEqn*)ctx;
 
-    PetscInt printFrequency = 10; // residual print frequency
+    // residual print frequency
+    PetscInt printFrequency = daLinearEqn->getPrintInterval(); 
     if (n % printFrequency == 0)
     {
         PetscPrintf(
@@ -379,6 +380,15 @@ label DALinearEqn::getRunTime()
         Return the runtime
     */
     return mesh_.time().elapsedClockTime();
+}
+
+label DALinearEqn::getPrintInterval()
+{
+    /*
+    Descripton:
+        Return the printInterval from DAOption
+    */
+    return daOption_.getOption<label>("printInterval");
 }
 
 } // End namespace Foam
