@@ -42,6 +42,7 @@ aeroOptions = {
                 "type": "force",
                 "source": "patchToFace",
                 "patches": ["walls"],
+                "directionMode": "fixedDirection",
                 "direction": [1.0, 0.0, 0.0],
                 "scale": 0.1,
                 "addToAdjoint": True,
@@ -50,6 +51,7 @@ aeroOptions = {
                 "type": "force",
                 "source": "patchToFace",
                 "patches": ["wallsbump", "frontandback"],
+                "directionMode": "fixedDirection",
                 "direction": [1.0, 0.0, 0.0],
                 "scale": 0.1,
                 "addToAdjoint": True,
@@ -60,6 +62,7 @@ aeroOptions = {
                 "type": "force",
                 "source": "patchToFace",
                 "patches": ["walls", "wallsbump", "frontandback"],
+                "directionMode": "fixedDirection",
                 "direction": [0.0, 1.0, 0.0],
                 "scale": 0.1,
                 "addToAdjoint": True,
@@ -89,16 +92,16 @@ DVGeo.addGeoDVLocal("shapey", lower=-0.1, upper=0.1, axis="y", scale=1.0, pointS
 DVGeo.addGeoDVLocal("shapex", lower=-0.1, upper=0.1, axis="x", scale=1.0, pointSelect=PS)
 
 # DAFoam
-CFDSolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
-CFDSolver.setDVGeo(DVGeo)
+DASolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
+DASolver.setDVGeo(DVGeo)
 mesh = USMesh(options=meshOptions, comm=gcomm)
-CFDSolver.addFamilyGroup(CFDSolver.getOption("designSurfaceFamily"), CFDSolver.getOption("designSurfaces"))
+DASolver.addFamilyGroup(DASolver.getOption("designSurfaceFamily"), DASolver.getOption("designSurfaces"))
 if gcomm.rank == 0:
-    CFDSolver.printFamilyList()
-CFDSolver.setMesh(mesh)
+    DASolver.printFamilyList()
+DASolver.setMesh(mesh)
 # set evalFuncs
 evalFuncs = []
-objFuncs = CFDSolver.getOption("objFunc")
+objFuncs = DASolver.getOption("objFunc")
 for funcName in objFuncs:
     for funcPart in objFuncs[funcName]:
         if objFuncs[funcName][funcPart]["addToAdjoint"] == True:
@@ -108,19 +111,19 @@ for funcName in objFuncs:
 # DVCon
 DVCon = DVConstraints()
 DVCon.setDVGeo(DVGeo)
-[p0, v1, v2] = CFDSolver.getTriangulatedMeshSurface(groupName=CFDSolver.getOption("designSurfaceFamily"))
+[p0, v1, v2] = DASolver.getTriangulatedMeshSurface(groupName=DASolver.getOption("designSurfaceFamily"))
 surf = [p0, v1, v2]
 DVCon.setSurface(surf)
 
 # optFuncs
-optFuncs.CFDSolver = CFDSolver
+optFuncs.DASolver = DASolver
 optFuncs.DVGeo = DVGeo
 optFuncs.DVCon = DVCon
 optFuncs.evalFuncs = evalFuncs
 optFuncs.gcomm = gcomm
 
 # Opt
-CFDSolver.runColoring()
+DASolver.runColoring()
 xDV = DVGeo.getValues()
 funcs = {}
 funcs, fail = optFuncs.calcObjFuncValues(xDV)

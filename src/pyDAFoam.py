@@ -90,6 +90,7 @@ class PYDAFOAM(object):
                     "pRes": 2,
                     "phiRes": 1,
                     "URes": 2,
+                    "TRes": 2,
                     "nuTildaRes": 2,
                     "kRes": 2,
                     "epsilonRes": 2,

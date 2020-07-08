@@ -37,7 +37,7 @@ TIn = 300.0
 ARef = 0.1
 rhoRef = 1.0
 CL_target = 0.5
-alpha0 = 3.856366
+alpha0 = 3.850127
 
 # Set the parameters for optimization
 aeroOptions = {

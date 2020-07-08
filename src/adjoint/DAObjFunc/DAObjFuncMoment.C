@@ -42,14 +42,14 @@ DAObjFuncMoment::DAObjFuncMoment(
     objFuncDict_.readEntry<word>("type", objFuncType_);
 
     scalarList dir;
-    objFuncDict_.readEntry<scalarList>("direction", dir);
+    objFuncDict_.readEntry<scalarList>("axis", dir);
     momentDir_[0] = dir[0];
     momentDir_[1] = dir[1];
     momentDir_[2] = dir[2];
 
     if (fabs(mag(momentDir_) - 1.0) > 1.0e-4)
     {
-        FatalErrorIn(" ") << "the magnitude of the direction parameter in "
+        FatalErrorIn(" ") << "the magnitude of the axis parameter in "
                           << objFuncName << " " << objFuncPart << " is not 1.0!"
                           << abort(FatalError);
     }
