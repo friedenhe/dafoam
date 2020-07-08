@@ -545,7 +545,7 @@ void DAUtility::boundVar(
         }
     }
 
-    if (allOptions.getLabel("debug"))
+    if (allOptions.lookupOrDefault<label>("debug", 0))
     {
         if (useUpperBound)
         {
@@ -637,7 +637,7 @@ void DAUtility::boundVar(
         }
     }
 
-    if (allOptions.getLabel("debug"))
+    if (allOptions.lookupOrDefault<label>("debug", 0))
     {
         if (useUpperBound)
         {

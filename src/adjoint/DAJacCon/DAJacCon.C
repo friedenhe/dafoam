@@ -47,7 +47,7 @@ autoPtr<DAJacCon> DAJacCon::New(
     const DAModel& daModel,
     const DAIndex& daIndex)
 {
-    if (daOption.getOption<label>("debug"))
+    if (daOption.getAllOptions().lookupOrDefault<label>("debug", 0))
     {
         Info << "Selecting " << modelType << " for DAJacCon" << endl;
     }

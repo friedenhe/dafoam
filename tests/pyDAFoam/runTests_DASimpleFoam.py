@@ -12,6 +12,7 @@ from pyspline import *
 from idwarp import *
 from pyoptsparse import Optimization, OPT
 import numpy as np
+from testFuncs import *
 
 checkRegVal = 1
 if len(sys.argv) == 1:
@@ -24,57 +25,78 @@ else:
 
 gcomm = MPI.COMM_WORLD
 
-CL_target = 12.6
-CMZ_target = 5.82
-CMY_target = 1.71
-
-
-os.chdir("../input/CurvedCubeHexMesh")
+os.chdir("../input/NACA0012")
 
 if gcomm.rank == 0:
-    os.system("rm -rf  0/* processor*")
-    os.system("cp 0.incompressible/* 0/")
+    os.system("rm -rf 0 processor*")
+    os.system("cp -r 0.incompressible 0")
+    os.system("cp -r system.incompressible system")
+
+UmagIn = 10.0
+pIn = 0.0
+nuTildaIn = 4.5e-5
+ARef = 0.1
+alpha0 = 5.0
+LRef = 1.0
+CL_target = 0.5
+CM_target = 0.0
 
 # test incompressible solvers
 aeroOptions = {
     "solverName": "DASimpleFoam",
     "flowCondition": "Incompressible",
+    "turbulenceModel": "SpalartAllmaras",
     "designSurfaceFamily": "designSurface",
-    "designSurfaces": ["wallsbump"],
+    "designSurfaces": ["wing"],
     "primalBC": {
-        "bc1": {"variable": "U", "patch": "inlet", "value": [10.0, 0.0, 0.0]},
-        "bc2": {"variable": "p", "patch": "outlet", "value": [0.0]},
-        "bc3": {"variable": "nuTilda", "patch": "inlet", "value": [0.00015], "useWallFunction": True},
+        "UIn": {"variable": "U", "patch": "inout", "value": [UmagIn, 0.0, 0.0]},
+        "pIn": {"variable": "p", "patch": "inout", "value": [pIn]},
+        "nuTildaIn": {"variable": "nuTilda", "patch": "inout", "value": [nuTildaIn], "useWallFunction": True},
+    },
+    "fvSource": {
+        "disk1": {
+            "type": "actuatorDisk",
+            "source": "cylinderAnnulusToCell",
+            "p1": [-0.4, -0.1, 0.05],  # p1 and p2 define the axis and width
+            "p2": [-0.1, -0.1, 0.05],  # p2-p1 should be streamwise
+            "innerRadius": 0.01,
+            "outerRadius": 0.5,
+            "rotDir": "left",
+            "scale": 50.0,
+            "POD": 0.7,
+        },
+        "disk2": {
+            "type": "actuatorDisk",
+            "source": "cylinderAnnulusToCell",
+            "p1": [-0.4, 0.1, 0.05],
+            "p2": [-0.1, 0.1, 0.05],
+            "innerRadius": 0.01,
+            "outerRadius": 0.5,
+            "rotDir": "right",
+            "scale": 25.0,
+            "POD": 1.0,
+        },
     },
     "objFunc": {
         "CD": {
             "part1": {
                 "type": "force",
                 "source": "patchToFace",
-                "patches": ["walls"],
-                "directionMode": "fixedDirection",
-                "direction": [1.0, 0.0, 0.0],
-                "scale": 1.0,
+                "patches": ["wing"],
+                "directionMode": "parallelToFlow",
+                "alphaName": "alpha",
+                "scale": 1.0 / (0.5 * UmagIn * UmagIn * ARef),
                 "addToAdjoint": True,
-            },
-            "part2": {
-                "type": "force",
-                "source": "patchToFace",
-                "patches": ["wallsbump", "frontandback"],
-                "directionMode": "fixedDirection",
-                "direction": [1.0, 0.0, 0.0],
-                "scale": 1.0,
-                "addToAdjoint": True,
-            },
+            }
         },
         "CL": {
             "part1": {
                 "type": "force",
                 "source": "patchToFace",
-                "patches": ["walls", "wallsbump", "frontandback"],
-                "directionMode": "fixedDirection",
-                "direction": [0.0, 1.0, 0.0],
-                "scale": 1.0,
+                "patches": ["wing"],
+                "directionMode": "normalToFlow",
+                "alphaName": "alpha",
+                "scale": 1.0 / (0.5 * UmagIn * UmagIn * ARef),
                 "addToAdjoint": True,
             }
         },
@@ -82,26 +104,23 @@ aeroOptions = {
             "part1": {
                 "type": "moment",
                 "source": "patchToFace",
-                "patches": ["walls", "wallsbump", "frontandback"],
+                "patches": ["wing"],
                 "axis": [0.0, 0.0, 1.0],
-                "center": [0.5, 0.5, 0.5],
-                "scale": 1.0,
-                "addToAdjoint": True,
-            }
-        },
-        "CMY": {
-            "part1": {
-                "type": "moment",
-                "source": "patchToFace",
-                "patches": ["walls", "wallsbump", "frontandback"],
-                "axis": [0.0, 1.0, 0.0],
-                "center": [0.0, 0.0, 0.0],
-                "scale": 1.0,
+                "center": [0.25, 0.0, 0.05],
+                "scale": 1.0 / (0.5 * UmagIn * UmagIn * ARef * LRef),
                 "addToAdjoint": True,
             }
         },
     },
-    "designVar": {"shapex": {"designVarType": "FFD"}, "shapey": {"designVarType": "FFD"}},
+    "normalizeStates": {"U": UmagIn, "p": UmagIn * UmagIn / 2.0, "nuTilda": nuTildaIn * 10.0, "phi": 1.0},
+    "adjEpsDerivState": 1e-6,
+    "adjEpsDerivFFD": 1e-3,
+    "adjEqnOption": {"gmresRelTol": 1.0e-10, "gmresAbsTol": 1.0e-15, "pcFillLevel": 1, "jacMatReOrdering": "rcm"},
+    # Design variable setup
+    "designVar": {
+        "shapey": {"designVarType": "FFD"},
+        "alpha": {"designVarType": "AOA", "patch": "inout", "xAxisIndex": 0, "yAxisIndex": 1},
+    },
 }
 
 # mesh warping parameters, users need to manually specify the symmetry plane
@@ -109,25 +128,36 @@ meshOptions = {
     "gridFile": os.getcwd(),
     "fileType": "openfoam",
     # point and normal for the symmetry plane
-    "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]],
+    "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1], [0.0, 0.0, 1.0]]],
 }
 
 optOptions = {
     "ACC": 1.0e-5,  # convergence accuracy
-    "MAXIT": 2,  # max optimization iterations
+    "MAXIT": 1,  # max optimization iterations
     "IFILE": "opt_SLSQP.out",
 }
 
 # DVGeo
-FFDFile = "./FFD/bumpFFD.xyz"
+FFDFile = "./FFD/wingFFD.xyz"
 DVGeo = DVGeometry(FFDFile)
+
+# nTwists is the number of FFD points in the spanwise direction
+nTwists = DVGeo.addRefAxis("bodyAxis", xFraction=0.25, alignIndex="k")
+
+
+def alpha(val, geo):
+    aoa = val[0] * np.pi / 180.0
+    inletU = [float(UmagIn * np.cos(aoa)), float(UmagIn * np.sin(aoa)), 0]
+    DASolver.setOption("primalBC", {"UIn": {"variable": "U", "patch": "inout", "value": inletU}})
+    DASolver.updateDAOption()
+
 
 # select points
 pts = DVGeo.getLocalIndex(0)
-indexList = pts[1:3, 1, 1:3].flatten()
+indexList = pts[:, :, :].flatten()
 PS = geo_utils.PointSelect("list", indexList)
-DVGeo.addGeoDVLocal("shapey", lower=-0.1, upper=0.1, axis="y", scale=1.0, pointSelect=PS)
-DVGeo.addGeoDVLocal("shapex", lower=-0.1, upper=0.1, axis="x", scale=1.0, pointSelect=PS)
+DVGeo.addGeoDVLocal("shapey", lower=-1.0, upper=1.0, axis="y", scale=1.0, pointSelect=PS)
+DVGeo.addGeoDVGlobal("alpha", [alpha0], alpha, lower=-10.0, upper=10.0, scale=1.0)
 
 # DAFoam
 DASolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
@@ -153,15 +183,32 @@ DVCon.setDVGeo(DVGeo)
 surf = [p0, v1, v2]
 DVCon.setSurface(surf)
 
-# Test a linear constraint
+leList = [[1e-4, 0.0, 1e-4], [1e-4, 0.0, 0.1 - 1e-4]]
+teList = [[0.998 - 1e-4, 0.0, 1e-4], [0.998 - 1e-4, 0.0, 0.1 - 1e-4]]
+
+DVCon.addVolumeConstraint(leList, teList, nSpan=2, nChord=10, lower=1.0, upper=3, scaled=True)
+DVCon.addThicknessConstraints2D(leList, teList, nSpan=2, nChord=10, lower=0.8, upper=3.0, scaled=True)
+
+# Create a linear constraint so that the curvature at the symmetry plane is zero
+nFFDs_x = 5
 pts1 = DVGeo.getLocalIndex(0)
 indSetA = []
 indSetB = []
-for i in range(3):
-    for k in range(3):
+for i in range(nFFDs_x):
+    for j in [0, 1]:
+        indSetA.append(pts1[i, j, 1])
+        indSetB.append(pts1[i, j, 0])
+DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=-1.0, lower=0.0, upper=0.0)
+
+# Create a linear constraint so that the leading and trailing edges do not change
+pts1 = DVGeo.getLocalIndex(0)
+indSetA = []
+indSetB = []
+for i in [0, nFFDs_x - 1]:
+    for k in [0]:  # do not constrain k=1 because it is linked in the above symmetry constraint
         indSetA.append(pts1[i, 0, k])
         indSetB.append(pts1[i, 1, k])
-DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=-1.0, lower=0.0, upper=0.0)
+DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=1.0, lower=0.0, upper=0.0)
 
 # optFuncs
 optFuncs.DASolver = DASolver
@@ -170,48 +217,28 @@ optFuncs.DVCon = DVCon
 optFuncs.evalFuncs = evalFuncs
 optFuncs.gcomm = gcomm
 
-# Opt
+# Optimize
 DASolver.runColoring()
 optProb = Optimization("opt", optFuncs.calcObjFuncValues, comm=gcomm)
 DVGeo.addVariablesPyOpt(optProb)
 DVCon.addConstraintsPyOpt(optProb)
-
 # Add objective
 optProb.addObj("CD", scale=1)
 # Add physical constraints
 optProb.addCon("CL", lower=CL_target, upper=CL_target, scale=1)
-optProb.addCon("CMZ", lower=CMZ_target, upper=CMZ_target, scale=1)
-optProb.addCon("CMY", lower=CMY_target, upper=CMY_target, scale=1)
+optProb.addCon("CMZ", lower=CM_target, upper=CM_target, scale=1)
 
 if gcomm.rank == 0:
     print(optProb)
 
 opt = OPT("slsqp", options=optOptions)
-histFile = "slsqp_hist.hst"
+histFile = os.path.join("./", "slsqp_hist.hst")
 sol = opt(optProb, sens=optFuncs.calcObjFuncSens, storeHistory=histFile)
+
 if gcomm.rank == 0:
     print(sol)
 
 if checkRegVal:
     xDVs = DVGeo.getValues()
-
-    l2_shapex = np.linalg.norm(xDVs["shapex"])
-    l2_shapey = np.linalg.norm(xDVs["shapey"])
-
     if gcomm.rank == 0:
-        print("l2_shapex: ", l2_shapex)
-        print("l2_shapey: ", l2_shapey)
-
-    ref_shapex = 0.18792724386851453
-    ref_shapey = 0.1646036795038631
-
-    diff_shapey = abs(l2_shapey - ref_shapey)
-    diff_shapex = abs(l2_shapex - ref_shapex)
-
-    dvTol = 1.0e-8
-    if diff_shapey > dvTol or diff_shapex > dvTol:
-        print("Failed!")
-        exit(1)
-    else:
-        print("Succes!")
-
+        reg_write_dict(xDVs, 1e-8, 1e-10)

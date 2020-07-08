@@ -5,7 +5,7 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-rm -rf input
+rm -rf input pyDAFoam/__pycache__
 cd DAFoamIncompressible && make clean
 cd ../
 cd DAFoamCompressible && make clean

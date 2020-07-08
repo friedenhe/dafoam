@@ -85,7 +85,7 @@ DASpalartAllmaras::DASpalartAllmaras(
           nuTildaRes_),
       y_(mesh.thisDb().lookupObject<volScalarField>("yWall"))
 {
-    printInterval_ = daOption.getOption<label>("printInterval");
+    printInterval_ = daOption.getAllOptions().lookupOrDefault<label>("printInterval", 100);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

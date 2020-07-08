@@ -75,7 +75,7 @@ autoPtr<DAObjFunc> DAObjFunc::New(
     word modelType;
     objFuncDict.readEntry<word>("type", modelType);
 
-    if (daOption.getOption<label>("debug"))
+    if (daOption.getAllOptions().lookupOrDefault<label>("debug", 0))
     {
         Info << "Selecting type: " << modelType << " for DAObjFunc. Name: " << objFuncName
              << " part: " << objFuncPart << endl;

@@ -26,6 +26,7 @@ DAFvSourceActuatorDisk::DAFvSourceActuatorDisk(
 {
     const dictionary& allOptions = daOption_.getAllOptions();
     fvSourceSubDict_ = allOptions.subDict("fvSource");
+    this->calcFvSourceCellIndices(fvSourceCellIndices_);
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -242,7 +243,7 @@ void DAFvSourceActuatorDisk::calcFvSourceCellIndices(HashTable<labelList>& fvSou
     {
         word diskName = fvSourceSubDict_.toc()[idxI];
 
-        fvSourceCellIndices[diskName] = {};
+        fvSourceCellIndices.set(diskName, {});
 
         dictionary diskSubDict = fvSourceSubDict_.subDict(diskName);
         word sourceType = diskSubDict.getWord("source");
@@ -303,6 +304,11 @@ void DAFvSourceActuatorDisk::calcFvSourceCellIndices(HashTable<labelList>& fvSou
                                               << "Options are: cylinderAnnulusToCell!"
                                               << abort(FatalError);
         }
+    }
+
+    if (daOption_.getOption<label>("debug"))
+    {
+        Info << "fvSourceCellIndices " << fvSourceCellIndices << endl;
     }
 }
 

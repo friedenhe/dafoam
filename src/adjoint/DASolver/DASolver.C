@@ -57,7 +57,7 @@ autoPtr<DASolver> DASolver::New(
     word modelType;
     allOptions.readEntry<word>("solverName", modelType);
 
-    if (allOptions.getLabel("debug"))
+    if (allOptions.lookupOrDefault<label>("debug", 0))
     {
         Info << "Selecting " << modelType << " for DASolver" << endl;
     }

@@ -53,7 +53,7 @@ autoPtr<DAPartDeriv> DAPartDeriv::New(
     const DAJacCon& daJacCon,
     const DAResidual& daResidual)
 {
-    if (daOption.getOption<label>("debug"))
+    if (daOption.getAllOptions().lookupOrDefault<label>("debug", 0))
     {
         Info << "Selecting " << modelType << " for DAPartDeriv" << endl;
     }

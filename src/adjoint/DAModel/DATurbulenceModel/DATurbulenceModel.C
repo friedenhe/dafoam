@@ -166,7 +166,7 @@ autoPtr<DATurbulenceModel> DATurbulenceModel::New(
     const fvMesh& mesh,
     const DAOption& daOption)
 {
-    if (daOption.getOption<label>("debug"))
+    if (daOption.getAllOptions().lookupOrDefault<label>("debug", 0))
     {
         Info << "Selecting " << modelType << " for DATurbulenceModel" << endl;
     }
