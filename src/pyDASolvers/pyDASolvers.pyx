@@ -33,6 +33,7 @@ cdef extern from "DASolvers.H" namespace "Foam":
         void printAllOptions()
         double getTotalDerivVal(char *, char *, int)
         void updateDAOption(object)
+        double getPrevPrimalSolTime()
 
 # create python wrappers that call cpp functions
 cdef class pyDASolvers:
@@ -114,3 +115,6 @@ cdef class pyDASolvers:
 
     def updateDAOption(self, pyOptions):
         self._thisptr.updateDAOption(pyOptions)
+    
+    def getPrevPrimalSolTime(self):
+        return self._thisptr.getPrevPrimalSolTime()

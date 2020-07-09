@@ -139,7 +139,7 @@ label DARhoSimpleCFoam::solvePrimal(
     Info << "End\n"
          << endl;
 
-    return 0;
+    return this->checkResidualTol();
 }
 
 } // End namespace Foam

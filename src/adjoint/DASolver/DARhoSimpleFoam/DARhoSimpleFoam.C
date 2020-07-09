@@ -68,13 +68,13 @@ label DARhoSimpleFoam::solvePrimal(
 
 #include "createRefsRhoSimple.H"
 
-    // first check if we need to change the boundary conditions based on 
-    // the primalBC dict in DAOption. NOTE: this will overwrite whatever 
+    // first check if we need to change the boundary conditions based on
+    // the primalBC dict in DAOption. NOTE: this will overwrite whatever
     // boundary conditions defined in the "0" folder
     dictionary bcDict = daOptionPtr_->getAllOptions().subDict("primalBC");
-    if (bcDict.toc().size()!=0)
+    if (bcDict.toc().size() != 0)
     {
-        Info<<"Setting up primal boundary conditions based on pyOptions: "<<endl;
+        Info << "Setting up primal boundary conditions based on pyOptions: " << endl;
         daFieldPtr_->setPrimalBoundaryConditions();
     }
 
@@ -117,7 +117,7 @@ label DARhoSimpleFoam::solvePrimal(
         if (nSolverIters % printInterval == 0 || nSolverIters == 1)
         {
             this->printAllObjFuncs();
-            
+
             Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
                  << "  ClockTime = " << runTime.elapsedClockTime() << " s"
                  << nl << endl;
@@ -139,7 +139,7 @@ label DARhoSimpleFoam::solvePrimal(
     Info << "End\n"
          << endl;
 
-    return 0;
+    return this->checkResidualTol();
 }
 
 } // End namespace Foam

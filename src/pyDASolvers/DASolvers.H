@@ -149,6 +149,12 @@ public:
     {
         DASolverPtr_->updateDAOption(pyOptions);
     }
+
+    /// get the solution time folder for previous primal solution
+    scalar getPrevPrimalSolTime()
+    {
+        return DASolverPtr_->getPrevPrimalSolTime();
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

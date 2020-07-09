@@ -123,6 +123,20 @@ protected:
     /// the maximal residual for primal solution
     scalar primalMinRes_;
 
+    /// the solution time for the previous primal solution
+    scalar prevPrimalSolTime_ = -1e10;
+
+    /// setup maximal residual control and print the residual as needed
+    template<class classType>
+    void primalResidualControl(
+        const SolverPerformance<classType>& solverP,
+        const label nSolverIters,
+        const label printInterval,
+        const word varName);
+    
+    /// check whether the min residual in primal satisfy the prescribed tolerance
+    label checkResidualTol();
+
 public:
     /// Runtime type information
     TypeName("DASolver");
@@ -270,13 +284,11 @@ public:
         daOptionPtr_->updateDAOption(pyOptions);
     }
 
-    /// setup maximal residual control and print the residual as needed
-    template<class classType>
-    void primalResidualControl(
-        const SolverPerformance<classType>& solverP,
-        const label nSolverIters,
-        const label printInterval,
-        const word varName);
+    /// get the solution time folder for previous primal solution
+    scalar getPrevPrimalSolTime()
+    {
+        return prevPrimalSolTime_;
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

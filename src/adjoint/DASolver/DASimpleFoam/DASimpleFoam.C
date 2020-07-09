@@ -52,7 +52,7 @@ void DASimpleFoam::initSolver()
     const dictionary& allOptions = daOptionPtr_->getAllOptions();
     if (allOptions.subDict("fvSource").toc().size() != 0)
     {
-        Info<<"Computing fvSource"<<endl;
+        Info << "Computing fvSource" << endl;
         word sourceName = allOptions.subDict("fvSource").toc()[0];
         word fvSourceType = allOptions.subDict("fvSource").subDict(sourceName).getWord("type");
         daFvSourcePtr_.reset(DAFvSource::New(
@@ -150,7 +150,7 @@ label DASimpleFoam::solvePrimal(
     Info << "End\n"
          << endl;
 
-    return 0;
+    return this->checkResidualTol();
 }
 
 } // End namespace Foam

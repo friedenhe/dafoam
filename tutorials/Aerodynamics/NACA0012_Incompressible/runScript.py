@@ -35,7 +35,7 @@ UmagIn = 10.0
 pIn = 0.0
 nuTildaIn = 4.5e-5
 CL_target = 0.5
-alpha0 = 5.529564
+alpha0 = 5.139186
 ARef = 0.1
 
 # Set the parameters for optimization
@@ -48,6 +48,7 @@ aeroOptions = {
     "solverName": "DASimpleFoam",
     "turbulenceModel": "SpalartAllmaras",
     "flowCondition": "Incompressible",
+    "primalMinResTol": 1.0e-8,
     "primalBC": {
         "UIn": {"variable": "U", "patch": "inout", "value": [UmagIn, 0.0, 0.0]},
         "pIn": {"variable": "p", "patch": "inout", "value": [pIn]},

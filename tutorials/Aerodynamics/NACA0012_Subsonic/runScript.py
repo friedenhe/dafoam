@@ -49,6 +49,7 @@ aeroOptions = {
     "solverName": "DARhoSimpleFoam",
     "turbulenceModel": "SpalartAllmaras",
     "flowCondition": "Compressible",
+    "primalMinResTol": 1.0e-8,
     "primalBC": {
         "UIn": {"variable": "U", "patch": "inout", "value": [UmagIn, 0.0, 0.0]},
         "pIn": {"variable": "p", "patch": "inout", "value": [pIn]},

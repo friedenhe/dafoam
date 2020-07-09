@@ -63,6 +63,7 @@ class PYDAFOAM(object):
             "fvSource": [dict, {}],
             "printInterval": [int, 100],
             "primalMinResTol": [float, 1.0e-8],
+            "primalMinResTolDiff": [float, 1.0e2],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivState": [float, 1.0e-5],
@@ -642,6 +643,8 @@ class PYDAFOAM(object):
 
         if self.comm.rank == 0:
             print("Running Primal Solver %03d" % self.nSolvePrimals)
+        
+        self.deletePrevPrimalSolTime()
 
         self.primalFail = 0
         self.primalFail = self.solver.solvePrimal(self.xvVec, self.wVec)
@@ -821,11 +824,40 @@ class PYDAFOAM(object):
 
         return
 
+    def deletePrevPrimalSolTime(self):
+        """
+        Delete the previous primal solution time folder
+        """
+
+        solTime = self.solver.getPrevPrimalSolTime()
+
+        rootDir = os.getcwd()
+        if self.parallel:
+            checkPath = os.path.join(rootDir, "processor%d/%g" % (self.comm.rank, solTime))
+        else:
+            checkPath = os.path.join(rootDir, "%g" % solTime)
+
+        if os.path.isdir(checkPath):
+            try:
+                shutil.rmtree(checkPath)
+            except Exception:
+                raise Error("Can not delete %s" % checkPath)
+
+            if self.comm.rank == 0:
+                print("Previous solution time %g found and deleted." % solTime)
+        else:
+            if self.comm.rank == 0:
+                print("Previous solution time %g not found and nothing deleted." % solTime)
+
+        return
+
     def renameSolution(self, solIndex):
         """
         Rename the primal solution folder to specific format for post-processing. The renamed time has the
         format like 0.00000001, 0.00000002, etc. One can load these intermediate shapes and fields and
-        plot them in paraview
+        plot them in paraview.
+        The way it is implemented is that we sort the solution folder and consider the largest time folder
+        as the solution folder and rename it
 
         Parameters
         ----------

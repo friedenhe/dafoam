@@ -99,15 +99,18 @@ label DASolver::loop(Time& runTime)
     const scalar& deltaT = runTime.deltaT().value();
     const scalar t = runTime.timeOutputValue();
     scalar tol = daOptionPtr_->getOption<scalar>("primalMinResTol");
-    if( primalMinRes_ <  tol)
+    if (primalMinRes_ < tol)
     {
-        Info<<"Time = "<<t<<endl;
-        Info<<"Minimal residual "<<primalMinRes_<<" satisfied the prescribed tolerance "<<tol<<endl<<endl;
+        Info << "Time = " << t << endl;
+        Info << "Minimal residual " << primalMinRes_ << " satisfied the prescribed tolerance " << tol << endl
+             << endl;
         runTime.writeNow();
+        prevPrimalSolTime_ = t;
         return 0;
     }
     else if (t > endTime - 0.5 * deltaT)
     {
+        prevPrimalSolTime_ = t;
         return 0;
     }
     else
@@ -1709,6 +1712,35 @@ void DASolver::setdXvdFFDMat(const Mat dXvdFFDMat)
     MatAssemblyBegin(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(dXvdFFDMat_, MAT_FINAL_ASSEMBLY);
 }
+
+label DASolver::checkResidualTol()
+{
+    /*
+    Description:
+        Check whether the min residual in primal satisfy the prescribed tolerance
+        If yes, return 0 else return 1
+    */
+
+    scalar tol = daOptionPtr_->getOption<scalar>("primalMinResTol");
+    scalar tolMax = daOptionPtr_->getOption<scalar>("primalMinResTolDiff");
+    if (primalMinRes_ / tol > tolMax)
+    {
+        Info << "********************************************" << endl;
+        Info << "Primal min residual" << primalMinRes_
+             << "did not satisfy the prescribed tolerance "
+             << tol << endl;
+        Info << "Primal solution failed!" << endl;
+        Info << "********************************************" << endl;
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
