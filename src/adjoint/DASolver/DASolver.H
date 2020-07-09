@@ -120,6 +120,9 @@ protected:
     /// the matrix that stores the partials dXv/dFFD computed from the idwarp and pygeo in the pyDAFoam.py
     Mat dXvdFFDMat_;
 
+    /// the maximal residual for primal solution
+    scalar primalMinRes_;
+
 public:
     /// Runtime type information
     TypeName("DASolver");
@@ -266,9 +269,39 @@ public:
     {
         daOptionPtr_->updateDAOption(pyOptions);
     }
+
+    /// setup maximal residual control and print the residual as needed
+    template<class classType>
+    void primalResidualControl(
+        const SolverPerformance<classType>& solverP,
+        const label nSolverIters,
+        const label printInterval,
+        const word varName);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+template<class classType>
+void DASolver::primalResidualControl(
+    const SolverPerformance<classType>& solverP,
+    const label nSolverIters,
+    const label printInterval,
+    const word varName)
+{
+    /*
+    Description:
+        Setup maximal residual control and print the residual as needed
+    */
+    if (mag(solverP.initialResidual()) < primalMinRes_)
+    {
+        primalMinRes_ = mag(solverP.initialResidual());
+    }
+    if (nSolverIters % printInterval == 0 || nSolverIters == 1)
+    {
+        Info << varName << " Initial residual: " << solverP.initialResidual() << endl
+             << varName << "   Final residual: " << solverP.finalResidual() << endl;
+    }
+}
 
 } // End namespace Foam
 

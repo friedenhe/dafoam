@@ -15,6 +15,7 @@ import subprocess
 import os
 import sys
 import copy
+import shutil
 import numpy as np
 from pprint import pprint as pp
 from mpi4py import MPI
@@ -61,6 +62,7 @@ class PYDAFOAM(object):
             "primalBC": [dict, {}],
             "fvSource": [dict, {}],
             "printInterval": [int, 100],
+            "primalMinResTol": [float, 1.0e-8],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjEpsDerivState": [float, 1.0e-5],
@@ -666,6 +668,7 @@ class PYDAFOAM(object):
         """
 
         # save the point vector and state vector to disk
+        """
         if self.comm.rank == 0:
             print("Saving the xvVec and wVec vectors to disk....")
         self.comm.Barrier()
@@ -673,6 +676,9 @@ class PYDAFOAM(object):
         viewerXv(self.xvVec)
         viewerW = PETSc.Viewer().createBinary("wVec_%03d.bin" % self.nSolveAdjoints, mode="w", comm=PETSc.COMM_WORLD)
         viewerW(self.wVec)
+        """
+
+        self.renameSolution(self.nSolveAdjoints)
 
         if self.comm.rank == 0:
             print("Running adjoint Solver %03d" % self.nSolveAdjoints)
@@ -812,6 +818,51 @@ class PYDAFOAM(object):
                 # raise Error('pyDAFoam: status %d: Unable to run decomposePar'%status)
                 print("\nUnable to run decomposePar, the domain has been already decomposed?\n")
         self.comm.Barrier()
+
+        return
+
+    def renameSolution(self, solIndex):
+        """
+        Rename the primal solution folder to specific format for post-processing. The renamed time has the
+        format like 0.00000001, 0.00000002, etc. One can load these intermediate shapes and fields and
+        plot them in paraview
+
+        Parameters
+        ----------
+        solIndex: int
+            The major interation index
+        """
+
+        allSolutions = []
+        rootDir = os.getcwd()
+        if self.parallel:
+            checkPath = os.path.join(rootDir, "processor%d" % self.comm.rank)
+        else:
+            checkPath = rootDir
+
+        folderNames = os.listdir(checkPath)
+        for folderName in folderNames:
+            try:
+                float(folderName)
+                allSolutions.append(folderName)
+            except ValueError:
+                continue
+        allSolutions.sort(reverse=True)
+        # choose the latst solution to rename
+        solutionTime = allSolutions[0]
+
+        distTime = "%.8f" % ((solIndex + 1) / 1e8)
+
+        src = os.path.join(checkPath, solutionTime)
+        dst = os.path.join(checkPath, distTime)
+
+        if self.comm.rank == 0:
+            print("Moving time %s to %s" % (solutionTime, distTime))
+
+        try:
+            shutil.move(src, dst)
+        except Exception:
+            raise Error("Can not move %s to %s" % (src, dst))
 
         return
 
@@ -1360,11 +1411,11 @@ class PYDAFOAM(object):
 
     def setOption(self, name, value):
         """
-        Set a value to options.  
+        Set a value to options.
         NOTE: calling this function will only change the values in self.options
         It will NOT change values for allOptions_ in DAOption. To make the options changes
         from pyDAFoam to DASolvers, call self.updateDAOption()
-        
+
         Parameters
         ----------
         name : str

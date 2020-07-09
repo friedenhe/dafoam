@@ -48,11 +48,7 @@ while (simple.correctNonOrthogonal())
     // and final residuals
     SolverPerformance<scalar> solverP = pEqn.solve();
 
-    if (nSolverIters % printInterval == 0 || nSolverIters == 1)
-    {
-        Info << "p Initial residual: " << solverP.initialResidual() << endl
-             << "    Final residual: " << solverP.finalResidual() << endl;
-    }
+    this->primalResidualControl<scalar>(solverP, nSolverIters, printInterval, "p");
 
     if (simple.finalNonOrthogonalIter())
     {

@@ -98,7 +98,15 @@ label DASolver::loop(Time& runTime)
     const scalar& endTime = runTime.endTime().value();
     const scalar& deltaT = runTime.deltaT().value();
     const scalar t = runTime.timeOutputValue();
-    if (t > endTime - 0.5 * deltaT)
+    scalar tol = daOptionPtr_->getOption<scalar>("primalMinResTol");
+    if( primalMinRes_ <  tol)
+    {
+        Info<<"Time = "<<t<<endl;
+        Info<<"Minimal residual "<<primalMinRes_<<" satisfied the prescribed tolerance "<<tol<<endl<<endl;
+        runTime.writeNow();
+        return 0;
+    }
+    else if (t > endTime - 0.5 * deltaT)
     {
         return 0;
     }

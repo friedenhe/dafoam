@@ -19,20 +19,6 @@ SIMPLE
 {
     consistent                         false;
     nNonOrthogonalCorrectors           0;
-    residualControl
-    {
-        U                              1.000000e-20;
-        nuTilda                        1.000000e-20;
-        p                              1.000000e-20;
-        e                              1.000000e-20;
-        h                              1.000000e-20;
-        p_rgh                          1.000000e-20;
-        k                              1.000000e-20;
-        omega                          1.000000e-20;
-        epsilon                        1.000000e-20;
-        T                              1.000000e-20;
-        rho                            1.000000e-20;
-    }
 }
 
 solvers

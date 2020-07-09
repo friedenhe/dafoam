@@ -14,9 +14,5 @@ if (simple.momentumPredictor())
     // and final residuals
     SolverPerformance<vector> solverU = solve(UEqn == -fvc::grad(p));
 
-    if (nSolverIters % printInterval == 0 || nSolverIters == 1)
-    {
-        Info << "U Initial residual: " << solverU.initialResidual() << endl
-             << "    Final residual: " << solverU.finalResidual() << endl;
-    }
+    this->primalResidualControl<vector>(solverU, nSolverIters, printInterval, "U");
 }

@@ -5,4 +5,4 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-for d in ./*/ ; do (cd "$d" && wmake); done
+for d in ./*/ ; do (cd "$d" && wmake -j 4 || exit 1); done

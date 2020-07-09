@@ -95,9 +95,9 @@ label DARhoSimpleCFoam::solvePrimal(
     }
 
     label nSolverIters = 1;
-    //while (simple.loop()) // using simple.loop() will have seg fault in parallel
+    primalMinRes_ = 1e10;
     label printInterval = daOptionPtr_->getOption<label>("printInterval");
-    while (this->loop(runTime))
+    while (this->loop(runTime)) // using simple.loop() will have seg fault in parallel
     {
         if (nSolverIters % printInterval == 0 || nSolverIters == 1)
         {

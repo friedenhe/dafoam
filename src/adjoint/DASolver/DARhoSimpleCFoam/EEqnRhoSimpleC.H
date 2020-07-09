@@ -14,11 +14,7 @@
     // and final residuals
     SolverPerformance<scalar> solverE = EEqn.solve();
 
-    if (nSolverIters % printInterval == 0 || nSolverIters == 1)
-    {
-        Info << "he Initial residual: " << solverE.initialResidual() << endl
-             << "     Final residual: " << solverE.finalResidual() << endl;
-    }
+    this->primalResidualControl<scalar>(solverE, nSolverIters, printInterval, "he");
 
     // bound he
     DAUtility::boundVar(allOptions, he);
