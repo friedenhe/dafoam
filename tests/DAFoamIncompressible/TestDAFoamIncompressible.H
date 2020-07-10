@@ -24,6 +24,7 @@
 #include "DAObjFunc.H"
 #include "DARegDbSinglePhaseTransportModel.H"
 #include "DARegDbTurbulenceModelIncompressible.H"
+#include "DAField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,6 +76,9 @@ public:
 
     /// test DAObjFunc
     label testDAObjFunc(PyObject* pyDict);
+
+    /// test DAField
+    label testDAField(PyObject* pyDict);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

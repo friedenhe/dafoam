@@ -117,7 +117,7 @@ void DAPartDerivdFdBC::calcPartDerivMat(
     mOptions.set("updateMesh", 0);
     scalar fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivBC");
+    scalar delta = daOption_.getSubDictOption<scalar>("adjPartDerivFDStep", "BC");
     scalar rDelta = 1.0 / delta;
 
     // perturb BC

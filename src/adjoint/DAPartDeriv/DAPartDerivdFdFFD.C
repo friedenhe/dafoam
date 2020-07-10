@@ -123,7 +123,7 @@ void DAPartDerivdFdFFD::calcPartDerivMat(
     mOptions.set("updateMesh", 1);
     scalar fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivFFD");
+    scalar delta = daOption_.getSubDictOption<scalar>("adjPartDerivFDStep", "FFD");
     scalar rDelta = 1.0 / delta;
 
     Vec xvVecNew;

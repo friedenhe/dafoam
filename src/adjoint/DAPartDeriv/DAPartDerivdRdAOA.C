@@ -110,7 +110,7 @@ void DAPartDerivdRdAOA::calcPartDerivMat(
     mOptions.set("isPC", options.getLabel("isPC"));
     daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivAOA");
+    scalar delta = daOption_.getSubDictOption<scalar>("adjPartDerivFDStep", "AOA");
     scalar rDelta = 1.0 / delta;
 
     // perturb angle of attack

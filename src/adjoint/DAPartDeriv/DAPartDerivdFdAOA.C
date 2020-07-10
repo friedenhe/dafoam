@@ -126,7 +126,7 @@ void DAPartDerivdFdAOA::calcPartDerivMat(
     mOptions.set("updateMesh", 0);
     scalar fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivAOA");
+    scalar delta = daOption_.getSubDictOption<scalar>("adjPartDerivFDStep", "AOA");
     scalar rDelta = 1.0 / delta;
 
     // perturb AOA

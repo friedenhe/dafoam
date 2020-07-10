@@ -42,3 +42,11 @@ word turbModelName = daOption.getOption<word>("turbulenceModel");
 autoPtr<DATurbulenceModel> daTurbulenceModel(DATurbulenceModel::New(turbModelName, mesh, daOption));
 
 DAModel daModel(mesh, daOption);
+
+word solverName = daOption.getOption<word>("solverName");
+autoPtr<DAStateInfo> daStateInfo(
+    DAStateInfo::New(solverName, mesh, daOption, daModel));
+
+DAIndex daIndex(mesh, daOption, daModel);
+
+DAField daField(mesh, daOption, daModel, daIndex);

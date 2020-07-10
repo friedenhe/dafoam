@@ -496,14 +496,13 @@ label TestDAFoamIncompressible::testDAUtility(
     scalar valA2 = 0.99999999999999;
     scalar valA3 = 1.0001;
     scalar valARef = 1.0;
-    if ( !DAUtility::isValueCloseToRef(valA1, valARef) || 
-         !DAUtility::isValueCloseToRef(valA2, valARef) ||
-         DAUtility::isValueCloseToRef(valA3, valARef)  )
+    if (!DAUtility::isValueCloseToRef(valA1, valARef)
+        || !DAUtility::isValueCloseToRef(valA2, valARef)
+        || DAUtility::isValueCloseToRef(valA3, valARef))
     {
         Pout << "ERROR: error isValueCloseToRef!" << endl;
         testErrors += 1;
     }
-
 
     return testErrors;
 }
@@ -699,7 +698,6 @@ label TestDAFoamIncompressible::testDAModel(PyObject* pyDict)
 #include "createSimpleControl.H"
 #include "createFields.H"
 
-
     label testErrors = 0;
 
     wordList modelStates = {"nut", "p", "U"};
@@ -707,7 +705,7 @@ label TestDAFoamIncompressible::testDAModel(PyObject* pyDict)
 
     daModel.correctModelStates(modelStates);
 
-    if (modelStates!=modelStatesRef)
+    if (modelStates != modelStatesRef)
     {
         Pout << "ERROR: in correctModelStates!" << endl;
         testErrors += 1;
@@ -728,15 +726,6 @@ label TestDAFoamIncompressible::testDAStateInfo(PyObject* pyDict)
 #include "createFields.H"
 
     label testErrors = 0;
-    /*
-    DAOption daOption(mesh, pyDict);
-
-    autoPtr<DATurbulenceModel> daTurbmodel(
-        DATurbulenceModel::New(mesh));
-
-    DAModel daModel(mesh);
-
-    autoPtr<DAStateInfo> daStateInfo(DAStateInfo::New(mesh));
 
     const HashTable<wordList>& stateInfo = daStateInfo->getStateInfo();
 
@@ -751,14 +740,14 @@ label TestDAFoamIncompressible::testDAStateInfo(PyObject* pyDict)
     stateInfoRef["volVectorStates"].append("U");
     stateInfoRef["surfaceScalarStates"].append("phi");
 
-    daStateInfo->correctModelStates(stateInfoRef["modelStates"]);
+    daModel.correctModelStates(stateInfoRef["modelStates"]);
 
     if (stateInfo != stateInfoRef)
     {
         Pout << "compressible error in DAStateInfo!" << endl;
         testErrors += 1;
     }
-*/
+
     return testErrors;
 }
 
@@ -777,6 +766,102 @@ label TestDAFoamIncompressible::testDAObjFunc(PyObject* pyDict)
     return testErrors;
 }
 
+label TestDAFoamIncompressible::testDAField(PyObject* pyDict)
+{
+    autoPtr<argList> argsPtr_;
+#include "setArgs.H"
+#include "setRootCasePython.H"
+#include "createTime.H"
+#include "createMesh.H"
+#include "createSimpleControl.H"
+#include "createFields.H"
+
+    label testErrors = 0;
+
+    Vec xvVec;
+    VecCreate(PETSC_COMM_WORLD, &xvVec);
+    VecSetSizes(xvVec, mesh.nPoints() * 3, PETSC_DETERMINE);
+    VecSetFromOptions(xvVec);
+
+    daField.ofMesh2PointVec(xvVec);
+    scalar vecNormOrig;
+    VecNorm(xvVec, NORM_2, &vecNormOrig);
+    daField.pointVec2OFMesh(xvVec);
+    daField.ofMesh2PointVec(xvVec);
+    scalar vecNormNew;
+    VecNorm(xvVec, NORM_2, &vecNormNew);
+    if (vecNormOrig != vecNormNew)
+    {
+        Pout << "ERROR: pointVec2OFMesh/ofMesh2PointVec error!" << endl;
+        testErrors += 1;
+    }
+
+    volVectorField URes(
+        IOobject(
+            "URes",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            true),
+        mesh,
+        dimensionedVector("URes", dimensionSet(0, 0, 0, 0, 0, 0, 0), vector::one),
+        zeroGradientFvPatchVectorField::typeName);
+
+    volScalarField pRes(
+        IOobject(
+            "pRes",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            true),
+        mesh,
+        dimensionedScalar("pRes", dimensionSet(0, 0, 0, 0, 0, 0, 0), 2.0),
+        zeroGradientFvPatchScalarField::typeName);
+
+    volScalarField nuTildaRes(
+        IOobject(
+            "nuTildaRes",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            true),
+        mesh,
+        dimensionedScalar("nuTildaRes", dimensionSet(0, 0, 0, 0, 0, 0, 0), 3.0),
+        zeroGradientFvPatchScalarField::typeName);
+
+    surfaceScalarField phiRes(
+        IOobject(
+            "phiRes",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            true),
+        phi);
+
+    Vec resVec;
+    VecCreate(PETSC_COMM_WORLD, &resVec);
+    VecSetSizes(resVec, daIndex.nLocalAdjointStates, PETSC_DETERMINE);
+    VecSetFromOptions(resVec);
+
+    daField.ofResField2ResVec(resVec);
+    scalar resVecNormOrig;
+    VecNorm(resVec, NORM_2, &resVecNormOrig);
+    daField.resVec2OFResField(resVec);
+    daField.ofResField2ResVec(resVec);
+    scalar resVecNormNew;
+    VecNorm(resVec, NORM_2, &resVecNormNew);
+    if (resVecNormOrig != resVecNormNew)
+    {
+        Pout << "ERROR: resVec2OFResField/ofResField2ResVec error!" << endl;
+        testErrors += 1;
+    }
+
+    return testErrors;
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

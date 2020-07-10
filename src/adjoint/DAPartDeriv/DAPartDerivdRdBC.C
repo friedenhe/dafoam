@@ -110,7 +110,7 @@ void DAPartDerivdRdBC::calcPartDerivMat(
     mOptions.set("isPC", options.getLabel("isPC"));
     daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivBC");
+    scalar delta = daOption_.getSubDictOption<scalar>("adjPartDerivFDStep", "BC");
     scalar rDelta = 1.0 / delta;
 
     // perturb BC

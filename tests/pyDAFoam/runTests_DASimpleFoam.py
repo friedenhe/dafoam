@@ -114,8 +114,7 @@ aeroOptions = {
         },
     },
     "normalizeStates": {"U": UmagIn, "p": UmagIn * UmagIn / 2.0, "nuTilda": nuTildaIn * 10.0, "phi": 1.0},
-    "adjEpsDerivState": 1e-6,
-    "adjEpsDerivFFD": 1e-3,
+    "adjPartDerivFDStep": {"State": 1e-6, "FFD": 1e-3},
     "adjEqnOption": {"gmresRelTol": 1.0e-10, "gmresAbsTol": 1.0e-15, "pcFillLevel": 1, "jacMatReOrdering": "rcm"},
     # Design variable setup
     "designVar": {
@@ -242,4 +241,4 @@ if gcomm.rank == 0:
 if checkRegVal:
     xDVs = DVGeo.getValues()
     if gcomm.rank == 0:
-        reg_write_dict(xDVs, 1e-8, 1e-10)
+        reg_write_dict(xDVs, 1e-6, 1e-8)

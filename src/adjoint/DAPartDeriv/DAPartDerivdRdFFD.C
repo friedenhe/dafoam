@@ -116,7 +116,7 @@ void DAPartDerivdRdFFD::calcPartDerivMat(
     mOptions.set("isPC", options.getLabel("isPC"));
     daResidual.masterFunction(mOptions, xvVec, wVec, resVecRef);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivFFD");
+    scalar delta = daOption_.getSubDictOption<scalar>("adjPartDerivFDStep", "FFD");
     scalar rDelta = 1.0 / delta;
 
     Vec xvVecNew;

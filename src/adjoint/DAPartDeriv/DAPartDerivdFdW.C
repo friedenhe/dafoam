@@ -155,7 +155,7 @@ void DAPartDerivdFdW::calcPartDerivMat(
     const scalarList& objFuncCellValues = daObjFunc->getObjFuncCellValues();
     daJacCon_.setObjFuncVec(objFuncFaceValues, objFuncCellValues, fVecRef);
 
-    scalar delta = daOption_.getOption<scalar>("adjEpsDerivState");
+    scalar delta = daOption_.getSubDictOption<scalar>("adjPartDerivFDStep", "State");
     scalar rDelta = 1.0 / delta;
 
     label nColors = daJacCon_.getNJacConColors();

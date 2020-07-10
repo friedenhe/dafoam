@@ -181,7 +181,7 @@ def testSensShape():
                     fOut.flush()
 
     # gradFD
-    deltaX = DASolver.getOption("adjEpsDerivFFD")
+    deltaX = DASolver.getOption("adjPartDerivFDStep")["FFD"]
     # initialize gradFD
     gradFD = {}
     for funcName in evalFuncs:

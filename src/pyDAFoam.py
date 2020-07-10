@@ -66,10 +66,15 @@ class PYDAFOAM(object):
             "primalMinResTolDiff": [float, 1.0e2],
             # adjoint options
             "adjUseColoring": [bool, True],
-            "adjEpsDerivState": [float, 1.0e-5],
-            "adjEpsDerivFFD": [float, 1.0e-3],
-            "adjEpsDerivBC": [float, 1.0e-2],
-            "adjEpsDerivAOA": [float, 1.0e-3],
+            "adjPartDerivFDStep": [
+                dict,
+                {
+                    "State": 1.0e-5,
+                    "FFD": 1.0e-3,
+                    "BC": 1.0e-2,
+                    "AOA": 1.0e-3,
+                },
+            ],
             "adjStateOrdering": [str, "state"],
             "adjEqnOption": [
                 dict,
@@ -644,7 +649,7 @@ class PYDAFOAM(object):
 
         if self.comm.rank == 0:
             print("Running Primal Solver %03d" % self.nSolvePrimals)
-        
+
         self.deletePrevPrimalSolTime()
 
         self.primalFail = 0
@@ -924,7 +929,7 @@ class PYDAFOAM(object):
         # get the size of xv, it is the number of points * 3
         nXvs = len(oldVolPoints)
         # get eps
-        epsFFD = self.getOption("adjEpsDerivFFD")
+        epsFFD = self.getOption("adjPartDerivFDStep")["FFD"]
         if self.comm.rank == 0:
             print("Caclculating the dXvdFFD matrix with epsFFD: " + str(epsFFD))
 

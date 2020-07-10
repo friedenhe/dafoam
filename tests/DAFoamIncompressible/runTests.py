@@ -43,6 +43,65 @@ def checkErrors(testName, errorCode):
     else:
         print("Tests Passed for %s! Rank %d" % (testName, comm.rank))
 
+defOpts = {
+    # primal options
+    "primalVarBounds": [dict, {}],
+    "flowCondition": [str, "Incompressible"],
+    "turbulenceModel": [str, "SpalartAllmaras"],
+    "primalBC": [dict, {}],
+    "fvSource": [dict, {}],
+    "printInterval": [int, 100],
+    "primalMinResTol": [float, 1.0e-8],
+    "primalMinResTolDiff": [float, 1.0e2],
+    # adjoint options
+    "adjUseColoring": [bool, True],
+    "adjPartDerivFDStep": [dict, {"State": 1.0e-5, "FFD": 1.0e-3, "BC": 1.0e-2, "AOA": 1.0e-3,},],
+    "adjStateOrdering": [str, "state"],
+    "adjEqnOption": [
+        dict,
+        {
+            "globalPCIters": 0,
+            "asmOverlap": 1,
+            "localPCIters": 1,
+            "jacMatReOrdering": "rcm",
+            "pcFillLevel": 1,
+            "gmresMaxIters": 1000,
+            "gmresRestart": 1000,
+            "gmresRelTol": 1.0e-6,
+            "gmresAbsTol": 1.0e-14,
+            "gmresTolDiff": 1.0e2,
+        },
+    ],
+    "normalizeStates": [dict, {}],
+    "normalizeResiduals": [list, ["URes", "pRes", "nuTildaRes", "phiRes", "TRes"]],
+    "maxResConLv4JacPCMat": [
+        dict,
+        {
+            "pRes": 2,
+            "phiRes": 1,
+            "URes": 2,
+            "TRes": 2,
+            "nuTildaRes": 2,
+            "kRes": 2,
+            "epsilonRes": 2,
+            "omegaRes": 2,
+            "p_rghRes": 2,
+        },
+    ],
+    "transonicPCOption": [int, -1],
+    # optimization options
+    "designVar": [dict, {}],
+    # system options
+    "rootDir": [str, "./"],
+    "solverName": [str, "DASimpleFoam"],
+    "printAllOptions": [bool, True],
+    "objFunc": [dict, {}],
+    "debug": [bool, False],
+    # surface definition
+    "meshSurfaceFamily": [str, "None"],
+    "designSurfaceFamily": [str, "None"],
+    "designSurfaces": [list, ["body"]],
+}
 
 pyDict = {
     "key1": [int, 15],
@@ -90,55 +149,24 @@ os.chdir("../../DAFoamIncompressible")
 
 # Test3: DAModel
 os.chdir("../input/CurvedCubeHexMesh")
-testDict = {"solverName": [str, "DASimpleFoam"], "turbulenceModel": [str, "SpalartAllmaras"]}
-testErrors = tests.testDAModel(testDict)
+testErrors = tests.testDAModel(defOpts)
 checkErrors("DAModel", testErrors)
 os.chdir("../../DAFoamIncompressible")
 
 # Test4: DAStateInfo
 os.chdir("../input/CurvedCubeHexMesh")
-testDict = {"solverName": [str, "DASimpleFoam"], "turbulenceModel": [str, "SpalartAllmaras"]}
-testErrors = tests.testDAStateInfo(testDict)
+testErrors = tests.testDAStateInfo(defOpts)
 checkErrors("DAStateInfo", testErrors)
 os.chdir("../../DAFoamIncompressible")
 
 # Test5: DAObjFunc
 os.chdir("../input/CurvedCubeHexMesh")
-testDict = {
-    "solverName": [str, "DASimpleFoam"],
-    "turbulenceModel": [str, "SpalartAllmaras"],
-    "adjUseColoring": [bool, True],
-    "objFunc": [
-        dict,
-        {
-            "func1": {
-                "part1": {
-                    "objFuncName": "force",
-                    "source": "patchToFace",
-                    "patch": ["walls", "wallsbump"],
-                    "scale": 0.5,
-                    "addToAdjoint": False,
-                },
-                "part2": {
-                    "objFuncName": "force",
-                    "source": "patchToFace",
-                    "patch": ["wallsbump", "frontandback"],
-                    "scale": 0.5,
-                    "addToAdjoint": False,
-                },
-            },
-            "func2": {
-                "part1": {
-                    "objFuncName": "force",
-                    "source": "patchToFace",
-                    "patch": ["walls", "wallsbump", "frontandback"],
-                    "scale": 1.0,
-                    "addToAdjoint": False,
-                }
-            },
-        },
-    ],
-}
-testErrors = tests.testDAObjFunc(testDict)
+testErrors = tests.testDAObjFunc(defOpts)
 checkErrors("DAObjFunc", testErrors)
+os.chdir("../../DAFoamIncompressible")
+
+# Test6: DAField
+os.chdir("../input/CurvedCubeHexMesh")
+testErrors = tests.testDAField(defOpts)
+checkErrors("DAField", testErrors)
 os.chdir("../../DAFoamIncompressible")
