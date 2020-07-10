@@ -45,6 +45,7 @@ aeroOptions = {
     "turbulenceModel": "SpalartAllmaras",
     "designSurfaceFamily": "designSurface",
     "designSurfaces": ["wallsbump"],
+    "primalMinResTol": 1e-12,
     "primalBC": {
         "UIn": {"variable": "U", "patch": "inlet", "value": [UmagIn, 0.0, 0.0]},
         "pIn": {"variable": "p", "patch": "outlet", "value": [pIn]},
