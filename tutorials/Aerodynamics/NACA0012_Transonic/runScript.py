@@ -94,8 +94,7 @@ aeroOptions = {
     "adjEqnOption": {"pcFillLevel": 1, "jacMatReOrdering": "rcm"},
     "transonicPCOption": 1,
     "normalizeStates": {"U": UmagIn, "p": pIn, "nuTilda": nuTildaIn * 10.0, "phi": 1.0, "T": TIn},
-    "adjEpsDerivState": 1e-7,
-    "adjEpsDerivFFD": 1e-3,
+    "adjPartDerivFDStep": {"State": 1e-7, "FFD": 1e-3},
     # Design variable setup
     "designVar": {
         "shapey": {"designVarType": "FFD"},
