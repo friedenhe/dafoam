@@ -73,9 +73,7 @@ def calcObjFuncSens(xDV, funcs):
     if gcomm.rank == 0:
         print("\n")
         print("+--------------------------------------------------------------------------+")
-        print(
-            "|              Evaluating Objective Function Sensitivities %03d             |" % DASolver.nSolveAdjoints
-        )
+        print("|              Evaluating Objective Function Sensitivities %03d             |" % DASolver.nSolveAdjoints)
         print("+--------------------------------------------------------------------------+")
 
     a = time.time()

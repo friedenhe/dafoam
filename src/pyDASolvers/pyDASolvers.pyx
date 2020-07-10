@@ -81,7 +81,7 @@ cdef class pyDASolvers:
         return self._thisptr.solvePrimal(xvVec.vec, wVec.vec)
     
     def solveAdjoint(self, Vec xvVec, Vec wVec):
-        self._thisptr.solveAdjoint(xvVec.vec, wVec.vec)
+        return self._thisptr.solveAdjoint(xvVec.vec, wVec.vec)
     
     def calcTotalDeriv(self, Vec xvVec, Vec wVec, designVarName):
         return self._thisptr.calcTotalDeriv(xvVec.vec, wVec.vec, designVarName)

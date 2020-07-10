@@ -307,21 +307,30 @@ label DALinearEqn::solveLinearEqn(
 
     Output:
         solVec: the solution vector
+
+        Return 0 if the linear equation solution finished successfully otherwise return 1
     */
 
-    Info << "Solving Linear Euqation... "
-         << this->getRunTime() << " s" << endl;
+    Info << "Solving Linear Euqation... " << this->getRunTime() << " s" << endl;
 
     //Solve adjoint
     VecZeroEntries(solVec);
 
+    // set up rGMRESHist to save the tolerance history for the GMRES solution
+    // these vars are for store the tolerance for GMRES linear solution
+    label gmresMaxIters = daOption_.getSubDictOption<label>("adjEqnOption", "gmresMaxIters");
+    scalar rGMRESHist[gmresMaxIters+1];
+    label nGMRESIters=gmresMaxIters+1;
+    KSPSetResidualHistory(ksp, rGMRESHist, nGMRESIters, PETSC_TRUE);
+
+    // solve KSP
     KSPSolve(ksp, rhsVec, solVec);
 
     //Print convergence information
     label its;
     KSPGetIterationNumber(ksp, &its);
-    PetscScalar finalResNorm;
-    KSPGetResidualNorm(ksp, &finalResNorm);
+    scalar initResNorm = rGMRESHist[0];
+    scalar finalResNorm = rGMRESHist[its];
     PetscPrintf(
         PETSC_COMM_WORLD,
         "Main iteration %D KSP Residual norm %14.12e %d s \n",
@@ -335,9 +344,24 @@ label DALinearEqn::solveLinearEqn(
 
     Info << "Solving Lineq Equation... Completed! "
          << this->getRunTime() << " s" << endl;
-        
+
+    // now we need to check if the linear equation solution is successful
     
-    return 0;
+    scalar absResRatio = finalResNorm / daOption_.getSubDictOption<scalar>("adjEqnOption", "gmresAbsTol");
+    scalar relResRatio = finalResNorm / initResNorm / daOption_.getSubDictOption<scalar>("adjEqnOption", "gmresRelTol");
+    scalar resDiff = daOption_.getSubDictOption<scalar>("adjEqnOption", "gmresTolDiff");
+    if (relResRatio > resDiff && absResRatio > resDiff)
+    {
+        Info << "Residual tolerance not satisfied, solution failed!" << endl;
+        return 1;
+    }
+    else
+    {
+        Info << "Residual tolerance satisfied, solution finished!" << endl;
+        return 0;
+    }
+
+    return 1;
 }
 
 PetscErrorCode DALinearEqn::myKSPMonitor(
@@ -360,7 +384,7 @@ PetscErrorCode DALinearEqn::myKSPMonitor(
     DALinearEqn* daLinearEqn = (DALinearEqn*)ctx;
 
     // residual print frequency
-    PetscInt printFrequency = daLinearEqn->getPrintInterval(); 
+    PetscInt printFrequency = daLinearEqn->getPrintInterval();
     if (n % printFrequency == 0)
     {
         PetscPrintf(

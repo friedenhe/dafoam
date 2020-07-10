@@ -83,6 +83,7 @@ class PYDAFOAM(object):
                     "gmresRestart": 1000,
                     "gmresRelTol": 1.0e-6,
                     "gmresAbsTol": 1.0e-14,
+                    "gmresTolDiff": 1.0e2,
                 },
             ],
             "normalizeStates": [dict, {}],

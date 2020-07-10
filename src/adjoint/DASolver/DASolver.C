@@ -617,6 +617,8 @@ label DASolver::solveAdjoint(
         to this list
     */
 
+    label solveAdjointFail = 0;
+
     DALinearEqn daLinearEqn(meshPtr_(), daOptionPtr_());
 
     // ********************** compute dRdWT **********************
@@ -933,7 +935,12 @@ label DASolver::solveAdjoint(
             VecZeroEntries(psiVec);
 
             // solve the linear equation and get psiVec
-            daLinearEqn.solveLinearEqn(ksp, dFdWVecAllParts, psiVec);
+            label solError = daLinearEqn.solveLinearEqn(ksp, dFdWVecAllParts, psiVec);
+
+            if (solError)
+            {
+                solveAdjointFail = 1;
+            }
 
             // assign the psiVec to psiVecDict_ for all objFuncName such that we can
             // call getPsiVec later in DASolver::calcTotalDeriv
@@ -952,7 +959,7 @@ label DASolver::solveAdjoint(
     MatDestroy(&dRdWT);
     MatDestroy(&dRdWTPC);
 
-    return 0;
+    return solveAdjointFail;
 }
 
 label DASolver::calcTotalDeriv(
@@ -1726,7 +1733,7 @@ label DASolver::checkResidualTol()
     if (primalMinRes_ / tol > tolMax)
     {
         Info << "********************************************" << endl;
-        Info << "Primal min residual" << primalMinRes_
+        Info << "Primal min residual " << primalMinRes_ << endl
              << "did not satisfy the prescribed tolerance "
              << tol << endl;
         Info << "Primal solution failed!" << endl;
