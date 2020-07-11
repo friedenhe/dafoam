@@ -95,9 +95,9 @@ label DASolver::loop(Time& runTime)
         The loop method to increment the runtime. The reason we implent this is
         because the runTime.loop() and simple.loop() give us seg fault...
     */
-    const scalar& endTime = runTime.endTime().value();
-    const scalar& deltaT = runTime.deltaT().value();
-    const scalar t = runTime.timeOutputValue();
+    scalar endTime = runTime.endTime().value();
+    scalar deltaT = runTime.deltaT().value();
+    scalar t = runTime.timeOutputValue();
     scalar tol = daOptionPtr_->getOption<scalar>("primalMinResTol");
     if (primalMinRes_ < tol)
     {
