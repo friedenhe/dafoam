@@ -36,7 +36,7 @@ DASolver::DASolver(
       daResidualPtr_(nullptr)
 {
     // initialize fvMesh and Time object pointer
-    Info << "Initializing mesh and runtime for DASolver" << endl;
+    // Info << "Initializing mesh and runtime for DASolver" << endl;
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTimePython.H"

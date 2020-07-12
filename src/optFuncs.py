@@ -25,12 +25,12 @@ def calcObjFuncValues(xDV):
     Update the design surface and run the primal solver to get objective function values.
     """
 
-    if gcomm.rank == 0:
-        print("\n")
-        print("+--------------------------------------------------------------------------+")
-        print("|                  Evaluating Objective Functions %03d                      |" % DASolver.nSolvePrimals)
-        print("+--------------------------------------------------------------------------+")
-        print("Design Variables: ", xDV)
+    Info("\n")
+    Info("+--------------------------------------------------------------------------+")
+    Info("|                  Evaluating Objective Functions %03d                      |" % DASolver.nSolvePrimals)
+    Info("+--------------------------------------------------------------------------+")
+    Info("Design Variables: ")
+    Info(xDV)
 
     a = time.time()
 
@@ -53,9 +53,9 @@ def calcObjFuncValues(xDV):
     b = time.time()
 
     # Print the current solution to the screen
-    if gcomm.rank == 0:
-        print("Objective Functions: ", funcs)
-        print("Flow Runtime: ", b - a)
+    Info("Objective Functions: ")
+    Info(funcs)
+    Info("Flow Runtime: %g" % (b - a))
 
     fail = funcs["fail"]
 
@@ -70,11 +70,10 @@ def calcObjFuncSens(xDV, funcs):
     Run the adjoint solver and get objective function sensitivities.
     """
 
-    if gcomm.rank == 0:
-        print("\n")
-        print("+--------------------------------------------------------------------------+")
-        print("|              Evaluating Objective Function Sensitivities %03d             |" % DASolver.nSolveAdjoints)
-        print("+--------------------------------------------------------------------------+")
+    Info("\n")
+    Info("+--------------------------------------------------------------------------+")
+    Info("|              Evaluating Objective Function Sensitivities %03d             |" % DASolver.nSolveAdjoints)
+    Info("+--------------------------------------------------------------------------+")
 
     a = time.time()
 
@@ -94,9 +93,9 @@ def calcObjFuncSens(xDV, funcs):
     b = time.time()
 
     # Print the current solution to the screen
-    if gcomm.rank == 0:
-        print("Objective Function Sensitivity: ", funcsSens)
-        print("Adjoint Runtime: ", b - a)
+    Info("Objective Function Sensitivity: ")
+    Info(funcsSens)
+    Info("Adjoint Runtime: %g s" % (b - a))
 
     fail = funcsSens["fail"]
 
@@ -132,11 +131,9 @@ def solveCL(CL_star, alphaName, liftName):
         funcs = {}
         funcs, fail = calcObjFuncValues(xDVs)
         CL0 = funcs[liftName]
-        if gcomm.rank == 0:
-            print("alpha: %f, CL: %f" % (alpha.real, CL0))
+        Info("alpha: %f, CL: %f" % (alpha.real, CL0))
         if abs(CL0 - CL_star) / CL_star < 1e-5:
-            if gcomm.rank == 0:
-                print("Completed! alpha = %f" % alpha.real)
+            Info("Completed! alpha = %f" % alpha.real)
             break
         # compute sens
         eps = 1e-2
@@ -189,7 +186,7 @@ def testSensShape():
         for shapeVar in xDV:
             gradFD[funcName][shapeVar] = np.zeros(len(xDV[shapeVar]))
     if gcomm.rank == 0:
-        print("-------FD----------", deltaX)
+        print("-------FD----------", deltaX, flush=True)
         fOut.write("DeltaX: " + str(deltaX) + "\n")
     for shapeVar in xDV:
         try:
@@ -206,8 +203,7 @@ def testSensShape():
             xDV[shapeVar][i] += deltaX
             for funcName in evalFuncs:
                 gradFD[funcName][shapeVar][i] = (funcp[funcName] - funcm[funcName]) / (2.0 * deltaX)
-            if gcomm.rank == 0:
-                print(gradFD)
+            Info(gradFD)
     # write FD results
     if gcomm.rank == 0:
         for funcName in evalFuncs:
@@ -224,3 +220,14 @@ def testSensShape():
 
     if gcomm.rank == 0:
         fOut.close()
+
+
+class Info(object):
+    """
+    Print information and flush to screen for parallel cases
+    """
+
+    def __init__(self, message):
+        if gcomm.rank == 0:
+            print(message, flush=True)
+        gcomm.Barrier()

@@ -17,7 +17,6 @@ import sys
 import copy
 import shutil
 import numpy as np
-from pprint import pprint as pp
 from mpi4py import MPI
 from collections import OrderedDict
 import petsc4py
@@ -66,15 +65,7 @@ class PYDAFOAM(object):
             "primalMinResTolDiff": [float, 1.0e2],
             # adjoint options
             "adjUseColoring": [bool, True],
-            "adjPartDerivFDStep": [
-                dict,
-                {
-                    "State": 1.0e-5,
-                    "FFD": 1.0e-3,
-                    "BC": 1.0e-2,
-                    "AOA": 1.0e-3,
-                },
-            ],
+            "adjPartDerivFDStep": [dict, {"State": 1.0e-5, "FFD": 1.0e-3, "BC": 1.0e-2, "AOA": 1.0e-3,}],
             "adjStateOrdering": [str, "state"],
             "adjEqnOption": [
                 dict,
@@ -209,8 +200,7 @@ class PYDAFOAM(object):
         self.primalFail = 0
         self.adjointFail = 0
 
-        if self.comm.rank == 0:
-            print("pyDAFoam initialization done!")
+        Info("pyDAFoam initialization done!")
 
         return
 
@@ -240,19 +230,15 @@ class PYDAFOAM(object):
                 self.pointsSet = True
 
             # set the surface coords xs
-            if self.comm.rank == 0:
-                print("DVGeo PointSet UpToDate: " + str(self.DVGeo.pointSetUpToDate(ptSetName)))
+            Info("DVGeo PointSet UpToDate: " + str(self.DVGeo.pointSetUpToDate(ptSetName)))
             if not self.DVGeo.pointSetUpToDate(ptSetName):
-                if self.comm.rank == 0:
-                    print("Updating DVGeo PointSet....")
+                Info("Updating DVGeo PointSet....")
                 xs = self.DVGeo.update(ptSetName, config=None)
                 self.setSurfaceCoordinates(xs, self.designFamilyGroup)
-                if self.comm.rank == 0:
-                    print("DVGeo PointSet UpToDate: " + str(self.DVGeo.pointSetUpToDate(ptSetName)))
+                Info("DVGeo PointSet UpToDate: " + str(self.DVGeo.pointSetUpToDate(ptSetName)))
 
                 # warp the mesh to get the new volume coordinates
-                if self.comm.rank == 0:
-                    print("Warping the volume mesh....")
+                Info("Warping the volume mesh....")
                 self.mesh.warpMesh()
 
                 xvNew = self.mesh.getSolverGrid()
@@ -551,7 +537,7 @@ class PYDAFOAM(object):
         """
         Print a nicely formatted dictionary of the family names
         """
-        pp(self.families)
+        Info(self.families)
 
     def setDesignVars(self, x):
         """
@@ -647,8 +633,7 @@ class PYDAFOAM(object):
         self.primalFail: if the primal solution fails, assigns 1, otherwise 0
         """
 
-        if self.comm.rank == 0:
-            print("Running Primal Solver %03d" % self.nSolvePrimals)
+        Info("Running Primal Solver %03d" % self.nSolvePrimals)
 
         self.deletePrevPrimalSolTime()
 
@@ -678,8 +663,7 @@ class PYDAFOAM(object):
 
         # save the point vector and state vector to disk
         """
-        if self.comm.rank == 0:
-            print("Saving the xvVec and wVec vectors to disk....")
+        Info("Saving the xvVec and wVec vectors to disk....")
         self.comm.Barrier()
         viewerXv = PETSc.Viewer().createBinary("xvVec_%03d.bin" % self.nSolveAdjoints, mode="w", comm=PETSc.COMM_WORLD)
         viewerXv(self.xvVec)
@@ -689,8 +673,7 @@ class PYDAFOAM(object):
 
         self.renameSolution(self.nSolveAdjoints)
 
-        if self.comm.rank == 0:
-            print("Running adjoint Solver %03d" % self.nSolveAdjoints)
+        Info("Running adjoint Solver %03d" % self.nSolveAdjoints)
 
         self.adjointFail = 0
         self.adjointFail = self.solver.solveAdjoint(self.xvVec, self.wVec)
@@ -718,8 +701,7 @@ class PYDAFOAM(object):
         self.adjointFail: if the total derivative computation fails, assigns 1, otherwise 0
         """
 
-        if self.comm.rank == 0:
-            print("Computing total derivatives....")
+        Info("Computing total derivatives....")
 
         designVarDict = self.getOption("designVar")
         for key in designVarDict:
@@ -771,11 +753,10 @@ class PYDAFOAM(object):
             meshOK=1 means the mesh quality check passes
         """
 
-        if self.comm.rank == 0:
-            print("\n")
-            print("+--------------------------------------------------------------------------+")
-            print("|                        Checking Mesh Quality                             |")
-            print("+--------------------------------------------------------------------------+")
+        Info("\n")
+        Info("+--------------------------------------------------------------------------+")
+        Info("|                        Checking Mesh Quality                             |")
+        Info("+--------------------------------------------------------------------------+")
 
         meshOK = self.solver.checkMesh()
 
@@ -786,11 +767,10 @@ class PYDAFOAM(object):
         Run coloring solver
         """
 
-        if self.comm.rank == 0:
-            print("\n")
-            print("+--------------------------------------------------------------------------+")
-            print("|                       Running Coloring Solver                            |")
-            print("+--------------------------------------------------------------------------+")
+        Info("\n")
+        Info("+--------------------------------------------------------------------------+")
+        Info("|                       Running Coloring Solver                            |")
+        Info("+--------------------------------------------------------------------------+")
 
         if self.getOption("flowCondition") == "Incompressible":
 
@@ -825,7 +805,7 @@ class PYDAFOAM(object):
             status = subprocess.call("decomposePar", stdout=sys.stdout, stderr=subprocess.STDOUT, shell=False)
             if status != 0:
                 # raise Error('pyDAFoam: status %d: Unable to run decomposePar'%status)
-                print("\nUnable to run decomposePar, the domain has been already decomposed?\n")
+                print("\nUnable to run decomposePar, the domain has been already decomposed?\n", flush=True)
         self.comm.Barrier()
 
         return
@@ -849,11 +829,9 @@ class PYDAFOAM(object):
             except Exception:
                 raise Error("Can not delete %s" % checkPath)
 
-            if self.comm.rank == 0:
-                print("Previous solution time %g found and deleted." % solTime)
+            Info("Previous solution time %g found and deleted." % solTime)
         else:
-            if self.comm.rank == 0:
-                print("Previous solution time %g not found and nothing deleted." % solTime)
+            Info("Previous solution time %g not found and nothing deleted." % solTime)
 
         return
 
@@ -894,13 +872,15 @@ class PYDAFOAM(object):
         src = os.path.join(checkPath, solutionTime)
         dst = os.path.join(checkPath, distTime)
 
-        if self.comm.rank == 0:
-            print("Moving time %s to %s" % (solutionTime, distTime))
+        Info("Moving time %s to %s" % (solutionTime, distTime))
 
-        try:
-            shutil.move(src, dst)
-        except Exception:
-            raise Error("Can not move %s to %s" % (src, dst))
+        if os.path.isdir(dst):
+            raise Error("%s already exists, moving failed!" % dst)
+        else:
+            try:
+                shutil.move(src, dst)
+            except Exception:
+                raise Error("Can not move %s to %s" % (src, dst))
 
         return
 
@@ -930,8 +910,8 @@ class PYDAFOAM(object):
         nXvs = len(oldVolPoints)
         # get eps
         epsFFD = self.getOption("adjPartDerivFDStep")["FFD"]
-        if self.comm.rank == 0:
-            print("Caclculating the dXvdFFD matrix with epsFFD: " + str(epsFFD))
+
+        Info("Caclculating the dXvdFFD matrix with epsFFD: " + str(epsFFD))
 
         dXvdFFDMat = PETSc.Mat().create(PETSc.COMM_WORLD)
         dXvdFFDMat.setSizes(((nXvs, None), (None, nDVs)))
@@ -989,15 +969,9 @@ class PYDAFOAM(object):
                 self.pointsSet = True
 
             # set the surface coords
-            # if self.comm.rank == 0:
-            #     print ('DVGeo PointSet UpToDate: '+str(self.DVGeo.pointSetUpToDate(ptSetName)))
             if not self.DVGeo.pointSetUpToDate(ptSetName):
-                # if self.comm.rank == 0:
-                #     print 'Updating DVGeo PointSet....'
                 coords = self.DVGeo.update(ptSetName, config=None)
                 self.setSurfaceCoordinates(coords, self.designFamilyGroup)
-                # if self.comm.rank == 0:
-                #     print ('DVGeo PointSet UpToDate: '+str(self.DVGeo.pointSetUpToDate(ptSetName)))
 
             # warp the mesh
             self.mesh.warpMesh()
@@ -1422,8 +1396,7 @@ class PYDAFOAM(object):
             The directory containing the openFOAM Mesh files
         """
 
-        if self.comm.rank == 0:
-            print("Reading OpenFOAM mesh information...")
+        Info("Reading OpenFOAM mesh information...")
 
         from pyofm import PYOFM
 
@@ -1575,15 +1548,14 @@ class PYDAFOAM(object):
         options to the stdout on the root processor
         """
 
-        if self.comm.rank == 0:
-            print("+---------------------------------------+")
-            print("|         All %s Options:         |" % self.name)
-            print("+---------------------------------------+")
-            # Need to assemble a temporary dictionary
-            tmpDict = {}
-            for key in self.options:
-                tmpDict[key] = self.getOption(key)
-            pp(tmpDict)
+        Info("+---------------------------------------+")
+        Info("|         All DAFoam Options:           |")
+        Info("+---------------------------------------+")
+        # Need to assemble a temporary dictionary
+        tmpDict = {}
+        for key in self.options:
+            tmpDict[key] = self.getOption(key)
+        Info(tmpDict)
 
     def _getImmutableOptions(self):
         """
@@ -1613,7 +1585,18 @@ class Error(Exception):
                 msg += word + " "
                 i += len(word) + 1
         msg += " " * (78 - i) + "|\n" + "+" + "-" * 78 + "+" + "\n"
-        print(msg)
+        print(msg, flush=True)
         Exception.__init__(self)
 
         return
+
+
+class Info(object):
+    """
+    Print information and flush to screen for parallel cases
+    """
+
+    def __init__(self, message):
+        if MPI.COMM_WORLD.rank == 0:
+            print(message, flush=True)
+        MPI.COMM_WORLD.Barrier()
