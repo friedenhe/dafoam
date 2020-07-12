@@ -117,6 +117,7 @@ meshOptions = {
 FFDFile = "./FFD/bumpFFD.xyz"
 DVGeo = DVGeometry(FFDFile)
 
+
 def uin(val, geo):
     inletU = val[0]
     DASolver.setOption("primalBC", {"UIn": {"variable": "U", "patch": "inlet", "value": [inletU, 0.0, 0.0]}})
@@ -135,8 +136,7 @@ DASolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
 DASolver.setDVGeo(DVGeo)
 mesh = USMesh(options=meshOptions, comm=gcomm)
 DASolver.addFamilyGroup(DASolver.getOption("designSurfaceFamily"), DASolver.getOption("designSurfaces"))
-if gcomm.rank == 0:
-    DASolver.printFamilyList()
+DASolver.printFamilyList()
 DASolver.setMesh(mesh)
 # set evalFuncs
 evalFuncs = []

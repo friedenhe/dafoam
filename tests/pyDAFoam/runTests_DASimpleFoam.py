@@ -164,16 +164,15 @@ DASolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
 DASolver.setDVGeo(DVGeo)
 mesh = USMesh(options=meshOptions, comm=gcomm)
 DASolver.addFamilyGroup(DASolver.getOption("designSurfaceFamily"), DASolver.getOption("designSurfaces"))
-if gcomm.rank == 0:
-    DASolver.printFamilyList()
+DASolver.printFamilyList()
 DASolver.setMesh(mesh)
 # set evalFuncs
 evalFuncs = []
 objFuncs = DASolver.getOption("objFunc")
 for funcName in objFuncs:
     for funcPart in objFuncs[funcName]:
-        if objFuncs[funcName][funcPart]["addToAdjoint"] == True:
-            if not funcName in evalFuncs:
+        if objFuncs[funcName][funcPart]["addToAdjoint"] is True:
+            if funcName not in evalFuncs:
                 evalFuncs.append(funcName)
 
 # DVCon
