@@ -10,4 +10,3 @@ cd src/pyDASolvers && ./Allclean && cd -
 cd src/utilities && ./Allclean && cd -
 cd src/models && ./Allclean && cd -
 cd tests && ./Allclean && cd -
-rm -rf src/__pycache__/

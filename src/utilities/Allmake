@@ -10,7 +10,7 @@ case $1 in
     for d in ./*/ ; do 
       cd "$d" 
       python setup.py build_ext --inplace || exit 1
-      mv *.so ../../
+      mv *.so ../../../dafoam
       cd ../
     done
     ;;
@@ -18,17 +18,17 @@ case $1 in
     for d in ./*/ ; do 
       cd "$d" 
       python setup.py build_ext --inplace || exit 1
-      mv *.so ../../
+      mv *.so ../../../dafoam
       cd ../
     done
     ;;
   "incompressible")
     cd pyColoringIncompressible && python setup.py build_ext --inplace || exit 1
-    mv *.so ../../
+    mv *.so ../../../dafoam
     ;;
   "compressible")
     cd pyColoringCompressible && python setup.py build_ext --inplace || exit 1
-    mv *.so ../../
+    mv *.so ../../../dafoam
     ;;
   *)
     echo "Argument not valid! Options are: opt, debug, incompressible, and compressible"
