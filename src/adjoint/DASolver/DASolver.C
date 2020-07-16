@@ -620,22 +620,25 @@ label DASolver::solveAdjoint(
     // first check if we need to change the boundary conditions based on
     // the primalBC dict in DAOption. This is needed for multipoint cases
     // where we need to set different boundary conditions for different points
-    dictionary bcDict = daOptionPtr_->getAllOptions().subDict("primalBC");
-    if (bcDict.toc().size() != 0)
+    if (daOptionPtr_->getOption<label>("multiPoint"))
     {
-        Info << "Setting up primal boundary conditions based on pyOptions: " << endl;
-        daFieldPtr_->setPrimalBoundaryConditions();
-
-        daFieldPtr_->stateVec2OFField(wVec);
-        // We need to call correctBC multiple times to reproduce
-        // the exact residual for mulitpoint, this is due to the inletOutlet
-        // boundary condition for U and the wall function for the SA model
-        for (label i = 0; i < 5; i++)
+        dictionary bcDict = daOptionPtr_->getAllOptions().subDict("primalBC");
+        if (bcDict.toc().size() != 0)
         {
-            daResidualPtr_->correctBoundaryConditions();
-            daResidualPtr_->updateIntermediateVariables();
-            daModelPtr_->correctBoundaryConditions();
-            daModelPtr_->updateIntermediateVariables();
+            Info << "Setting up primal boundary conditions based on pyOptions: " << endl;
+            daFieldPtr_->setPrimalBoundaryConditions();
+
+            daFieldPtr_->stateVec2OFField(wVec);
+            // We need to call correctBC multiple times to reproduce
+            // the exact residual for mulitpoint, this is needed for some boundary conditions
+            // and intermediate variables (e.g., U for inletOutlet, nut with wall functions)
+            for (label i = 0; i < 10; i++)
+            {
+                daResidualPtr_->correctBoundaryConditions();
+                daResidualPtr_->updateIntermediateVariables();
+                daModelPtr_->correctBoundaryConditions();
+                daModelPtr_->updateIntermediateVariables();
+            }
         }
     }
 

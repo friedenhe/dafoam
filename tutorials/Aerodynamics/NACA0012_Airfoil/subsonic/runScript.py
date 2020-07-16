@@ -40,7 +40,7 @@ CL_target = 0.5
 alpha0 = 3.850127
 
 # Set the parameters for optimization
-aeroOptions = {
+daOptions = {
     # output options
     # design surfaces and cost functions
     "designSurfaceFamily": "designSurfaces",
@@ -167,7 +167,7 @@ DVGeo.addGeoDVGlobal("alpha", [alpha0], alpha, lower=-10.0, upper=10.0, scale=1.
 # =================================================================================================
 # DAFoam
 # =================================================================================================
-DASolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
+DASolver = PYDAFOAM(options=daOptions, comm=gcomm)
 DASolver.setDVGeo(DVGeo)
 mesh = USMesh(options=meshOptions, comm=gcomm)
 DASolver.addFamilyGroup(DASolver.getOption("designSurfaceFamily"), DASolver.getOption("designSurfaces"))

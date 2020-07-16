@@ -31,17 +31,17 @@ outputDirectory = args.output
 gcomm = MPI.COMM_WORLD
 
 nMultiPoints = 2
-MPWeights = [0.5, 0.5]
+MPWeights = [0.25, 0.25, 0.5]
 UmagIn = [10.0, 10.0, 10.0]
 URef = 10.0
-CL_target = [0.2, 0.5]
+CL_target = [0.2, 0.8, 0.5]
 alpha0 = [1.992939, 5.139186]
 pIn = 0.0
 nuTildaIn = 4.5e-5
 ARef = 0.1
 
 # Set the parameters for optimization
-aeroOptions = {
+daOptions = {
     # output options
     # design surfaces and cost functions
     "designSurfaceFamily": "designSurfaces",
@@ -90,8 +90,7 @@ aeroOptions = {
     # Design variable setup
     "designVar": {
         "shapey": {"designVarType": "FFD"},
-        "mp0_alpha": {"designVarType": "AOA", "patch": "inout", "xAxisIndex": 0, "yAxisIndex": 1},
-        "mp1_alpha": {"designVarType": "AOA", "patch": "inout", "xAxisIndex": 0, "yAxisIndex": 1},
+        # will add alpha in addGeoDVGlobal
     }
     ########## misc setup ##########
 }
@@ -154,12 +153,21 @@ indexList = pts[:, :, :].flatten()
 PS = geo_utils.PointSelect("list", indexList)
 DVGeo.addGeoDVLocal("shapey", lower=-1.0, upper=1.0, axis="y", scale=1.0, pointSelect=PS)
 for i in range(nMultiPoints):
+    # NOTE: here we don't need to implement the alpha function because the alpha values will be changed
+    # in setMultiPointCondition. So we provide a dummyFunc
     DVGeo.addGeoDVGlobal("mp%d_alpha" % i, alpha0[i], dummyFunc, lower=-10.0, upper=10.0, scale=1.0)
+    # add alpha for designVar
+    daOptions["designVar"]["mp%d_alpha" % i] = {
+        "designVarType": "AOA",
+        "patch": "inout",
+        "xAxisIndex": 0,
+        "yAxisIndex": 1,
+    }
 
 # =================================================================================================
 # DAFoam
 # =================================================================================================
-DASolver = PYDAFOAM(options=aeroOptions, comm=gcomm)
+DASolver = PYDAFOAM(options=daOptions, comm=gcomm)
 DASolver.setDVGeo(DVGeo)
 mesh = USMesh(options=meshOptions, comm=gcomm)
 DASolver.addFamilyGroup(DASolver.getOption("designSurfaceFamily"), DASolver.getOption("designSurfaces"))
