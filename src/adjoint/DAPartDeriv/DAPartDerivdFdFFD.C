@@ -157,7 +157,12 @@ void DAPartDerivdFdFFD::calcPartDerivMat(
     }
 
     // call the master function again to reset xvVec and wVec to OpenFOAM fields and points
-    daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
+
+    if (daOption_.getOption<label>("debug"))
+    {
+        Info << objFuncName << ": " << fRef << endl;
+    }
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);

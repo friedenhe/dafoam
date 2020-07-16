@@ -196,7 +196,12 @@ void DAPartDerivdFdW::calcPartDerivMat(
     }
 
     // call the master function again to reset wVec to OpenFOAM fields
-    daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    scalar fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
+
+    if (daOption_.getOption<label>("debug"))
+    {
+        Info << objFuncName << ": " << fRef << endl;
+    }
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);

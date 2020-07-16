@@ -36,11 +36,11 @@ DASolver::DASolver(
       daResidualPtr_(nullptr)
 {
     // initialize fvMesh and Time object pointer
-    // Info << "Initializing mesh and runtime for DASolver" << endl;
 #include "setArgs.H"
 #include "setRootCasePython.H"
 #include "createTimePython.H"
 #include "createMeshPython.H"
+    Info << "Initializing mesh and runtime for DASolver" << endl;
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * //
@@ -617,6 +617,28 @@ label DASolver::solveAdjoint(
         to this list
     */
 
+    // first check if we need to change the boundary conditions based on
+    // the primalBC dict in DAOption. This is needed for multipoint cases
+    // where we need to set different boundary conditions for different points
+    dictionary bcDict = daOptionPtr_->getAllOptions().subDict("primalBC");
+    if (bcDict.toc().size() != 0)
+    {
+        Info << "Setting up primal boundary conditions based on pyOptions: " << endl;
+        daFieldPtr_->setPrimalBoundaryConditions();
+
+        daFieldPtr_->stateVec2OFField(wVec);
+        // We need to call correctBC multiple times to reproduce
+        // the exact residual for mulitpoint, this is due to the inletOutlet
+        // boundary condition for U and the wall function for the SA model
+        for (label i = 0; i < 5; i++)
+        {
+            daResidualPtr_->correctBoundaryConditions();
+            daResidualPtr_->updateIntermediateVariables();
+            daModelPtr_->correctBoundaryConditions();
+            daModelPtr_->updateIntermediateVariables();
+        }
+    }
+
     label solveAdjointFail = 0;
 
     DALinearEqn daLinearEqn(meshPtr_(), daOptionPtr_());
@@ -624,6 +646,11 @@ label DASolver::solveAdjoint(
     // ********************** compute dRdWT **********************
     Mat dRdWT;
     {
+        if (daOptionPtr_->getOption<label>("debug"))
+        {
+            this->calcPrimalResidualStatistics("print");
+        }
+
         // initialize DAJacCon object
         word modelType = "dRdW";
         autoPtr<DAJacCon> daJacCon(DAJacCon::New(
@@ -675,6 +702,9 @@ label DASolver::solveAdjoint(
         if (daOptionPtr_->getOption<label>("debug"))
         {
             this->calcPrimalResidualStatistics("print");
+        }
+        if (daOptionPtr_->getOption<label>("writeJacobians"))
+        {
             DAUtility::writeMatrixBinary(dRdWT, "dRdWT");
         }
 
@@ -746,6 +776,9 @@ label DASolver::solveAdjoint(
         if (daOptionPtr_->getOption<label>("debug"))
         {
             this->calcPrimalResidualStatistics("print");
+        }
+        if (daOptionPtr_->getOption<label>("writeJacobians"))
+        {
             DAUtility::writeMatrixBinary(dRdWTPC, "dRdWTPC");
         }
 
@@ -902,6 +935,11 @@ label DASolver::solveAdjoint(
 
                 if (daOptionPtr_->getOption<label>("debug"))
                 {
+                    this->calcPrimalResidualStatistics("print");
+                }
+
+                if (daOptionPtr_->getOption<label>("writeJacobians"))
+                {
                     word outputName = "dFdWVec_" + objFuncName + "_" + objFuncPart;
                     DAUtility::writeVectorBinary(dFdWVec, outputName);
                     DAUtility::writeVectorASCII(dFdWVec, outputName);
@@ -917,7 +955,7 @@ label DASolver::solveAdjoint(
 
         // now we should have add all dFdWVec for dFdWVecAllParts for this objFuncName
         // it will be used as the rhs for adjoint
-        if (daOptionPtr_->getOption<label>("debug"))
+        if (daOptionPtr_->getOption<label>("writeJacobians"))
         {
             word outputName = "dFdWVecAllParts_" + objFuncName;
             DAUtility::writeVectorBinary(dFdWVecAllParts, outputName);
@@ -946,7 +984,7 @@ label DASolver::solveAdjoint(
             // call getPsiVec later in DASolver::calcTotalDeriv
             this->setPsiVecDict(objFuncName, psiVec, psiVecDict_);
 
-            if (daOptionPtr_->getOption<label>("debug"))
+            if (daOptionPtr_->getOption<label>("writeJacobians"))
             {
                 word outputName = "psi_" + objFuncName;
                 DAUtility::writeVectorASCII(psiVec, outputName);
@@ -1056,6 +1094,11 @@ label DASolver::calcTotalDeriv(
 
             if (daOptionPtr_->getOption<label>("debug"))
             {
+                this->calcPrimalResidualStatistics("print");
+            }
+
+            if (daOptionPtr_->getOption<label>("writeJacobians"))
+            {
                 word outputName = "dRdBC_" + designVarName;
                 DAUtility::writeMatrixBinary(dRdBC, outputName);
                 DAUtility::writeMatrixASCII(dRdBC, outputName);
@@ -1138,6 +1181,11 @@ label DASolver::calcTotalDeriv(
 
                         if (daOptionPtr_->getOption<label>("debug"))
                         {
+                            this->calcPrimalResidualStatistics("print");
+                        }
+
+                        if (daOptionPtr_->getOption<label>("writeJacobians"))
+                        {
                             word outputName = "dFdBCVec_" + designVarName;
                             DAUtility::writeVectorBinary(dFdBCVec, outputName);
                             DAUtility::writeVectorASCII(dFdBCVec, outputName);
@@ -1169,7 +1217,7 @@ label DASolver::calcTotalDeriv(
                 // get the totalDeriv in the python layer later
                 this->setTotalDerivDict(objFuncName, designVarName, totalDerivVec, totalDerivDict_);
 
-                if (daOptionPtr_->getOption<label>("debug"))
+                if (daOptionPtr_->getOption<label>("writeJacobians"))
                 {
                     word outputName = "dFdBCTotal_" + objFuncName + "_" + designVarName;
                     DAUtility::writeVectorBinary(totalDerivVec, outputName);
@@ -1229,6 +1277,11 @@ label DASolver::calcTotalDeriv(
             daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dRdAOA);
 
             if (daOptionPtr_->getOption<label>("debug"))
+            {
+                this->calcPrimalResidualStatistics("print");
+            }
+
+            if (daOptionPtr_->getOption<label>("writeJacobians"))
             {
                 word outputName = "dRdAOA_" + designVarName;
                 DAUtility::writeMatrixBinary(dRdAOA, outputName);
@@ -1312,6 +1365,11 @@ label DASolver::calcTotalDeriv(
 
                         if (daOptionPtr_->getOption<label>("debug"))
                         {
+                            this->calcPrimalResidualStatistics("print");
+                        }
+
+                        if (daOptionPtr_->getOption<label>("writeJacobians"))
+                        {
                             word outputName = "dFdAOAVec_" + designVarName;
                             DAUtility::writeVectorBinary(dFdAOAVec, outputName);
                             DAUtility::writeVectorASCII(dFdAOAVec, outputName);
@@ -1343,7 +1401,7 @@ label DASolver::calcTotalDeriv(
                 // get the totalDeriv in the python layer later
                 this->setTotalDerivDict(objFuncName, designVarName, totalDerivVec, totalDerivDict_);
 
-                if (daOptionPtr_->getOption<label>("debug"))
+                if (daOptionPtr_->getOption<label>("writeJacobians"))
                 {
                     word outputName = "dFdAOATotal_" + objFuncName + "_" + designVarName;
                     DAUtility::writeVectorBinary(totalDerivVec, outputName);
@@ -1405,6 +1463,11 @@ label DASolver::calcTotalDeriv(
             daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dRdFFD);
 
             if (daOptionPtr_->getOption<label>("debug"))
+            {
+                this->calcPrimalResidualStatistics("print");
+            }
+
+            if (daOptionPtr_->getOption<label>("writeJacobians"))
             {
                 word outputName = "dRdFFD_" + designVarName;
                 DAUtility::writeMatrixBinary(dRdFFD, outputName);
@@ -1495,6 +1558,11 @@ label DASolver::calcTotalDeriv(
 
                         if (daOptionPtr_->getOption<label>("debug"))
                         {
+                            this->calcPrimalResidualStatistics("print");
+                        }
+
+                        if (daOptionPtr_->getOption<label>("writeJacobians"))
+                        {
                             word outputName = "dFdFFDVec_" + designVarName;
                             DAUtility::writeVectorBinary(dFdFFDVec, outputName);
                             DAUtility::writeVectorASCII(dFdFFDVec, outputName);
@@ -1528,7 +1596,7 @@ label DASolver::calcTotalDeriv(
                 // get the totalDeriv in the python layer later
                 this->setTotalDerivDict(objFuncName, designVarName, totalDerivVec, totalDerivDict_);
 
-                if (daOptionPtr_->getOption<label>("debug"))
+                if (daOptionPtr_->getOption<label>("writeJacobians"))
                 {
                     word outputName = "dFdFFDTotal_" + objFuncName + "_" + designVarName;
                     DAUtility::writeVectorBinary(totalDerivVec, outputName);

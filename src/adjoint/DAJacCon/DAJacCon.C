@@ -107,7 +107,7 @@ void DAJacCon::initializeStateBoundaryCon()
 
     this->setupStateBoundaryConID(&stateBoundaryConID_);
 
-    if (daOption_.getOption<label>("debug"))
+    if (daOption_.getOption<label>("writeJacobians"))
     {
         DAUtility::writeMatrixBinary(stateBoundaryCon_, "stateBoundaryCon");
         DAUtility::writeMatrixBinary(stateBoundaryConID_, "stateBoundaryConID");

@@ -257,7 +257,7 @@ void DAJacCondFdW::setupJacCon(const dictionary& options)
     MatAssemblyEnd(jacCon_, MAT_FINAL_ASSEMBLY);
 
     // output the matrix to a file
-    if (daOption_.getOption<label>("debug"))
+    if (daOption_.getOption<label>("writeJacobians"))
     {
         DAUtility::writeMatrixBinary(jacCon_, "dFdWCon");
     }

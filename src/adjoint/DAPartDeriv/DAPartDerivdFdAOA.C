@@ -142,7 +142,12 @@ void DAPartDerivdFdAOA::calcPartDerivMat(
     // reset perturbation
     this->perturbAOA(options, -1.0 * delta);
     // call masterFunction again to reset the wVec to OpenFOAM field
-    daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    fRef = daObjFunc->masterFunction(mOptions, xvVec, wVec);
+    
+    if (daOption_.getOption<label>("debug"))
+    {
+        Info << objFuncName << ": " << fRef << endl;
+    }
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);

@@ -63,6 +63,8 @@ class PYDAFOAM(object):
             "printInterval": [int, 100],
             "primalMinResTol": [float, 1.0e-8],
             "primalMinResTolDiff": [float, 1.0e2],
+            "multiPoint": [bool, False],
+            "nMultiPoints": [int, 1],
             # adjoint options
             "adjUseColoring": [bool, True],
             "adjPartDerivFDStep": [dict, {"State": 1.0e-5, "FFD": 1.0e-3, "BC": 1.0e-2, "AOA": 1.0e-3,}],
@@ -107,6 +109,7 @@ class PYDAFOAM(object):
             "printAllOptions": [bool, True],
             "objFunc": [dict, {}],
             "debug": [bool, False],
+            "writeJacobians": [bool, False],
             # surface definition
             "meshSurfaceFamily": [str, "None"],
             "designSurfaceFamily": [str, "None"],
@@ -246,6 +249,34 @@ class PYDAFOAM(object):
 
         # solve the primal to get new state variables
         self.solvePrimal()
+
+        return
+
+    def saveMultiPointField(self, indexMP):
+        """
+        Save the state variable vector to self.wVecMPList
+        """
+
+        Istart, Iend = self.wVec.getOwnershipRange()
+        for i in range(Istart, Iend):
+            self.wVecMPList[indexMP][i] = self.wVec[i]
+        
+        self.wVecMPList[indexMP].assemblyBegin()
+        self.wVecMPList[indexMP].assemblyEnd()
+
+        return
+
+    def setMultiPointField(self, indexMP):
+        """
+        Set the state variable vector based on self.wVecMPList
+        """
+
+        Istart, Iend = self.wVec.getOwnershipRange()
+        for i in range(Istart, Iend):
+            self.wVec[i] = self.wVecMPList[indexMP][i]
+        
+        self.wVec.assemblyBegin()
+        self.wVec.assemblyEnd()
 
         return
 
@@ -867,6 +898,10 @@ class PYDAFOAM(object):
         # choose the latst solution to rename
         solutionTime = allSolutions[0]
 
+        if float(solutionTime) < 1e-6:
+            Info("Solution time %g less than 1e-6, not moved." % float(solutionTime))
+            return
+
         distTime = "%.8f" % ((solIndex + 1) / 1e8)
 
         src = os.path.join(checkPath, solutionTime)
@@ -1298,16 +1333,14 @@ class PYDAFOAM(object):
         # viewer = PETSc.Viewer().createASCII("wVec", comm=PETSc.COMM_WORLD)
         # viewer(self.wVec)
 
-        # adjoint vector
-        self.psiVec = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
-        self.psiVec.setSizes((wSize, PETSc.DECIDE), bsize=1)
-        self.psiVec.setFromOptions()
-
-        # total deriv vector
-        # NOTE ***** need to change this!
-        self.totalDerivVec = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
-        self.totalDerivVec.setSizes((1, PETSc.DECIDE), bsize=1)
-        self.totalDerivVec.setFromOptions()
+        # if it is a multipoint case, initialize self.wVecMPList
+        if self.getOption("multiPoint") is True:
+            nMultiPoints = self.getOption("nMultiPoints")
+            self.wVecMPList = [None] * self.getOption("nMultiPoints")
+            for i in range(nMultiPoints):
+                self.wVecMPList[i] = PETSc.Vec().create(comm=PETSc.COMM_WORLD)
+                self.wVecMPList[i].setSizes((wSize, PETSc.DECIDE), bsize=1)
+                self.wVecMPList[i].setFromOptions()
 
         return
 

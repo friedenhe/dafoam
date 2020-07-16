@@ -59,10 +59,78 @@ def calcObjFuncValues(xDV):
 
     fail = funcs["fail"]
 
-    # flush the output to the screen/file
-    sys.stdout.flush()
-
     return funcs, fail
+
+
+def calcObjFuncValuesMP(xDV):
+    """
+    Update the design surface and run the primal solver to get objective function values.
+    This is the multipoint version of calcObjFuncValues
+    """
+
+    Info("\n")
+    Info("+--------------------------------------------------------------------------+")
+    Info("|                  Evaluating Objective Functions %03d                      |" % DASolver.nSolvePrimals)
+    Info("+--------------------------------------------------------------------------+")
+    Info("Design Variables: ")
+    Info(xDV)
+
+    a = time.time()
+
+    fail = False
+
+    # Setup an empty dictionary for the evaluated function values
+    funcsMP = {}
+
+    # Set the current design variables in the DV object
+    DVGeo.setDesignVars(xDV)
+    DASolver.setDesignVars(xDV)
+
+    nMultiPoints = DASolver.getOption("nMultiPoints")
+
+    for i in range(nMultiPoints):
+
+        Info("--Solving Primal for Configuration %d--" % i)
+
+        funcs = {}
+
+        # Evaluate the geometric constraints and add them to the funcs dictionary
+        DVCon.evalFunctions(funcs)
+
+        # set the multi point condition provided by users in the
+        # runScript.py script. This function should define what
+        # conditions to change for each case i
+        setMultiPointCondition(xDV, i)
+
+        # Solve the CFD problem
+        DASolver()
+
+        # Populate the required values from the CFD problem
+        DASolver.evalFunctions(funcs, evalFuncs=evalFuncs)
+
+        # save the state vector for case i and will be used in solveAdjoint
+        DASolver.saveMultiPointField(i)
+
+        # if any of the multipoint primal fails, return fail=True
+        if funcs["fail"] is True:
+            fail = True
+
+        if DASolver.getOption("debug"):
+            Info("Objective Functions for Configuration %d: " % i)
+            Info(funcs)
+
+        # assign funcs to funcsMP
+        setMultiPointObjFuncs(funcs, funcsMP, i)
+
+    funcsMP["fail"] = fail
+
+    Info("Objective Functions MultiPoint: ")
+    Info(funcsMP)
+
+    b = time.time()
+    Info("Flow Runtime: %g" % (b - a))
+
+    return funcsMP, fail
 
 
 def calcObjFuncSens(xDV, funcs):
@@ -99,10 +167,73 @@ def calcObjFuncSens(xDV, funcs):
 
     fail = funcsSens["fail"]
 
-    # flush the output to the screen/file
-    sys.stdout.flush()
-
     return funcsSens, fail
+
+
+def calcObjFuncSensMP(xDV, funcs):
+    """
+    Run the adjoint solver and get objective function sensitivities.
+    This is the multipoint version of calcObjFuncSens
+    """
+
+    Info("\n")
+    Info("+--------------------------------------------------------------------------+")
+    Info("|              Evaluating Objective Function Sensitivities %03d             |" % DASolver.nSolveAdjoints)
+    Info("+--------------------------------------------------------------------------+")
+
+    fail = False
+
+    a = time.time()
+
+    # Setup an empty dictionary for the evaluated derivative values
+    funcsSensMP = {}
+
+    nMultiPoints = DASolver.getOption("nMultiPoints")
+
+    for i in range(nMultiPoints):
+
+        Info("--Solving Adjoint for Configuration %d--" % i)
+
+        funcsSens = {}
+
+        # Evaluate the geometric constraint derivatives
+        DVCon.evalFunctionsSens(funcsSens)
+
+        # set the state vector for case i
+        DASolver.setMultiPointField(i)
+
+        # set the multi point condition provided by users in the
+        # runScript.py script. This function should define what
+        # conditions to change for each case i
+        setMultiPointCondition(xDV, i)
+
+        # Solve the adjoint
+        DASolver.solveAdjoint()
+        DASolver.calcTotalDeriv()
+
+        # Evaluate the CFD derivatives
+        DASolver.evalFunctionsSens(funcsSens, evalFuncs=evalFuncs)
+
+        if funcsSens["fail"] is True:
+            fail = True
+
+        if DASolver.getOption("debug"):
+            Info("Objective Function Sensitivity: ")
+            Info(funcsSens)
+
+        # assign funcs to funcsMP
+        setMultiPointObjFuncsSens(xDV, funcs, funcsSens, funcsSensMP, i)
+
+    funcsSensMP["fail"] = fail
+
+    # Print the current solution to the screen
+    Info("Objective Function Sensitivity MultiPoiint: ")
+    Info(funcsSensMP)
+
+    b = time.time()
+    Info("Adjoint Runtime: %g s" % (b - a))
+
+    return funcsSensMP, fail
 
 
 def run():

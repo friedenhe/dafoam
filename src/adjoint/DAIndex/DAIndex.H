@@ -52,6 +52,9 @@ protected:
     /// the StateInfo_ list from DAStateInfo object
     HashTable<wordList> stateInfo_;
 
+    /// write the adjoint indexing for debugging
+    void writeAdjointIndexing();
+
 public:
     /// Constructors
     DAIndex(

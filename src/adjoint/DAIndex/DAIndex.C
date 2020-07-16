@@ -172,6 +172,12 @@ DAIndex::DAIndex(
 
     // calculate some local lists for indexing
     this->calcLocalIdxLists(adjStateName4LocalAdjIdx, cellIFaceI4LocalAdjIdx);
+
+    if (daOption_.getOption<label>("writeJacobians")
+        || daOption_.getOption<label>("debug"))
+    {
+        this->writeAdjointIndexing();
+    }
 }
 
 void DAIndex::calcStateLocalIndexOffset(HashTable<label>& offset)
@@ -1097,6 +1103,123 @@ void DAIndex::getMatNonZeros(
     reduce(maxCols, maxOp<label>());
 
     reduce(allNonZeros, sumOp<scalar>());
+
+    return;
+}
+
+void DAIndex::writeAdjointIndexing()
+{
+
+    scalar xx, yy, zz; // face owner coordinates
+
+    //output the matrix to a file
+    label myProc = Pstream::myProcNo();
+    label nProcs = Pstream::nProcs();
+    std::ostringstream fileNameStream("");
+    fileNameStream << "AdjointIndexing"
+                   << "_" << myProc << "_of_" << nProcs << ".txt";
+    word fileName = fileNameStream.str();
+    OFstream aOut(fileName);
+    aOut.precision(9);
+
+    forAll(stateInfo_["volVectorStates"], idx)
+    {
+        const word& stateName = stateInfo_["volVectorStates"][idx];
+        forAll(mesh_.cells(), cellI)
+        {
+            xx = mesh_.C()[cellI].x();
+            yy = mesh_.C()[cellI].y();
+            zz = mesh_.C()[cellI].z();
+            for (label i = 0; i < 3; i++)
+            {
+                label glbIdx = getGlobalAdjointStateIndex(stateName, cellI, i);
+                aOut << "Cell: " << cellI << " State: " << stateName << i << " glbIdx: " << glbIdx
+                     << " x: " << xx << " y: " << yy << " z: " << zz << endl;
+            }
+        }
+    }
+
+    forAll(stateInfo_["volScalarStates"], idx)
+    {
+        const word& stateName = stateInfo_["volScalarStates"][idx];
+        forAll(mesh_.cells(), cellI)
+        {
+            xx = mesh_.C()[cellI].x();
+            yy = mesh_.C()[cellI].y();
+            zz = mesh_.C()[cellI].z();
+            label glbIdx = getGlobalAdjointStateIndex(stateName, cellI);
+            aOut << "Cell: " << cellI << " State: " << stateName << " glbIdx: " << glbIdx
+                 << " x: " << xx << " y: " << yy << " z: " << zz << endl;
+        }
+    }
+
+    forAll(stateInfo_["modelStates"], idx)
+    {
+        const word& stateName = stateInfo_["modelStates"][idx];
+        forAll(mesh_.cells(), cellI)
+        {
+            xx = mesh_.C()[cellI].x();
+            yy = mesh_.C()[cellI].y();
+            zz = mesh_.C()[cellI].z();
+            label glbIdx = getGlobalAdjointStateIndex(stateName, cellI);
+            aOut << "Cell: " << cellI << " State: " << stateName << " glbIdx: " << glbIdx
+                 << " x: " << xx << " y: " << yy << " z: " << zz << endl;
+        }
+    }
+
+    forAll(stateInfo_["surfaceScalarStates"], idx)
+    {
+        const word& stateName = stateInfo_["surfaceScalarStates"][idx];
+        label cellI = -1;
+        forAll(mesh_.faces(), faceI)
+        {
+            if (faceI < nLocalInternalFaces)
+            {
+                xx = mesh_.Cf()[faceI].x();
+                yy = mesh_.Cf()[faceI].y();
+                zz = mesh_.Cf()[faceI].z();
+            }
+            else
+            {
+                label relIdx = faceI - nLocalInternalFaces;
+                label patchIdx = bFacePatchI[relIdx];
+                label faceIdx = bFaceFaceI[relIdx];
+                xx = mesh_.Cf().boundaryField()[patchIdx][faceIdx].x();
+                yy = mesh_.Cf().boundaryField()[patchIdx][faceIdx].y();
+                zz = mesh_.Cf().boundaryField()[patchIdx][faceIdx].z();
+
+                const polyPatch& pp = mesh_.boundaryMesh()[patchIdx];
+                const UList<label>& pFaceCells = pp.faceCells();
+                cellI = pFaceCells[faceIdx];
+            }
+
+            label glbIdx = getGlobalAdjointStateIndex(stateName, faceI);
+            aOut << "Face: " << faceI << " State: " << stateName << " glbIdx: " << glbIdx
+                 << " x: " << xx << " y: " << yy << " z: " << zz
+                 << " OwnerCellI: " << cellI << endl;
+        }
+    }
+
+    // write point indexing
+    std::ostringstream fileNameStreamPoint("");
+    fileNameStreamPoint << "PointIndexing"
+                        << "_" << myProc << "_of_" << nProcs << ".txt";
+    word fileNamePoint = fileNameStreamPoint.str();
+    OFstream aOutPoint(fileNamePoint);
+    aOutPoint.precision(9);
+
+    forAll(mesh_.points(), idxI)
+    {
+        xx = mesh_.points()[idxI].x();
+        yy = mesh_.points()[idxI].y();
+        zz = mesh_.points()[idxI].z();
+        for (label i = 0; i < 3; i++)
+        {
+            label glbIdx = getGlobalXvIndex(idxI, i);
+            aOutPoint << "Point: " << idxI << " Coords: " << i << " glbIdx: " << glbIdx
+                      << " x: " << xx << " y: " << yy << " z: " << zz << endl;
+        }
+    }
 
     return;
 }
