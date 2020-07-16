@@ -20,33 +20,11 @@ Refer to https://dafoam.github.io.
 Citation
 --------
 
-If you use DAFoam in publications, we kindly ask you to cite the following papers.
+Please cite the following papers in any publication for which you find DAFoam useful. 
 
-Ping He, Charles A. Mader, Joaquim R.R.A. Martins, Kevin J. Maki. DAFoam: An open-source adjoint framework for multidisciplinary design optimization with OpenFOAM. AIAA Journal, 58:1304-1319, 2020. https://doi.org/10.2514/1.J058853
+- Ping He, Charles A. Mader, Joaquim R.R.A. Martins, Kevin J. Maki. DAFoam: An open-source adjoint framework for multidisciplinary design optimization with OpenFOAM. AIAA Journal, 58:1304-1319, 2020. https://doi.org/10.2514/1.J058853
 
-```
-@article{DAFoamAIAAJ20,
-	Author = {Ping He and Charles A. Mader and Joaquim R. R. A. Martins and Kevin J. Maki},
-	Title = {{DAFoam}: An open-source adjoint framework for multidisciplinary design optimization with {OpenFOAM}},
-	Journal = {AIAA Journal},
-	Pages = {1304--1319},
-	Volume = {58},
-	Doi = {10.2514/1.J058853},
-	Year = {2020}}
-```
-
-Ping He, Charles A. Mader, Joaquim R.R.A. Martins, Kevin J. Maki. An aerodynamic design optimization framework using a discrete adjoint approach with OpenFOAM. Computer & Fluids, 168:285-303, 2018. https://doi.org/10.1016/j.compfluid.2018.04.012
-
-```
-@article{DAFoamCAF18,
-    Title = {An aerodynamic design optimization framework using a discrete adjoint approach with {OpenFOAM}},
-	Author = {Ping He and Charles A. Mader and Joaquim R. R. A. Martins and Kevin J. Maki},
-	Journal = {Computers \& Fluids},
-	Pages = {285--303},
-	Volume = {168},
-	Doi = {10.1016/j.compfluid.2018.04.012},
-	Year = {2018}}
-```
+- Ping He, Charles A. Mader, Joaquim R.R.A. Martins, Kevin J. Maki. An aerodynamic design optimization framework using a discrete adjoint approach with OpenFOAM. Computer & Fluids, 168:285-303, 2018. https://doi.org/10.1016/j.compfluid.2018.04.012
 
 License
 -------
