@@ -18,7 +18,7 @@ tar -zxf input.tar.gz
 cd input/CurvedCubeHexMesh && cp -r 0.incompressible/* 0/ && decomposePar
 cd ../../
 
-cd DAFoamIncompressible && make && mpirun -np 4 python runTests.py || exit 1
+cd DAFoamIncompressible && make && mpirun -np 4 --oversubscribe python runTests.py || exit 1
 echo "DAFoamIncompressible: Success!"
 cd ../
 
@@ -28,7 +28,7 @@ tar -zxf input.tar.gz
 cd input/CurvedCubeHexMesh && cp -r 0.compressible/* 0/ && decomposePar
 cd ../../
 
-cd DAFoamCompressible && make && mpirun -np 4 python runTests.py || exit 1
+cd DAFoamCompressible && make && mpirun -np 4 --oversubscribe python runTests.py || exit 1
 echo "DAFoamCompressible: Success!"
 cd ../
 
@@ -36,7 +36,7 @@ cd ../
 rm -rf input
 tar -zxf input.tar.gz
 
-cd pyDAFoam && mpirun -np 4 python runTests_DASimpleFoam.py 2>&1 | tee DAFoam_Test_DASimpleFoam.txt
+cd pyDAFoam && mpirun -np 4 --oversubscribe python runTests_DASimpleFoam.py 2>&1 | tee DAFoam_Test_DASimpleFoam.txt
 python testFuncs.py refs/DAFoam_Test_DASimpleFoamRef.txt DAFoam_Test_DASimpleFoam.txt || exit 1
 echo "DASimpleFoam: Success!"
 cd ../
@@ -45,7 +45,7 @@ cd ../
 rm -rf input
 tar -zxf input.tar.gz
 
-cd pyDAFoam && mpirun -np 4 python runTests_DARhoSimpleFoam.py 2>&1 | tee DAFoam_Test_DARhoSimpleFoam.txt
+cd pyDAFoam && mpirun -np 4 --oversubscribe python runTests_DARhoSimpleFoam.py 2>&1 | tee DAFoam_Test_DARhoSimpleFoam.txt
 python testFuncs.py refs/DAFoam_Test_DARhoSimpleFoamRef.txt DAFoam_Test_DARhoSimpleFoam.txt || exit 1
 echo "DARhoSimpleFoam: Success!"
 cd ../
@@ -54,7 +54,7 @@ cd ../
 rm -rf input
 tar -zxf input.tar.gz
 
-cd pyDAFoam && mpirun -np 4 python runTests_DARhoSimpleCFoam.py 2>&1 | tee DAFoam_Test_DARhoSimpleCFoam.txt
+cd pyDAFoam && mpirun -np 4 --oversubscribe python runTests_DARhoSimpleCFoam.py 2>&1 | tee DAFoam_Test_DARhoSimpleCFoam.txt
 python testFuncs.py refs/DAFoam_Test_DARhoSimpleCFoamRef.txt DAFoam_Test_DARhoSimpleCFoam.txt || exit 1
 echo "DARhoSimpleCFoam: Success!"
 cd ../
