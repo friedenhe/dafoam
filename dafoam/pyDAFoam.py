@@ -260,7 +260,7 @@ class PYDAFOAM(object):
         Istart, Iend = self.wVec.getOwnershipRange()
         for i in range(Istart, Iend):
             self.wVecMPList[indexMP][i] = self.wVec[i]
-        
+
         self.wVecMPList[indexMP].assemblyBegin()
         self.wVecMPList[indexMP].assemblyEnd()
 
@@ -274,7 +274,7 @@ class PYDAFOAM(object):
         Istart, Iend = self.wVec.getOwnershipRange()
         for i in range(Istart, Iend):
             self.wVec[i] = self.wVecMPList[indexMP][i]
-        
+
         self.wVec.assemblyBegin()
         self.wVec.assemblyEnd()
 
@@ -448,6 +448,15 @@ class PYDAFOAM(object):
         conn, faceSizes = self.getSurfaceConnectivity(self.meshFamilyGroup)
         pts = self.getSurfaceCoordinates(self.meshFamilyGroup)
         self.mesh.setSurfaceDefinition(pts, conn, faceSizes)
+
+    def setEvalFuncs(self, evalFuncs):
+        objFuncs = self.getOption("objFunc")
+        for funcName in objFuncs:
+            for funcPart in objFuncs[funcName]:
+                if objFuncs[funcName][funcPart]["addToAdjoint"] is True:
+                    if funcName not in evalFuncs:
+                        evalFuncs.append(funcName)
+        return
 
     def getSurfaceConnectivity(self, groupName=None):
         """
