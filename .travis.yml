@@ -58,7 +58,7 @@ jobs:
     - stage: cppCodeCoverageComp
       script:
         # compile incompressible solvers
-        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR && ./Allmake compressiblei && pip install ."
+        - docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR && ./Allmake compressible && pip install ."
         # decompose
         #- docker exec -it regtest /bin/bash -c ". /home/dafoamuser/setupDAFoam.sh && cd $DOCKER_WORKING_DIR/tests/input/CurvedCubeHexMesh && cp 0.incompressible/* 0/ && decomposePar"
         # install cpp-coveralls and coverage
