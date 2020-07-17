@@ -38,6 +38,8 @@
 #include "DAOption.H"
 #include "DARegDbNearWallDist.H"
 #include "DAMacroFunctions.H"
+#include "nutkWallFunctionFvPatchScalarField.H" // for yPlus
+#include "wallFvPatch.H" // for yPlus
 
 #ifdef IncompressibleFlow
 #include "singlePhaseTransportModel.H"
@@ -278,6 +280,9 @@ public:
 
     /// this is a virtual function for regIOobject
     bool writeData(Ostream& os) const;
+
+    /// print the min max and mean yPlus to screen
+    void printYPlus() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

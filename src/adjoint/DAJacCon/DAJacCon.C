@@ -99,7 +99,10 @@ void DAJacCon::initializeStateBoundaryCon()
     */
 
     // Calculate the boundary connectivity
-    Info << "Generating Connectivity for Boundaries:" << endl;
+    if (daOption_.getOption<label>("debug"))
+    {
+        Info << "Generating Connectivity for Boundaries:" << endl;
+    }
 
     this->calcNeiBFaceGlobalCompact(neiBFaceGlobalCompact_);
 

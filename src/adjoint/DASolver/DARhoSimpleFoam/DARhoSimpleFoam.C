@@ -116,6 +116,8 @@ label DARhoSimpleFoam::solvePrimal(
 
         if (nSolverIters % printInterval == 0 || nSolverIters == 1)
         {
+            daTurbulenceModelPtr_->printYPlus();
+            
             this->printAllObjFuncs();
 
             Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"

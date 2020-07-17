@@ -16,8 +16,10 @@
 import time
 import sys
 import numpy as np
+import warnings
 
-np.set_printoptions(precision=16)
+warnings.filterwarnings("once")
+np.set_printoptions(precision=16, suppress=True)
 
 
 def calcObjFuncValues(xDV):
@@ -161,9 +163,10 @@ def calcObjFuncSens(xDV, funcs):
     b = time.time()
 
     # Print the current solution to the screen
-    Info("Objective Function Sensitivity: ")
-    Info(funcsSens)
-    Info("Adjoint Runtime: %g s" % (b - a))
+    with np.printoptions(precision=16, threshold=5, suppress=True):
+        Info("Objective Function Sensitivity: ")
+        Info(funcsSens)
+        Info("Adjoint Runtime: %g s" % (b - a))
 
     fail = funcsSens["fail"]
 
@@ -218,8 +221,9 @@ def calcObjFuncSensMP(xDV, funcs):
             fail = True
 
         if DASolver.getOption("debug"):
-            Info("Objective Function Sensitivity: ")
-            Info(funcsSens)
+            with np.printoptions(precision=16, threshold=5, suppress=True):
+                Info("Objective Function Sensitivity: ")
+                Info(funcsSens)
 
         # assign funcs to funcsMP
         setMultiPointObjFuncsSens(xDV, funcs, funcsSens, funcsSensMP, i)
@@ -227,8 +231,9 @@ def calcObjFuncSensMP(xDV, funcs):
     funcsSensMP["fail"] = fail
 
     # Print the current solution to the screen
-    Info("Objective Function Sensitivity MultiPoiint: ")
-    Info(funcsSensMP)
+    with np.printoptions(precision=16, threshold=5, suppress=True):
+        Info("Objective Function Sensitivity MultiPoiint: ")
+        Info(funcsSensMP)
 
     b = time.time()
     Info("Adjoint Runtime: %g s" % (b - a))

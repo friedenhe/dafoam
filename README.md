@@ -16,7 +16,7 @@ DAFoam implements an efficient discrete adjoint method to perform high-fidelity 
 Documentation
 -------------
 
-Refer to https://dafoam.github.io.
+Refer to https://dafoam.github.io for installation and tutorials.
 
 Citation
 --------

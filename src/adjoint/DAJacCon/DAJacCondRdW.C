@@ -142,7 +142,10 @@ void DAJacCondRdW::initializeJacCon(const dictionary& options)
     //MatSetOption(jacCon_, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     MatSetUp(jacCon_);
 
-    Info << "Connectivity matrix initialized." << endl;
+    if (daOption_.getOption<label>("debug"))
+    {
+        Info << "Connectivity matrix initialized." << endl;
+    }
 }
 
 void DAJacCondRdW::setupdRdWCon(
@@ -277,13 +280,17 @@ void DAJacCondRdW::setupdRdWCon(
         VecZeroEntries(dRdWTPreallocOff_);
     }
 
-    if (isPrealloc)
+    if (daOption_.getOption<label>("debug"))
     {
-        Info << "Computing preallocating vectors for Jacobian connectivity mat" << endl;
-    }
-    else
-    {
-        Info << "Setup Jacobian connectivity mat" << endl;
+        if (isPrealloc)
+        {
+
+            Info << "Computing preallocating vectors for Jacobian connectivity mat" << endl;
+        }
+        else
+        {
+            Info << "Setup Jacobian connectivity mat" << endl;
+        }
     }
 
     // loop over all cell residuals, we bascially need to compute all
@@ -671,13 +678,16 @@ void DAJacCondRdW::setupdRdWCon(
         }
     }
 
-    if (isPrealloc)
+    if (daOption_.getOption<label>("debug"))
     {
-        Info << "Preallocating state Jacobian connectivity mat: finished!" << endl;
-    }
-    else
-    {
-        Info << "Setup state Jacobian connectivity mat: finished!" << endl;
+        if (isPrealloc)
+        {
+            Info << "Preallocating state Jacobian connectivity mat: finished!" << endl;
+        }
+        else
+        {
+            Info << "Setup state Jacobian connectivity mat: finished!" << endl;
+        }
     }
 }
 

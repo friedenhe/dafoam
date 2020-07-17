@@ -183,7 +183,10 @@ void DAPartDerivdRdW::calcPartDerivMat(
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(jacMat, MAT_FINAL_ASSEMBLY);
 
-    daIndex_.printMatChars(jacMat);
+    if (daOption_.getOption<label>("debug"))
+    {
+        daIndex_.printMatChars(jacMat);
+    }
 }
 
 } // End namespace Foam

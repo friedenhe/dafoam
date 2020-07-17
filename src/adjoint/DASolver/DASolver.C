@@ -367,8 +367,11 @@ void DASolver::reduceStateResConLevel(
         }
     }
 
-    Info << "Reducing max connectivity level of Jacobian PC Mat to : ";
-    Info << maxResConLv4JacPCMat << endl;
+    if (daOptionPtr_->getOption<label>("debug"))
+    {
+        Info << "Reducing max connectivity level of Jacobian PC Mat to : ";
+        Info << maxResConLv4JacPCMat << endl;
+    }
 
     // assign stateResConInfo to stateResConInfoBK
     HashTable<List<List<word>>> stateResConInfoBK;
@@ -654,6 +657,8 @@ label DASolver::solveAdjoint(
             this->calcPrimalResidualStatistics("print");
         }
 
+        Info << "Initializing dRdWCon. " << runTimePtr_->elapsedClockTime() << " s" << endl;
+
         // initialize DAJacCon object
         word modelType = "dRdW";
         autoPtr<DAJacCon> daJacCon(DAJacCon::New(
@@ -718,6 +723,8 @@ label DASolver::solveAdjoint(
     // ********************** compute dRdWTPC **********************
     Mat dRdWTPC;
     {
+
+        Info << "Initializing dRdWCon. " << runTimePtr_->elapsedClockTime() << " s" << endl;
 
         // initialize DAJacCon object
         word modelType = "dRdW";
