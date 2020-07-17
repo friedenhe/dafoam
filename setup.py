@@ -20,7 +20,7 @@ setup(name='dafoam',
 
       """,
       long_description_content_type="text/markdown",
-      keywords='RANS adjoint fast optimization',
+      keywords='OpenFOAM adjoint optimization',
       author='',
       author_email='',
       url='https://github.com/mdolab/dafoam',
@@ -34,6 +34,7 @@ setup(name='dafoam',
       install_requires=[
             'numpy>=1.16.4',
             'mpi4py>=3.0.2',
+            'petsc4py>=3.11.0'
       ],
       classifiers=[
         "Operating System :: Linux",
