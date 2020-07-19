@@ -9,11 +9,11 @@ fi
 
 # generate mesh
 echo "Generating mesh.."
-python genAirFoilMesh.py > log.meshGeneration
-plot3dToFoam -noBlank volumeMesh.xyz >> log.meshGeneration
-autoPatch 30 -overwrite >> log.meshGeneration
-createPatch -overwrite >> log.meshGeneration
-renumberMesh -overwrite >> log.meshGeneration
+python genAirFoilMesh.py &> logMeshGeneration.txt
+plot3dToFoam -noBlank volumeMesh.xyz >> logMeshGeneration.txt
+autoPatch 30 -overwrite >> logMeshGeneration.txt
+createPatch -overwrite >> logMeshGeneration.txt
+renumberMesh -overwrite >> logMeshGeneration.txt
 echo "Generating mesh.. Done!"
 
 # copy initial and boundary condition files

@@ -381,18 +381,24 @@ void DAPartDeriv::perturbAOA(
         options.patchName: the name of the boundary patches to perturb, do not support
         multiple patches yet
 
-        optoins.xAxisIndex: the component x index, aoa will be atan(U_y/U_x)
+        options.flowAxis: the streamwise axis, aoa will be atan(U_normal/U_flow)
 
-        optoins.yAxisIndex: the component y index, aoa will be atan(U_y/U_x)
+        options.normalAxis: the flow normal axis, aoa will be atan(U_normal/U_flow)
 
         delta: the delta value to perturb
     */
 
     word varName = "U", patchName;
-    label xAxisIndex, yAxisIndex;
     options.readEntry<word>("patch", patchName);
-    options.readEntry<label>("xAxisIndex", xAxisIndex);
-    options.readEntry<label>("yAxisIndex", yAxisIndex);
+
+    HashTable<label> axisIndices;
+    axisIndices.set("x", 0);
+    axisIndices.set("y", 1);
+    axisIndices.set("z", 2);
+    word flowAxis = options.getWord("flowAxis");
+    word normalAxis = options.getWord("normalAxis");
+    label flowAxisIndex = axisIndices[flowAxis];
+    label normalAxisIndex = axisIndices[normalAxis];
 
     label patchI = mesh_.boundaryMesh().findPatchID(patchName);
 
@@ -408,7 +414,7 @@ void DAPartDeriv::perturbAOA(
             {
                 scalar UmagIn = mag(state.boundaryField()[patchI][0]);
                 scalar Uratio =
-                    state.boundaryField()[patchI][0][yAxisIndex] / state.boundaryField()[patchI][0][xAxisIndex];
+                    state.boundaryField()[patchI][0][normalAxisIndex] / state.boundaryField()[patchI][0][flowAxisIndex];
                 scalar aoa = Foam::radToDeg(Foam::atan(Uratio)); // we want the partials in degree
                 scalar aoaNew = aoa + delta;
                 scalar aoaNewArc = Foam::degToRad(aoaNew);
@@ -418,8 +424,8 @@ void DAPartDeriv::perturbAOA(
 
                 forAll(state.boundaryField()[patchI], faceI)
                 {
-                    state.boundaryFieldRef()[patchI][faceI][xAxisIndex] = UxNew;
-                    state.boundaryFieldRef()[patchI][faceI][yAxisIndex] = UyNew;
+                    state.boundaryFieldRef()[patchI][faceI][flowAxisIndex] = UxNew;
+                    state.boundaryFieldRef()[patchI][faceI][normalAxisIndex] = UyNew;
                 }
             }
             else if (state.boundaryFieldRef()[patchI].type() == "inletOutlet")
@@ -430,7 +436,7 @@ void DAPartDeriv::perturbAOA(
                 scalar UmagIn = mag(inletOutletPatch.refValue()[0]);
 
                 scalar Uratio =
-                    inletOutletPatch.refValue()[0][yAxisIndex] / inletOutletPatch.refValue()[0][xAxisIndex];
+                    inletOutletPatch.refValue()[0][normalAxisIndex] / inletOutletPatch.refValue()[0][flowAxisIndex];
                 scalar aoa = Foam::radToDeg(Foam::atan(Uratio)); // we want the partials in degree
                 scalar aoaNew = aoa + delta;
                 scalar aoaNewArc = Foam::degToRad(aoaNew);
@@ -439,8 +445,8 @@ void DAPartDeriv::perturbAOA(
                 scalar UyNew = UxNew * Foam::tan(aoaNewArc);
 
                 vector UNew = vector::zero;
-                UNew[xAxisIndex] = UxNew;
-                UNew[yAxisIndex] = UyNew;
+                UNew[flowAxisIndex] = UxNew;
+                UNew[normalAxisIndex] = UyNew;
 
                 inletOutletPatch.refValue() = UNew;
             }

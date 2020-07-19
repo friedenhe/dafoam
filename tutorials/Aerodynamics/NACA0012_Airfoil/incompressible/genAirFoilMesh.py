@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 This script reads a coarse airfoil profile, refine the profile using spline function,
-and outputs it as surface mesh. Then it generate a 3D volume mesh with nSpan layers
+and outputs it as surfaceMesh.xyz. Then it generate a 3D volume mesh with nSpan layers
 in the z direction using pyHyp, available at https://github.com/mdolab/pyhyp
 Note: the airfoil data should be seperated into PS and SS surfaces, they should start from the
 LE and ends at TE. We use blunt TE so truncate the PS and SS data at about 99.8% of the chord.
@@ -265,5 +265,4 @@ options = {
 
 hyp = pyHyp(options=options)
 hyp.run()
-# hyp.writeCGNS('volumeMesh.cgns')
 hyp.writePlot3D("volumeMesh.xyz")

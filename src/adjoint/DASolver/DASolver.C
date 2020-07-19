@@ -1246,9 +1246,9 @@ label DASolver::calcTotalDeriv(
         // get info from dvSubDict. This needs to be defined in the pyDAFoam
         // name of the boundary patch
         word patchName = dvSubDict.getWord("patch");
-        // the x compoent of aoa, aoa = tan( U_y/U_x )
-        label xAxisIndex = dvSubDict.getLabel("xAxisIndex");
-        label yAxisIndex = dvSubDict.getLabel("yAxisIndex");
+        // the streamwise axis of aoa, aoa = tan( U_normal/U_flow )
+        word flowAxis = dvSubDict.getWord("flowAxis");
+        word normalAxis = dvSubDict.getWord("normalAxis");
 
         // no coloring is need for BC, so we create a dummy DAJacCon
         word dummyType = "dummy";
@@ -1276,8 +1276,8 @@ label DASolver::calcTotalDeriv(
             // setup options to compute dRdAOA
             dictionary options;
             options.set("patch", patchName);
-            options.set("xAxisIndex", xAxisIndex);
-            options.set("yAxisIndex", yAxisIndex);
+            options.set("flowAxis", flowAxis);
+            options.set("normalAxis", normalAxis);
             options.set("isPC", 0);
 
             // initialize the dRdAOA matrix
@@ -1349,8 +1349,8 @@ label DASolver::calcTotalDeriv(
                         options.set("objFuncPart", objFuncPart);
                         options.set("objFuncSubDictPart", objFuncSubDictPart);
                         options.set("patch", patchName);
-                        options.set("xAxisIndex", xAxisIndex);
-                        options.set("yAxisIndex", yAxisIndex);
+                        options.set("flowAxis", flowAxis);
+                        options.set("normalAxis", normalAxis);
 
                         // initialize dFdAOA
                         daPartDeriv->initializePartDerivMat(options, &dFdAOA);

@@ -37,11 +37,11 @@ protected:
     /// the patch name from the alpha design variable dict
     word inoutPatch_;
 
-    /// xAxisIndex from the alpha design variable dict with aoa=tan(U_y/U_x)
-    label xAxisIndex_;
+    /// flowAxisIndex_ for the alpha design variable with tan(U_normal/U_flow)
+    label flowAxisIndex_;
 
-    /// yAxisIndex from the alpha design variable dict with aoa=tan(U_y/U_x)
-    label yAxisIndex_;
+    /// normalAxisIndex_ for the alpha design variable with tan(U_normal/U_flow)
+    label normalAxisIndex_;
 
     /// dynamically adjust the force direction
     void updateForceDir(vector& forceDir);

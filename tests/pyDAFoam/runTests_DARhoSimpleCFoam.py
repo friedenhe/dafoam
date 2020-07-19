@@ -94,7 +94,7 @@ aeroOptions = {
     # Design variable setup
     "designVar": {
         "shapey": {"designVarType": "FFD"},
-        "alpha": {"designVarType": "AOA", "patch": "inout", "xAxisIndex": 0, "yAxisIndex": 1},
+        "alpha": {"designVarType": "AOA", "patch": "inout", "flowAxis": "x", "normalAxis": "y"},
     },
 }
 

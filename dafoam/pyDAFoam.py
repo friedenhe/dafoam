@@ -67,7 +67,7 @@ class PYDAFOAM(object):
             "nMultiPoints": [int, 1],
             # adjoint options
             "adjUseColoring": [bool, True],
-            "adjPartDerivFDStep": [dict, {"State": 1.0e-5, "FFD": 1.0e-3, "BC": 1.0e-2, "AOA": 1.0e-3,}],
+            "adjPartDerivFDStep": [dict, {"State": 1.0e-6, "FFD": 1.0e-3, "BC": 1.0e-2, "AOA": 1.0e-3}],
             "adjStateOrdering": [str, "state"],
             "adjEqnOption": [
                 dict,
@@ -112,8 +112,8 @@ class PYDAFOAM(object):
             "writeJacobians": [bool, False],
             # surface definition
             "meshSurfaceFamily": [str, "None"],
-            "designSurfaceFamily": [str, "None"],
-            "designSurfaces": [list, ["body"]],
+            "designSurfaceFamily": [str, "designSurfaces"],
+            "designSurfaces": [list, ["None"]],
         }
 
         return defOpts
@@ -200,8 +200,14 @@ class PYDAFOAM(object):
         self.nSolvePrimals = 0
         self.nSolveAdjoints = 0
 
+        # flags for primal and adjoint failure
         self.primalFail = 0
         self.adjointFail = 0
+
+        # objFuncValuePreIter stores the objective function value from the previous
+        # iteration. When the primal solution fails, the evalFunctions function will read
+        # value from self.objFuncValuePreIter
+        self.objFuncValuePrevIter = {}
 
         Info("pyDAFoam initialization done!")
 
@@ -320,8 +326,20 @@ class PYDAFOAM(object):
         """
 
         for funcName in evalFuncs:
-            objFuncValue = self.solver.getObjFuncValue(funcName.encode())
-            funcs[funcName] = objFuncValue
+            if self.primalFail:
+                if len(self.objFuncValuePrevIter) == 0:
+                    raise Error("Primal solution failed for the baseline design!")
+                else:
+                    # do not call self.solver.getObjFuncValue because they can be nonphysical,
+                    # assign funcs based on self.objFuncValuePrevIter instead
+                    funcs[funcName] = self.objFuncValuePrevIter[funcName]
+            else:
+                # call self.solver.getObjFuncValue to get the objFuncValue from
+                # the DASolver
+                objFuncValue = self.solver.getObjFuncValue(funcName.encode())
+                funcs[funcName] = objFuncValue
+                # assign the objFuncValuePrevIter
+                self.objFuncValuePrevIter[funcName] = funcs[funcName]
 
         if self.primalFail:
             funcs["fail"] = True

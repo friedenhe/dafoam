@@ -58,8 +58,14 @@ DAObjFuncForce::DAObjFuncForce(
         word alphaName = objFuncDict_.getWord("alphaName");
         dictionary alphaSubDict = daOption_.getAllOptions().subDict("designVar").subDict(alphaName);
         inoutPatch_ = alphaSubDict.getWord("patch");
-        xAxisIndex_ = alphaSubDict.getLabel("xAxisIndex");
-        yAxisIndex_ = alphaSubDict.getLabel("yAxisIndex");
+        HashTable<label> axisIndices;
+        axisIndices.set("x", 0);
+        axisIndices.set("y", 1);
+        axisIndices.set("z", 2);
+        word flowAxis = alphaSubDict.getWord("flowAxis");
+        word normalAxis = alphaSubDict.getWord("normalAxis");
+        flowAxisIndex_ = axisIndices[flowAxis];
+        normalAxisIndex_ = axisIndices[normalAxis];
     }
     else
     {
@@ -223,7 +229,7 @@ void DAObjFuncForce::updateForceDir(vector& forceDir)
         }
     }
 
-    // need to reduce the sum of force across all processors, this is becasue some of 
+    // need to reduce the sum of force across all processors, this is becasue some of
     // the processor might not own the inoutPatch_ so their flowDir will be -1e16, but
     // when calling the following reduce function, they will get the correct flowDir
     // computed by other processors
@@ -237,8 +243,8 @@ void DAObjFuncForce::updateForceDir(vector& forceDir)
     }
     else if (dirMode_ == "normalToFlow")
     {
-        forceDir[xAxisIndex_] = -flowDir[yAxisIndex_];
-        forceDir[yAxisIndex_] = flowDir[xAxisIndex_];
+        forceDir[flowAxisIndex_] = -flowDir[normalAxisIndex_];
+        forceDir[normalAxisIndex_] = flowDir[flowAxisIndex_];
     }
     else
     {

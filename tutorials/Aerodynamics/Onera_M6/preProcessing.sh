@@ -21,11 +21,11 @@ tar -xvf m6_surfaceMesh_fine.cgns.tar.gz
 cgns_utils coarsen m6_surfaceMesh_fine.cgns surfaceMesh.cgns
 cgns_utils coarsen surfaceMesh.cgns
 cgns_utils coarsen surfaceMesh.cgns
-python genWingMesh.py > log.meshGeneration
-plot3dToFoam -noBlank volumeMesh.xyz >> log.meshGeneration
-autoPatch 60 -overwrite >> log.meshGeneration
-createPatch -overwrite >> log.meshGeneration
-renumberMesh -overwrite >> log.meshGeneration
+python genWingMesh.py &> logMeshGeneration.txt
+plot3dToFoam -noBlank volumeMesh.xyz >> logMeshGeneration.txt
+autoPatch 60 -overwrite >> logMeshGeneration.txt
+createPatch -overwrite >> logMeshGeneration.txt
+renumberMesh -overwrite >> logMeshGeneration.txt
 echo "Generating mesh.. Done!"
 
 # copy initial and boundary condition files

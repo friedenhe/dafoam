@@ -89,9 +89,9 @@ void DAPartDerivdFdAOA::calcPartDerivMat(
         options.patchName: the name of the boundary patches to perturb, do not support
         multiple patches yet
 
-        optoins.xAxisIndex: the component x index, aoa will be atan(U_y/U_x)
+        options.flowAxis: the streamwise axis, aoa will be atan(U_normal/U_flow)
 
-        optoins.yAxisIndex: the component y index, aoa will be atan(U_y/U_x)
+        options.normalAxis: the flow normal axis, aoa will be atan(U_normal/U_flow)
 
         xvVec: the volume mesh coordinate vector
 
