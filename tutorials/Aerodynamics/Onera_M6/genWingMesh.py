@@ -1,3 +1,8 @@
+"""
+This script reads a surfaceMesh.cgns and extrude a 3D volume mesh using pyHyp,
+available at https://github.com/mdolab/pyhyp
+"""
+
 from pyhyp import pyHyp
 
 fileName = "surfaceMesh.cgns"
@@ -16,9 +21,9 @@ options = {
     # ---------------------------
     #        Grid Parameters
     # ---------------------------
-    "N": 25,
-    "s0": 1.e-3,
-    "marchDist": 12,
+    "N": 25,  # number of layers to march
+    "s0": 1.0e-3,  # first layer thickness
+    "marchDist": 12,  # distance to march
     # ---------------------------
     #   Pseudo Grid Parameters
     # ---------------------------

@@ -3,9 +3,9 @@
 DAFoam run script for the NACA0012 airfoil at subsonic speed
 """
 
-# =================================================================================================
+# =============================================================================
 # Imports
-# =================================================================================================
+# =============================================================================
 import os
 import argparse
 from mpi4py import MPI
@@ -20,42 +20,37 @@ import numpy as np
 # Input Parameters
 # =============================================================================
 parser = argparse.ArgumentParser()
-parser.add_argument("--output", help="Output directory", type=str, default="./")
+# which optimizer to use. Options are: slsqp (default), snopt, or ipopt
 parser.add_argument("--opt", help="optimizer to use", type=str, default="slsqp")
+# which task to run. Options are: opt (default), run, testSensShape, or solveCL
 parser.add_argument("--task", help="type of run to do", type=str, default="opt")
-parser.add_argument("--optVars", type=str, help="Vars for the optimizer", default="['shape']")
 args = parser.parse_args()
-exec("optVars=%s" % args.optVars)
-task = args.task
-outputDirectory = args.output
 gcomm = MPI.COMM_WORLD
 
-UmagIn = 238.0
-pIn = 101325.0
-nuTildaIn = 4.5e-5
-TIn = 300.0
-ARef = 0.1
-rhoRef = 1.0
+# global parameters
+U0 = 238.0
+p0 = 101325.0
+nuTilda0 = 4.5e-5
+T0 = 300.0
+A0 = 0.1
+rho0 = 1.0  # density for normalizing CD and CL
 CL_target = 0.5
 alpha0 = 2.760864
 
 # Set the parameters for optimization
 daOptions = {
-    # output options
-    # design surfaces and cost functions
-    "designSurfaceFamily": "designSurfaces",
     "designSurfaces": ["wing"],
-    # flow setup
     "solverName": "DARhoSimpleCFoam",
     "turbulenceModel": "SpalartAllmaras",
     "flowCondition": "Compressible",
     "primalMinResTol": 1.0e-8,
     "primalBC": {
-        "UIn": {"variable": "U", "patch": "inout", "value": [UmagIn, 0.0, 0.0]},
-        "pIn": {"variable": "p", "patch": "inout", "value": [pIn]},
-        "TIn": {"variable": "T", "patch": "inout", "value": [TIn]},
-        "nuTildaIn": {"variable": "nuTilda", "patch": "inout", "value": [nuTildaIn], "useWallFunction": True},
+        "UIn": {"variable": "U", "patch": "inout", "value": [U0, 0.0, 0.0]},
+        "pIn": {"variable": "p", "patch": "inout", "value": [p0]},
+        "TIn": {"variable": "T", "patch": "inout", "value": [T0]},
+        "nuTildaIn": {"variable": "nuTilda", "patch": "inout", "value": [nuTilda0], "useWallFunction": True},
     },
+    # variable bounds for compressible flow conditions
     "primalVarBounds": {
         "UUpperBound": 1000.0,
         "ULowerBound": -1000.0,
@@ -65,8 +60,6 @@ daOptions = {
         "eLowerBound": 100000.0,
         "rhoUpperBound": 5.0,
         "rhoLowerBound": 0.2},
-    # adjoint setup
-    "adjUseColoring": True,
     "objFunc": {
         "CD": {
             "part1": {
@@ -75,7 +68,7 @@ daOptions = {
                 "patches": ["wing"],
                 "directionMode": "parallelToFlow",
                 "alphaName": "alpha",
-                "scale": 1.0 / (0.5 * rhoRef * UmagIn * UmagIn * ARef),
+                "scale": 1.0 / (0.5 * rho0 * U0 * U0 * A0),
                 "addToAdjoint": True,
             }
         },
@@ -86,20 +79,17 @@ daOptions = {
                 "patches": ["wing"],
                 "directionMode": "normalToFlow",
                 "alphaName": "alpha",
-                "scale": 1.0 / (0.5 * rhoRef * UmagIn * UmagIn * ARef),
+                "scale": 1.0 / (0.5 * rho0 * U0 * U0 * A0),
                 "addToAdjoint": True,
             }
         },
     },
     "adjEqnOption": {"pcFillLevel": 1, "jacMatReOrdering": "rcm"},
+    # transonic preconditioner to speed up the adjoint convergence
     "transonicPCOption": 1,
-    "normalizeStates": {"U": UmagIn, "p": pIn, "nuTilda": nuTildaIn * 10.0, "phi": 1.0, "T": TIn},
+    "normalizeStates": {"U": U0, "p": p0, "nuTilda": nuTilda0 * 10.0, "phi": 1.0, "T": T0},
     "adjPartDerivFDStep": {"State": 1e-7, "FFD": 1e-3},
-    # Design variable setup
-    "designVar": {
-        "shapey": {"designVarType": "FFD"},
-        "alpha": {"designVarType": "AOA", "patch": "inout", "xAxisIndex": 0, "yAxisIndex": 1},
-    }
+    "designVar": {},
 }
 
 # mesh warping parameters, users need to manually specify the symmetry plane
@@ -112,131 +102,123 @@ meshOptions = {
 }
 
 # options for optimizers
-outPrefix = outputDirectory + task + optVars[0]
 if args.opt == "snopt":
     optOptions = {
-        "Major feasibility tolerance": 1.0e-7,  # tolerance for constraint
-        "Major optimality tolerance": 1.0e-7,  # tolerance for gradient
-        "Minor feasibility tolerance": 1.0e-7,  # tolerance for constraint
+        "Major feasibility tolerance": 1.0e-7,
+        "Major optimality tolerance": 1.0e-7,
+        "Minor feasibility tolerance": 1.0e-7,
         "Verify level": -1,
         "Function precision": 1.0e-7,
         "Major iterations limit": 50,
         "Nonderivative linesearch": None,
-        "Print file": os.path.join(outPrefix + "_SNOPT_print.out"),
-        "Summary file": os.path.join(outPrefix + "_SNOPT_summary.out"),
+        "Print file": "opt_SNOPT_print.out",
+        "Summary file": "opt_SNOPT_summary.out",
     }
 elif args.opt == "slsqp":
     optOptions = {
-        "ACC": 1.0e-7,  # convergence accuracy
-        "MAXIT": 50,  # max optimization iterations
-        "IFILE": os.path.join(outPrefix + "_SLSQP.out"),
+        "ACC": 1.0e-7,
+        "MAXIT": 50,
+        "IFILE": "opt_SLSQP.out",
     }
 elif args.opt == "ipopt":
     optOptions = {
-        "tol": 1.0e-7,  # convergence accuracy
-        "max_iter": 50,  # max optimization iterations
-        "output_file": os.path.join(outPrefix + "_IPOPT.out"),
+        "tol": 1.0e-7,
+        "max_iter": 50,
+        "output_file": "opt_IPOPT.out",
     }
 else:
     print("opt arg not valid!")
     exit(0)
 
 
-# =================================================================================================
-# DVGeo
-# =================================================================================================
-FFDFile = "./FFD/wingFFD.xyz"
-DVGeo = DVGeometry(FFDFile)
-
-# nTwists is the number of FFD points in the spanwise direction
-nTwists = DVGeo.addRefAxis("bodyAxis", xFraction=0.25, alignIndex="k")
-
-
+# =============================================================================
+# Design variable setup
+# =============================================================================
 def alpha(val, geo):
     aoa = val[0] * np.pi / 180.0
-    inletU = [float(UmagIn * np.cos(aoa)), float(UmagIn * np.sin(aoa)), 0]
+    inletU = [float(U0 * np.cos(aoa)), float(U0 * np.sin(aoa)), 0]
     DASolver.setOption("primalBC", {"UIn": {"variable": "U", "patch": "inout", "value": inletU}})
     DASolver.updateDAOption()
 
+
+DVGeo = DVGeometry("./FFD/wingFFD.xyz")
+
+DVGeo.addRefAxis("bodyAxis", xFraction=0.25, alignIndex="k")
 
 # select points
 pts = DVGeo.getLocalIndex(0)
 indexList = pts[:, :, :].flatten()
 PS = geo_utils.PointSelect("list", indexList)
+# shape
 DVGeo.addGeoDVLocal("shapey", lower=-1.0, upper=1.0, axis="y", scale=1.0, pointSelect=PS)
+daOptions["designVar"]["shapey"] = {"designVarType": "FFD"}
+# alpha
 DVGeo.addGeoDVGlobal("alpha", [alpha0], alpha, lower=-10.0, upper=10.0, scale=1.0)
+daOptions["designVar"]["alpha"] = {"designVarType": "AOA", "patch": "inout", "flowAxis": "x", "normalAxis": "y"}
 
-# =================================================================================================
-# DAFoam
-# =================================================================================================
+# =============================================================================
+# DAFoam initialization
+# =============================================================================
 DASolver = PYDAFOAM(options=daOptions, comm=gcomm)
 DASolver.setDVGeo(DVGeo)
 mesh = USMesh(options=meshOptions, comm=gcomm)
 DASolver.addFamilyGroup(DASolver.getOption("designSurfaceFamily"), DASolver.getOption("designSurfaces"))
 DASolver.printFamilyList()
 DASolver.setMesh(mesh)
-# set evalFuncs
 evalFuncs = []
-objFuncs = DASolver.getOption("objFunc")
-for funcName in objFuncs:
-    for funcPart in objFuncs[funcName]:
-        if objFuncs[funcName][funcPart]["addToAdjoint"] is True:
-            if funcName not in evalFuncs:
-                evalFuncs.append(funcName)
+DASolver.setEvalFuncs(evalFuncs)
 
-# =================================================================================================
-# DVCon
-# =================================================================================================
+# =============================================================================
+# Constraint setup
+# =============================================================================
 DVCon = DVConstraints()
 DVCon.setDVGeo(DVGeo)
-[p0, v1, v2] = DASolver.getTriangulatedMeshSurface(groupName=DASolver.getOption("designSurfaceFamily"))
-surf = [p0, v1, v2]
-DVCon.setSurface(surf)
+DVCon.setSurface(DASolver.getTriangulatedMeshSurface(groupName=DASolver.getOption("designSurfaceFamily")))
 
 leList = [[1e-4, 0.0, 1e-4], [1e-4, 0.0, 0.1 - 1e-4]]
 teList = [[0.998 - 1e-4, 0.0, 1e-4], [0.998 - 1e-4, 0.0, 0.1 - 1e-4]]
 
+# volume constraint
 DVCon.addVolumeConstraint(leList, teList, nSpan=2, nChord=10, lower=1.0, upper=3, scaled=True)
+
+# thickness constraint
 DVCon.addThicknessConstraints2D(leList, teList, nSpan=2, nChord=10, lower=0.8, upper=3.0, scaled=True)
 
-# Create a linear constraint so that the curvature at the symmetry plane is zero
-nFFDs_x = 5
-pts1 = DVGeo.getLocalIndex(0)
+# symmetry constraint
+nFFDs_x = pts.shape[0]
 indSetA = []
 indSetB = []
 for i in range(nFFDs_x):
     for j in [0, 1]:
-        indSetA.append(pts1[i, j, 1])
-        indSetB.append(pts1[i, j, 0])
+        indSetA.append(pts[i, j, 1])
+        indSetB.append(pts[i, j, 0])
 DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=-1.0, lower=0.0, upper=0.0)
 
-# Create a linear constraint so that the leading and trailing edges do not change
-pts1 = DVGeo.getLocalIndex(0)
+# LE and TE constraint
 indSetA = []
 indSetB = []
 for i in [0, nFFDs_x - 1]:
     for k in [0]:  # do not constrain k=1 because it is linked in the above symmetry constraint
-        indSetA.append(pts1[i, 0, k])
-        indSetB.append(pts1[i, 1, k])
+        indSetA.append(pts[i, 0, k])
+        indSetB.append(pts[i, 1, k])
 DVCon.addLinearConstraintsShape(indSetA, indSetB, factorA=1.0, factorB=1.0, lower=0.0, upper=0.0)
 
 
-# ================================================================================================
-# optFuncs
-# =================================================================================================
+# =============================================================================
+# Initialize optFuncs for optimization
+# =============================================================================
 optFuncs.DASolver = DASolver
 optFuncs.DVGeo = DVGeo
 optFuncs.DVCon = DVCon
 optFuncs.evalFuncs = evalFuncs
 optFuncs.gcomm = gcomm
 
-# =================================================================================================
+# =============================================================================
 # Task
-# =================================================================================================
-if task == "opt":
+# =============================================================================
+if args.task == "opt":
 
-    DASolver.runColoring()
-    optProb = Optimization("opt", optFuncs.calcObjFuncValues, comm=gcomm)
+    optProb = Optimization("opt", objFun=optFuncs.calcObjFuncValues, comm=gcomm)
     DVGeo.addVariablesPyOpt(optProb)
     DVCon.addConstraintsPyOpt(optProb)
 
@@ -248,21 +230,23 @@ if task == "opt":
     if gcomm.rank == 0:
         print(optProb)
 
+    DASolver.runColoring()
+
     opt = OPT(args.opt, options=optOptions)
-    histFile = os.path.join(outputDirectory, "%s_hist.hst" % args.opt)
+    histFile = "./%s_hist.hst" % args.opt
     sol = opt(optProb, sens=optFuncs.calcObjFuncSens, storeHistory=histFile)
     if gcomm.rank == 0:
         print(sol)
 
-elif task == "run":
+elif args.task == "run":
 
     optFuncs.run()
 
-elif task == "solveCL":
+elif args.task == "solveCL":
 
     optFuncs.solveCL(CL_target, "alpha", "CL")
 
-elif task == "testSensShape":
+elif args.task == "testSensShape":
 
     optFuncs.testSensShape()
 
