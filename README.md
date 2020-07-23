@@ -11,7 +11,7 @@ DAFoam implements an efficient discrete adjoint method to perform high-fidelity 
 - It allows rapid discrete adjoint development for any steady and unsteady OpenFOAM primal solvers with modifying only a few hundred lines of source codes.
 - It supports design optimizations for a wide range of disciplines such as aerodynamics, heat transfer, structures, hydrodynamics, and radiation.
 
-![](doc/DPW6Flow.png)
+![](cover.png)
 
 Documentation
 -------------
