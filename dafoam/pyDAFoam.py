@@ -25,6 +25,271 @@ from petsc4py import PETSc
 petsc4py.init(sys.argv)
 
 
+class DAOPTION(object):
+    """
+    Define a set of options to use in PYDAFOAM and set their initial values.
+    This class will be used by PYDAFOAM._getDefOptions()
+
+    NOTE: Give an initial value for a new option, this help PYDAFOAM determine the
+    type of this option. Also, use ## to add comments before the new option such that
+    these comments will be picked up by Doxygen. If possible, give examples.
+
+    NOTE: We group these options into three categories.
+    - The basic options are those options that will be used for EVERY solvers and EVERY cases.
+    - The intermediate options are options that will be used in some of solvers for special
+      situation (e.g., primalVarBounds to prevent solution from divergence).
+    - The advanced options will be used in special situation to improve performance, e.g.,
+      maxResConLv4JacPCMat to reduce memory of preconditioner. Its usage is highly case dependent.
+      It may also include options that have a default value that is rarely changed, except for
+      very special situation.
+    """
+
+    # *********************************************************************************************
+    # *************************************** Basic Options ***************************************
+    # *********************************************************************************************
+
+    ## The name of the DASolver to use for primal and adjoint computation.
+    ## See dafoam/src/adjoint/DASolver for all avaiable solvers
+    solverName = "DASimpleFoam"
+
+    ## The flow condition, which needs to be consistant with the "solverName".
+    ## For example, DASimpleFoam <-> Incompressible, DARhoSimpleFoam <-> Compressible
+    flowCondition = "Incompressible"
+
+    ## The name of turbulene model to use. This needs to be consistant with the value in
+    ## constant/turbulenceProperties
+    turbulenceModel = "SpalartAllmaras"
+
+    ## The convergence tolerance for the primal solver. If the primal can not converge to 2 orders
+    ## of magnitude (default) higher than this tolerance, the primal solution will return fail=True
+    primalMinResTol = 1.0e-8
+
+    ## The boundary condition for primal solution. The keys should include "variable", "patch",
+    ## and "value". For turbulence variable, one can also set "useWallFunction" [bool].
+    ## Note that setting "primalBC" will overwrite any values defined in the "0" folder.
+    ## The primalBC setting will be printed to screen for each primal solution during the optimization
+    ## Example
+    ##    "primalBC": {
+    ##        "UIn": {"variable": "U", "patch": "inlet", "value": [10.0, 0.0, 0.0]},
+    ##        "pIn": {"variable": "p", "patch": "inlet", "value": [101325.0]},
+    ##        "nuTildaIn": {"variable": "nuTilda", "patch": "inlet", "value": [1.5e-4],
+    ##                      "useWallFunction": True},
+    ##    },
+    primalBC = {}
+
+    ## State normalization for dRdWT computation. Typically, we set far field value for each state
+    ## variable. NOTE: If you forget to set normalization value for a state variable, the adjoint
+    ## may not converge! For "phi", use 1.0 to normalization
+    ## Example
+    ##     normalizeStates = {"U": 10.0, "p": 101325.0, "phi": 1.0, "nuTilda": 1.e-4}
+    normalizeStates = {}
+
+    ## Information on objective function. Each objective function requries a different input forma
+    ## But for all objectives, we need to give a name to the objective function, e.g., CD or any
+    ## other prefered name, and the information for each part of the objective function. Most of
+    ## the time, the objective has only one part (in this case part1), but one can also combine two
+    ## parts of objectives, e.g., we can define a new objective that is the sum of force and moment.
+    ## For each part, we need to define the type of obejective (e.g., force, moment; we need to use
+    ## the reserved type names), how to select the discrete mesh faces to compute the objective
+    ## (e.g., we select them from the name of a patch patchToFace), the name of the patch (wing)
+    ## for patchToFace, the scaling factor "scale", and whether to compute adjoint for this
+    ## objective "addToAdjoint". For force objectives, we need to project the force vector to a
+    ## specific direction. The following example defines that CD is the force that is parallel to flow
+    ## (parallelToFlow). Alternative, we can also use fixedDirection and provide a direction key for
+    ## force, i.e., "directionMode": "fixedDirection", "direction": [1.0, 0.0, 0.0]. Since we select
+    ## parallelToFlow, we need to prescribe the name of angle of attack design variable to determine
+    ## the flow direction. Here alpha will be defined in runScript.py:
+    ## DVGeo.addGeoDVGlobal("alpha", [alpha0], alpha, lower=-10.0, upper=10.0, scale=1.0).
+    ## NOTE: if no alpha is added in DVGeo.addGeoDVGlobal, we can NOT use parallelToFlow.
+    ## For this case, we have to use "directionMode": "fixedDirection".
+    ## Example
+    ##     "objFunc": {
+    ##         "CD": {
+    ##             "part1": {
+    ##                 "type": "force",
+    ##                 "source": "patchToFace",
+    ##                 "patches": ["wing"],
+    ##                 "directionMode": "parallelToFlow",
+    ##                 "alphaName": "alpha",
+    ##                 "scale": 1.0 / (0.5 * UmagIn * UmagIn * ARef),
+    ##                 "addToAdjoint": True,
+    ##             }
+    ##         },
+    ##         "CL": {
+    ##             "part1": {
+    ##                 "type": "force",
+    ##                 "source": "patchToFace",
+    ##                 "patches": ["wing"],
+    ##                 "directionMode": "normalToFlow",
+    ##                 "alphaName": "alpha",
+    ##                 "scale": 1.0 / (0.5 * UmagIn * UmagIn * ARef),
+    ##                 "addToAdjoint": True,
+    ##             }
+    ##         },
+    ##         "CMZ": {
+    ##             "part1": {
+    ##                 "type": "moment",
+    ##                 "source": "patchToFace",
+    ##                 "patches": ["wing"],
+    ##                 "axis": [0.0, 0.0, 1.0],
+    ##                 "center": [0.25, 0.0, 0.05],
+    ##                 "scale": 1.0 / (0.5 * UmagIn * UmagIn * ARef * LRef),
+    ##                 "addToAdjoint": True,
+    ##             }
+    ##         },
+    ##     },
+    objFunc = {}
+
+    ## Design variable information. Different type of design variables require different keys
+    ## Example
+    ##     designVar = {
+    ##         "shapey" : {"designVarType": "FFD"},
+    ##         "twist": {"designVarType": "FFD"},
+    ##         "alpha" = {
+    ##             "designVarType": "AOA",
+    ##             "patch": "inout",
+    ##             "flowAxis": "x",
+    ##             "normalAxis": "y"
+    ##         }
+    ##     }
+    designVar = {}
+
+    ## List of patch names for the design surface. These patch names need to be of wall type
+    ## and shows up in the constant/polyMesh/boundary file
+    designSurfaces = ["None"]
+
+    # *********************************************************************************************
+    # ****************************** Intermediate Options *****************************************
+    # *********************************************************************************************
+
+    ## Information for the finite volume source term, which will be added in the momentum equation
+    ## We support multiple soure terms
+    ## Example
+    ## "fvSource": {
+    ##     "disk1": {
+    ##         "type": "actuatorDisk", # Actuator disk source. This is a child class in DAFvSource
+    ##         "source": "cylinderAnnulusToCell", # Define a volume to add the fvSource term
+    ##         "p1": [-0.4, -0.1, 0.05],  # p1 and p2 define the axis and width
+    ##         "p2": [-0.1, -0.1, 0.05],  # p2-p1 should be streamwise
+    ##         "innerRadius": 0.01,
+    ##         "outerRadius": 0.5,
+    ##         "rotDir": "left",
+    ##         "scale": 50.0,
+    ##         "POD": 0.7, # pitch/diameter
+    ##     },
+    ##     "disk2": {
+    ##         "type": "actuatorDisk",
+    ##         "source": "cylinderAnnulusToCell",
+    ##         "p1": [-0.4, 0.1, 0.05],
+    ##         "p2": [-0.1, 0.1, 0.05],
+    ##         "innerRadius": 0.01,
+    ##         "outerRadius": 0.5,
+    ##         "rotDir": "right",
+    ##         "scale": 25.0,
+    ##         "POD": 1.0,
+    ##     },
+    ## },
+    fvSource = {}
+
+    ## The variable upper and lower bounds for primal solution. The key is variable+"UpperBound".
+    ## Setting the bounds increases the robustness of primal solution for compressible solvers.
+    ## Example
+    ##     primalValBounds = {"UUpperBound": 1000, "ULowerBound": -1000, "pUpperBound": 1000000}
+    primalVarBounds = {}
+
+    ## Whether to perform multipoint optimization.
+    multiPoint = False
+
+    ## If multiPoint = True, how many primal configuartions for the multipoint optimization.
+    nMultiPoints = 1
+
+    ## The step size for finite-difference computation of partial derivatives. The default values
+    ## will work for most of the case.
+    adjPartDerivFDStep = {"State": 1.0e-6, "FFD": 1.0e-3, "BC": 1.0e-2, "AOA": 1.0e-3}
+
+    ## Which options to use to improve the adjoint equation convergence of transonic conditions
+    ## This is used only for transonic solvers such as DARhoSimpleCFoam
+    transonicPCOption = -1
+
+    # *********************************************************************************************
+    # ************************************ Advance Options ****************************************
+    # *********************************************************************************************
+
+    ## The root directory is usually ./
+    rootDir = "./"
+
+    ## Whether to print all options to screen before optimization. Needed only for debugging.
+    printAllOptions = False
+
+    ## Whether running the optimization in the debug mode, which prints extra information.
+    debug = False
+
+    ## Whether to write all the Jacobian matrices to file for debugging
+    writeJacobians = False
+
+    ## The print interval of primal and adjoint solution, e.g., how frequent to print the primal
+    ## solution steps, how frequent to print the dRdWT partial derivative computation.
+    printInterval = 100
+
+    ## Users can adjust primalMinResTolDiff to tweak how much difference between primalMinResTol
+    ## and the actual primal convergence is consider to be fail=True for the primal solution.
+    primalMinResTolDiff = 1.0e2
+
+    ## Whether to use graph coloring to accelerate partial derivative computation. Unless you are
+    ## debugging the accuracy of partial computation, always set it to True
+    adjUseColoring = True
+
+    ## The Petsc options for solving the adjoint linear equation. These options should work for
+    ## most of the case. If the adjoint does not converge, try to increase pcFillLevel to 2, or
+    ## try "jacMatReOrdering": "nd"
+    adjEqnOption = {
+        "globalPCIters": 0,
+        "asmOverlap": 1,
+        "localPCIters": 1,
+        "jacMatReOrdering": "rcm",
+        "pcFillLevel": 1,
+        "gmresMaxIters": 1000,
+        "gmresRestart": 1000,
+        "gmresRelTol": 1.0e-6,
+        "gmresAbsTol": 1.0e-14,
+        "gmresTolDiff": 1.0e2,
+    }
+
+    ## Normalization for residuals. We should normalize all residuals!
+    normalizeResiduals = ["URes", "pRes", "nuTildaRes", "phiRes", "TRes"]
+
+    ## The maximal connectivity level for the dRdWTPC matrix. Reducing the connectivity level
+    ## reduce the memory usage, however, it may slow down the adjoint equation convergence.
+    ## The default value should have the best convergence speed but not optimal memory usage.
+    maxResConLv4JacPCMat = {
+        "pRes": 2,
+        "phiRes": 1,
+        "URes": 2,
+        "TRes": 2,
+        "nuTildaRes": 2,
+        "kRes": 2,
+        "epsilonRes": 2,
+        "omegaRes": 2,
+        "p_rghRes": 2,
+    }
+
+    ## The ordering of state variable. Options are: state or cell. Most of the case, the state
+    ## odering is the best choice.
+    adjStateOrdering = "state"
+
+    ## Default name for the mesh surface family. Users typically don't need to change
+    meshSurfaceFamily = "None"
+
+    ## Default name for the design surface family. Users typically don't need to change
+    designSurfaceFamily = "designSurfaces"
+
+    def __init__(self):
+        """
+        Nothing needs to be done for initializing DAOPTION
+        """
+        pass
+
+
 class PYDAFOAM(object):
 
     """
@@ -41,89 +306,16 @@ class PYDAFOAM(object):
 
     """
 
-    def _getDefOptions(self):
-        """
-        Setup default options
-
-        Returns
-        -------
-
-        defOpts : dict
-            All the DAFoam options.
-        """
-        defOpts = {
-            # primal options
-            "primalEndTime": [float, 1.0],
-            "primalDeltaT": [float, 1.0],
-            "primalVarBounds": [dict, {}],
-            "flowCondition": [str, "Incompressible"],
-            "turbulenceModel": [str, "SpalartAllmaras"],
-            "primalBC": [dict, {}],
-            "fvSource": [dict, {}],
-            "printInterval": [int, 100],
-            "primalMinResTol": [float, 1.0e-8],
-            "primalMinResTolDiff": [float, 1.0e2],
-            "multiPoint": [bool, False],
-            "nMultiPoints": [int, 1],
-            # adjoint options
-            "adjUseColoring": [bool, True],
-            "adjPartDerivFDStep": [dict, {"State": 1.0e-6, "FFD": 1.0e-3, "BC": 1.0e-2, "AOA": 1.0e-3}],
-            "adjStateOrdering": [str, "state"],
-            "adjEqnOption": [
-                dict,
-                {
-                    "globalPCIters": 0,
-                    "asmOverlap": 1,
-                    "localPCIters": 1,
-                    "jacMatReOrdering": "rcm",
-                    "pcFillLevel": 1,
-                    "gmresMaxIters": 1000,
-                    "gmresRestart": 1000,
-                    "gmresRelTol": 1.0e-6,
-                    "gmresAbsTol": 1.0e-14,
-                    "gmresTolDiff": 1.0e2,
-                },
-            ],
-            "normalizeStates": [dict, {}],
-            "normalizeResiduals": [list, ["URes", "pRes", "nuTildaRes", "phiRes", "TRes"]],
-            "maxResConLv4JacPCMat": [
-                dict,
-                {
-                    "pRes": 2,
-                    "phiRes": 1,
-                    "URes": 2,
-                    "TRes": 2,
-                    "nuTildaRes": 2,
-                    "kRes": 2,
-                    "epsilonRes": 2,
-                    "omegaRes": 2,
-                    "p_rghRes": 2,
-                },
-            ],
-            "transonicPCOption": [int, -1],
-            # optimization options
-            "designVar": [dict, {}],
-            # system options
-            "rootDir": [str, "./"],
-            "solverName": [str, "DASimpleFoam"],
-            "printAllOptions": [bool, True],
-            "objFunc": [dict, {}],
-            "debug": [bool, False],
-            "writeJacobians": [bool, False],
-            # surface definition
-            "meshSurfaceFamily": [str, "None"],
-            "designSurfaceFamily": [str, "designSurfaces"],
-            "designSurfaces": [list, ["None"]],
-        }
-
-        return defOpts
-
     def __init__(self, comm=None, options=None):
         """
         Initialize class members
         """
 
         assert not os.getenv("WM_PROJECT") is None, "$WM_PROJECT not found. Please source OpenFOAM-v1812/etc/bashrc"
+
+        Info("---------------------------------------------------")
+        Info("|                   DAFoam v2.0                   |")
+        Info("---------------------------------------------------")
 
         # name
         self.name = "PYDAFOAM"
@@ -257,6 +449,30 @@ class PYDAFOAM(object):
         self.solvePrimal()
 
         return
+    
+    def _getDefOptions(self):
+        """
+        Setup default options
+
+        Returns
+        -------
+
+        defOpts : dict
+            All the DAFoam options.
+        """
+
+        # initialize the DAOPTION object
+        daOption = DAOPTION()
+
+        defOpts = {}
+
+        # assign all the attribute of daOptoin to defOpts
+        for key in daOption.__dir__():
+            if "__" not in key:
+                value = getattr(DAOPTION, key)
+                defOpts[key] = [type(value), value]
+
+        return defOpts
 
     def saveMultiPointField(self, indexMP):
         """
