@@ -21,6 +21,11 @@ libName = "pyDASolverCompressible"
 os.environ["CC"] = "mpicc"
 os.environ["CXX"] = "mpicxx"
 
+if os.getenv("WM_CODI_AD_FLAGS") is None:
+    codiFlag = "-DCODI_AD_NONE"
+else:
+    codiFlag = os.getenv("WM_CODI_AD_FLAGS")
+
 # These setup should reproduce calling wmake to compile OpenFOAM libraries and solvers
 ext = [
     Extension(
@@ -96,7 +101,7 @@ ext = [
             "-ftemplate-depth-100",
             "-fPIC",
             "-c",
-            os.getenv("WM_CODI_AD_FLAGS"),
+            codiFlag,
         ],
         # Extra link flags for OpenFOAM, users don't need to touch this
         extra_link_args=["-Xlinker", "--add-needed", "-Xlinker", "--no-as-needed"],
