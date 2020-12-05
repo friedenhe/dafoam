@@ -70,7 +70,7 @@
                 IOobject::NO_WRITE),                                  \
             mesh,                                                     \
             dimensionedScalar(#stateName "Res", stateUnit, 0.0),      \
-            zeroGradientFvPatchField<scalar>::typeName),                \
+            zeroGradientFvPatchField<scalar>::typeName),              \
         stateName##ResPartDeriv_(                                     \
             IOobject(                                                 \
                 #stateName "ResPartDeriv",                            \
@@ -93,7 +93,7 @@
                 IOobject::NO_WRITE),                                      \
             mesh,                                                         \
             dimensionedVector(#stateName "Res", stateUnit, vector::zero), \
-            zeroGradientFvPatchField<vector>::typeName),                    \
+            zeroGradientFvPatchField<vector>::typeName),                  \
         stateName##ResPartDeriv_(                                         \
             IOobject(                                                     \
                 #stateName "ResPartDeriv",                                \
@@ -124,4 +124,13 @@
                 IOobject::NO_WRITE),                                      \
             mesh.thisDb().lookupObject<surfaceScalarField>(#stateName))
 
+#endif
+
+// If AD is used, do valA=valB.getValue(), otherwise, do valA=valB
+#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#define assignValueCheckAD(valA, valB) \
+    valA = valB.getValue();
+#else
+#define assignValueCheckAD(valA, valB) \
+    valA = valB;
 #endif
