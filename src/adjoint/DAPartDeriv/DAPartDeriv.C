@@ -439,9 +439,11 @@ void DAPartDeriv::perturbAOA(
                     scalar UmagIn = mag(state.boundaryField()[patchI][0]);
                     scalar Uratio =
                         state.boundaryField()[patchI][0][normalAxisIndex] / state.boundaryField()[patchI][0][flowAxisIndex];
-                    scalar aoa = Foam::radToDeg(atan(Uratio)); // we want the partials in degree
+                    //scalar aoa = Foam::radToDeg(atan(Uratio)); // we want the partials in degree
+                    scalar aoa = atan(Uratio) * 180.0 / constant::mathematical::pi;
                     scalar aoaNew = aoa + delta;
-                    scalar aoaNewArc = Foam::degToRad(aoaNew);
+                    //scalar aoaNewArc = Foam::degToRad(aoaNew);
+                    scalar aoaNewArc = aoaNew * constant::mathematical::pi / 180.0;
 
                     scalar UxNew = UmagIn / sqrt(1 + tan(aoaNewArc) * tan(aoaNewArc));
                     scalar UyNew = UxNew * tan(aoaNewArc);
@@ -461,9 +463,11 @@ void DAPartDeriv::perturbAOA(
 
                     scalar Uratio =
                         inletOutletPatch.refValue()[0][normalAxisIndex] / inletOutletPatch.refValue()[0][flowAxisIndex];
-                    scalar aoa = Foam::radToDeg(atan(Uratio)); // we want the partials in degree
+                    //scalar aoa = Foam::radToDeg(atan(Uratio)); // we want the partials in degree
+                    scalar aoa = atan(Uratio) * 180.0 / constant::mathematical::pi;
                     scalar aoaNew = aoa + delta;
-                    scalar aoaNewArc = Foam::degToRad(aoaNew);
+                    //scalar aoaNewArc = Foam::degToRad(aoaNew);
+                    scalar aoaNewArc = aoaNew * constant::mathematical::pi / 180.0;
 
                     scalar UxNew = UmagIn / sqrt(1 + tan(aoaNewArc) * tan(aoaNewArc));
                     scalar UyNew = UxNew * tan(aoaNewArc);
