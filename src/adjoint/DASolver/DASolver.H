@@ -108,6 +108,9 @@ protected:
     /// pointer to the objective function file used in unsteady primal solvers
     autoPtr<OFstream> objFuncAvgHistFilePtr_;
 
+    /// global tape for reverse-mode AD
+    codi::RealReverse::TapeType& globalADTape_;
+
     /// number of iterations since the start of objFunc averaging
     label nItersObjFuncAvg_ = -9999;
 
@@ -388,6 +391,28 @@ public:
     {
         return prevPrimalSolTime_;
     }
+
+    /// matrix free matrix-vector product function to compute vecY=dRdWT*vecX
+    static PetscErrorCode dRdWTMatVecMultFunction(Mat dRdWT, Vec vecX, Vec vecY);
+
+    void initializeGlobalADTape();
+
+    label globalADTapeInitialized = 0;
+
+    /// assign the reverse-mode AD input seeds from vecX to the residuals in OpenFOAM
+    void assignVec2ResidualGradient(Vec vecX);
+
+    /// set the reverse-mode AD derivatives from the state variables in OpenFOAM to vecY
+    void assignStateGradient2Vec(Vec vecY);
+
+    /// normalize the reverse-mode AD derivatives stored in vecY
+    void normalizeGradientVec(Vec vecY);
+
+    void registerStateVariableInput4AD();
+
+    void registerResidualOutput4AD();
+
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

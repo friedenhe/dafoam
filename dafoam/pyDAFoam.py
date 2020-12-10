@@ -11,7 +11,7 @@
 
 """
 
-__version__ = "2.1.3"
+__version__ = "2.2.0"
 
 import subprocess
 import os
@@ -302,6 +302,12 @@ class DAOPTION(object):
     ##    },
     ## },
     fvSource = {}
+
+    ## Adjoint solution option.
+    ## JacobianFD: Using finite-difference method to compute the partials
+    ## JacobianFree: Using the matrix-free GMRES to solve the adjoint equation without computing
+    ## the state Jacobians.
+    adjJacobianOption = "JacobianFD"
 
     ## The variable upper and lower bounds for primal solution. The key is variable+"Max/Min".
     ## Setting the bounds increases the robustness of primal solution for compressible solvers.
@@ -827,15 +833,37 @@ class PYDAFOAM(object):
             raise Error("DVGeo not set!")
 
         dvs = self.DVGeo.getValues()
+        adjJacobianOption = self.getOption("adjJacobianOption")
 
+        self.ptSetName = self.getPointSetName("dummy")
+        ptSetName = self.ptSetName
         for funcName in evalFuncs:
             funcsSens[funcName] = {}
             for dvName in dvs:
-                nDVs = len(dvs[dvName])
-                funcsSens[funcName][dvName] = np.zeros(nDVs, self.dtype)
-                for i in range(nDVs):
-                    sensVal = self.solver.getTotalDerivVal(funcName.encode(), dvName.encode(), i)
-                    funcsSens[funcName][dvName][i] = sensVal
+                dvType = self.getOption("designVar")[dvName]["designVarType"]
+                if dvType == "FFD" and adjJacobianOption == "JacobianFree":
+                    xvSize = len(self.xv) * 3
+                    dFdXv = np.zeros(xvSize, self.dtype)
+                    print("Reading total deriv")
+                    for i in range(xvSize):
+                        dFdXv[i] = self.solver.getTotalDerivVal(funcName.encode(), dvName.encode(), i)
+                    # Now get total derivative wrt surface coordinates
+                    print("warping")
+                    self.mesh.warpDeriv(dFdXv[:])
+                    dFdXs = self.mesh.getdXs() 
+                    dFdXs = self.mapVector(dFdXs, self.meshFamilyGroup, self.designFamilyGroup)
+                    dFdx = self.DVGeo.totalSensitivity(dFdXs, ptSetName=ptSetName, comm=self.comm)
+                    
+                    nDVs = len(dvs[dvName])
+                    funcsSens[funcName][dvName] = np.zeros(nDVs, self.dtype)
+                    for i in range(nDVs):
+                        funcsSens[funcName][dvName][i] = dFdx[dvName][0][i]
+                else:
+                    nDVs = len(dvs[dvName])
+                    funcsSens[funcName][dvName] = np.zeros(nDVs, self.dtype)
+                    for i in range(nDVs):
+                        sensVal = self.solver.getTotalDerivVal(funcName.encode(), dvName.encode(), i)
+                        funcsSens[funcName][dvName][i] = sensVal
 
         if self.adjointFail:
             funcsSens["fail"] = True
