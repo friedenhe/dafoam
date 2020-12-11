@@ -82,16 +82,8 @@ DASpalartAllmarasFv3Beta::DASpalartAllmarasFv3Beta(
               IOobject::NO_READ,
               IOobject::NO_WRITE),
           nuTildaRes_),
-      betaSA_(
-          IOobject(
-              "betaSA",
-              mesh.time().timeName(),
-              mesh,
-              IOobject::READ_IF_PRESENT,
-              IOobject::AUTO_WRITE),
-          mesh,
-          dimensionedScalar("betaSA", dimensionSet(0, 0, 0, 0, 0, 0, 0), 1.0),
-          zeroGradientFvPatchField<scalar>::typeName),
+      betaSA_(const_cast<volScalarField&>(
+          mesh.thisDb().lookupObject<volScalarField>("betaSA"))),
       y_(mesh.thisDb().lookupObject<volScalarField>("yWall"))
 {
 

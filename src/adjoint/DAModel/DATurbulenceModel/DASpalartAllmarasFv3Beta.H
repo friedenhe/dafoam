@@ -68,7 +68,7 @@ protected:
     //@}
 
     /// A beta field multiplying to the production term
-    volScalarField betaSA_; 
+    volScalarField& betaSA_; 
 
     /// 3D wall distance
     const volScalarField& y_;
