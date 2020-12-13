@@ -1752,6 +1752,179 @@ label DASolver::calcTotalDeriv(
 
         MatDestroy(&dRdACT);
     }
+    // *****************************************************************************
+    // ******************************** ArgVar dvType ******************************
+    // *****************************************************************************
+    // actuator point parameters as the design variable
+    else if (designVarType == "ArgVar")
+    {
+        // no coloring is need for actuator, so we create a dummy DAJacCon
+        word dummyType = "dummy";
+        autoPtr<DAJacCon> daJacCon(DAJacCon::New(
+            dummyType,
+            meshPtr_(),
+            daOptionPtr_(),
+            daModelPtr_(),
+            daIndexPtr_()));
+        // ********************** compute dRdArgVar **********************
+        Mat dRdArgVar;
+        {
+            // create DAPartDeriv object
+            word modelType = "dRdArgVar";
+            autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+                modelType,
+                meshPtr_(),
+                daOptionPtr_(),
+                daModelPtr_(),
+                daIndexPtr_(),
+                daJacCon(),
+                daResidualPtr_()));
+
+            // setup options to compute dRdACT*
+            dictionary options;
+            // initialize the dRdArgVar matrix
+            daPartDeriv->initializePartDerivMat(options, &dRdArgVar);
+
+            // compute it using analytical method
+            daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dRdArgVar);
+
+            if (daOptionPtr_->getOption<label>("debug"))
+            {
+                this->calcPrimalResidualStatistics("print");
+            }
+
+            if (daOptionPtr_->getOption<label>("writeJacobians"))
+            {
+                word outputName = "dRd" + designVarType + "_" + designVarName;
+                DAUtility::writeMatrixBinary(dRdArgVar, outputName);
+                DAUtility::writeMatrixASCII(dRdArgVar, outputName);
+            }
+        }
+
+        // ********************** compute dFdArgVar **********************
+        dictionary objFuncDict = allOptions.subDict("objFunc");
+
+        // loop over all objFuncName in the objFunc dict
+        forAll(objFuncDict.toc(), idxJ)
+        {
+
+            word objFuncName = objFuncDict.toc()[idxJ];
+
+            // we only solve adjoint for objectives that have addToAdjoint = True
+            if (DAUtility::isInList<word>(objFuncName, objFuncNames4Adj_))
+            {
+                // the dFdArgVarVecAllParts vector contains the sum of dFdArgVarVec from all parts for this objFuncName
+                Vec dFdArgVarVecAllParts;
+                VecCreate(PETSC_COMM_WORLD, &dFdArgVarVecAllParts);
+                VecSetSizes(dFdArgVarVecAllParts, meshPtr_->nCells(), PETSC_DETERMINE);
+                VecSetFromOptions(dFdArgVarVecAllParts);
+                VecZeroEntries(dFdArgVarVecAllParts);
+
+                dictionary objFuncSubDict = objFuncDict.subDict(objFuncName);
+                // loop over all parts of this objFuncName
+                forAll(objFuncSubDict.toc(), idxK)
+                {
+                    word objFuncPart = objFuncSubDict.toc()[idxK];
+                    dictionary objFuncSubDictPart = objFuncSubDict.subDict(objFuncPart);
+
+                    // we only compute total derivative for objFuncs with addToAdjoint = True
+                    label addToAdjoint = objFuncSubDictPart.getLabel("addToAdjoint");
+                    if (addToAdjoint)
+                    {
+
+                        if (objFuncSubDictPart.getWord("type") != "stateErrorNorm")
+                        {
+                            FatalErrorIn("") << "Only support stateErrorNorm" << abort(FatalError);
+                        }
+
+                        Mat dFdArgVar;
+
+                        // initialize DAPartDeriv for dFdArgVar
+                        word modelType = "dFdArgVar";
+                        autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+                            modelType,
+                            meshPtr_(),
+                            daOptionPtr_(),
+                            daModelPtr_(),
+                            daIndexPtr_(),
+                            daJacCon(),
+                            daResidualPtr_()));
+
+                        dictionary options;
+                        options.set("objFuncSubDictPart", objFuncSubDictPart);
+                        // initialize dFdArgVar
+                        daPartDeriv->initializePartDerivMat(options, &dFdArgVar);
+
+                        // calculate it
+                        daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdArgVar);
+
+                        // now we need to convert the dFdArgVar mat to dFdArgVarVec
+                        // NOTE: dFdArgVar is a 1 by nCells matrix but dFdArgVarVec is
+                        // a nCells by 1 vector, we need to do
+                        // dFdArgVarVec = (dFdArgVar)^T * oneVec
+                        Vec dFdArgVarVec, oneVec;
+                        VecCreate(PETSC_COMM_WORLD, &oneVec);
+                        VecSetSizes(oneVec, meshPtr_->nCells(), PETSC_DETERMINE);
+                        VecSetFromOptions(oneVec);
+                        VecSet(oneVec, 1.0);
+                        VecDuplicate(dFdArgVarVecAllParts, &dFdArgVarVec);
+                        VecZeroEntries(dFdArgVarVec);
+                        // dFdArgVarVec = oneVec*dFdArgVar
+                        MatMultTranspose(dFdArgVar, oneVec, dFdArgVarVec);
+
+                        // we need to add dFdArgVarVec to dFdArgVarVecAllParts because we want to sum
+                        // all dFdArgVarVec for all parts of this objFuncName.
+                        VecAXPY(dFdArgVarVecAllParts, 1.0, dFdArgVarVec);
+
+                        if (daOptionPtr_->getOption<label>("debug"))
+                        {
+                            this->calcPrimalResidualStatistics("print");
+                        }
+
+                        if (daOptionPtr_->getOption<label>("writeJacobians"))
+                        {
+                            word outputName = "dFdArgVarVec_" + designVarName;
+                            DAUtility::writeVectorBinary(dFdArgVarVec, outputName);
+                            DAUtility::writeVectorASCII(dFdArgVarVec, outputName);
+                        }
+
+                        MatDestroy(&dFdArgVar);
+                    }
+                }
+
+                // now we can compute totalDeriv = dFdArgVarVecAllParts - psiVec * dRdArgVar
+                Vec psiVec, totalDerivVec;
+                VecDuplicate(dFdArgVarVecAllParts, &totalDerivVec);
+                VecZeroEntries(totalDerivVec);
+                VecDuplicate(wVec, &psiVec);
+                VecZeroEntries(psiVec);
+
+                // now we can assign DASolver::psiVecDict_ to psiVec for this objFuncName
+                // NOTE: DASolver::psiVecDict_ should be set in the DASolver::solveAdjoint
+                // function. i.e., we need to call solveAdjoint before calling calcTotalDeriv
+                this->getPsiVec(objFuncName, psiVec);
+
+                // totalDeriv = dFdArgVarVecAllParts - psiVec * dRdArgVar
+                MatMultTranspose(dRdArgVar, psiVec, totalDerivVec);
+                VecAXPY(totalDerivVec, -1.0, dFdArgVarVecAllParts);
+                VecScale(totalDerivVec, -1.0);
+
+                // assign totalDerivVec to DASolver::totalDerivDict_ such that we can
+                // get the totalDeriv in the python layer later
+                this->setTotalDerivDict(objFuncName, designVarName, totalDerivVec, totalDerivDict_);
+
+                if (daOptionPtr_->getOption<label>("writeJacobians"))
+                {
+                    word outputName = "dFdArgVarTotal_" + objFuncName + "_" + designVarName;
+                    DAUtility::writeVectorBinary(totalDerivVec, outputName);
+                    DAUtility::writeVectorASCII(totalDerivVec, outputName);
+                }
+            }
+        }
+
+        // need to destroy dXvdArgVarMat_ to free memory
+        MatDestroy(&dRdArgVar);
+    }
     else
     {
         FatalErrorIn("") << "designVarType: " << designVarType << " not valid!" << abort(FatalError);

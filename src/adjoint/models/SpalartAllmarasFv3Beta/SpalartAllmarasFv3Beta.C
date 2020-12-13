@@ -58,11 +58,17 @@ SpalartAllmarasFv3Beta<BasicTurbulenceModel>::SpalartAllmarasFv3Beta(
               "betaSA",
               this->mesh_.time().timeName(),
               this->mesh_,
-              IOobject::READ_IF_PRESENT,
+              IOobject::MUST_READ,
               IOobject::AUTO_WRITE),
-          this->mesh_,
-          dimensionedScalar("betaSA", dimensionSet(0, 0, 0, 0, 0, 0, 0), 1.0),
-          zeroGradientFvPatchField<scalar>::typeName),
+          this->mesh_),
+      UTrue_(
+          IOobject(
+              "UTrue",
+              this->mesh_.time().timeName(),
+              this->mesh_,
+              IOobject::MUST_READ,
+              IOobject::AUTO_WRITE),
+          this->mesh_),
       y_(wallDist::New(this->mesh_).y())
 {
 }

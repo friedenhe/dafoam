@@ -84,6 +84,8 @@ DASpalartAllmarasFv3Beta::DASpalartAllmarasFv3Beta(
           nuTildaRes_),
       betaSA_(const_cast<volScalarField&>(
           mesh.thisDb().lookupObject<volScalarField>("betaSA"))),
+      UTrue_(const_cast<volVectorField&>(
+          mesh.thisDb().lookupObject<volVectorField>("UTrue"))),
       y_(mesh.thisDb().lookupObject<volScalarField>("yWall"))
 {
 
@@ -480,6 +482,29 @@ void DASpalartAllmarasFv3Beta::calcResiduals(const dictionary& options)
 
     return;
 }
+
+void DASpalartAllmarasFv3Beta::getTurbProdTerm(scalarList& prodTerm) const
+{
+    /*
+    Description:
+        Return the value of the production term from the Spalart Allmaras model 
+    */
+
+    const volScalarField chi(this->chi());
+    const volScalarField fv1(this->fv1(chi));
+
+    const volScalarField Stilda(
+        this->fv3(chi, fv1) * ::sqrt(2.0) * mag(skew(fvc::grad(U_)))
+        + this->fv2(chi, fv1) * nuTilda_ / sqr(kappa_ * y_));
+    
+    volScalarField SAProdTerm = Cb1_ * phase_ * rho_ * Stilda * nuTilda_;
+
+    forAll(SAProdTerm, cellI)
+    {
+        prodTerm[cellI] = SAProdTerm[cellI];
+    }
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam

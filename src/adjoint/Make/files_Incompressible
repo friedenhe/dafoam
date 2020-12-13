@@ -35,6 +35,7 @@ DAObjFunc/DAObjFuncForce.C
 DAObjFunc/DAObjFuncMoment.C
 DAObjFunc/DAObjFuncWallHeatFlux.C
 DAObjFunc/DAObjFuncTotalPressure.C
+DAObjFunc/DAObjFuncStateErrorNorm.C
 
 DAFvSource/DAFvSource.C
 DAFvSource/DAFvSourceActuatorDisk.C
@@ -66,6 +67,8 @@ DAPartDeriv/DAPartDerivdRdAOA.C
 DAPartDeriv/DAPartDerivdRdACTP.C
 DAPartDeriv/DAPartDerivdRdACTD.C
 DAPartDeriv/DAPartDerivdRdACTL.C
+DAPartDeriv/DAPartDerivdRdArgVar.C
+DAPartDeriv/DAPartDerivdFdArgVar.C
 
 DALinearEqn/DALinearEqn.C
 

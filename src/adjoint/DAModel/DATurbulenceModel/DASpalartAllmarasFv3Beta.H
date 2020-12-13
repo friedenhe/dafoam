@@ -70,6 +70,9 @@ protected:
     /// A beta field multiplying to the production term
     volScalarField& betaSA_; 
 
+    /// reference velocity
+    volVectorField& UTrue_; 
+
     /// 3D wall distance
     const volScalarField& y_;
 
@@ -122,6 +125,9 @@ public:
 
     /// solve the residual equations and update the state
     virtual void correct();
+
+    /// return the value of the production term from the turbulence model 
+    virtual void getTurbProdTerm(scalarList& prodTerm) const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
