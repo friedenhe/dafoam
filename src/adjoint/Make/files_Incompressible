@@ -67,8 +67,8 @@ DAPartDeriv/DAPartDerivdRdAOA.C
 DAPartDeriv/DAPartDerivdRdACTP.C
 DAPartDeriv/DAPartDerivdRdACTD.C
 DAPartDeriv/DAPartDerivdRdACTL.C
-DAPartDeriv/DAPartDerivdRdArgVar.C
-DAPartDeriv/DAPartDerivdFdArgVar.C
+DAPartDeriv/DAPartDerivdRdState.C
+DAPartDeriv/DAPartDerivdFdState.C
 
 DALinearEqn/DALinearEqn.C
 

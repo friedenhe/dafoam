@@ -84,6 +84,8 @@ DASpalartAllmarasFv3Beta::DASpalartAllmarasFv3Beta(
           nuTildaRes_),
       betaSA_(const_cast<volScalarField&>(
           mesh.thisDb().lookupObject<volScalarField>("betaSA"))),
+      betaSATrue_(const_cast<volScalarField&>(
+          mesh.thisDb().lookupObject<volScalarField>("betaSATrue"))),
       UTrue_(const_cast<volVectorField&>(
           mesh.thisDb().lookupObject<volVectorField>("UTrue"))),
       y_(mesh.thisDb().lookupObject<volScalarField>("yWall"))

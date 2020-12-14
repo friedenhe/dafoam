@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAPartDerivdFdArgVar.H"
+#include "DAPartDerivdFdState.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAPartDerivdFdArgVar, 0);
-addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdFdArgVar, dictionary);
+defineTypeNameAndDebug(DAPartDerivdFdState, 0);
+addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdFdState, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAPartDerivdFdArgVar::DAPartDerivdFdArgVar(
+DAPartDerivdFdState::DAPartDerivdFdState(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -37,7 +37,7 @@ DAPartDerivdFdArgVar::DAPartDerivdFdArgVar(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void DAPartDerivdFdArgVar::initializePartDerivMat(
+void DAPartDerivdFdState::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
@@ -49,7 +49,7 @@ void DAPartDerivdFdArgVar::initializePartDerivMat(
         options. This is not used
     */
 
-    // create dFdArgVar
+    // create dFdState
     label nCells = mesh_.nCells();
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
@@ -67,7 +67,7 @@ void DAPartDerivdFdArgVar::initializePartDerivMat(
     Info << "Partial derivative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
 
-void DAPartDerivdFdArgVar::calcPartDerivMat(
+void DAPartDerivdFdState::calcPartDerivMat(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec,
@@ -80,33 +80,56 @@ void DAPartDerivdFdArgVar::calcPartDerivMat(
     Input:
         options.objFuncSubDictPart: the objFunc subDict, obtained from DAOption
 
-        options.objFuncName: the name of the objective
-
-        options.objFuncPart: the part of the objective
+        options.stateName: the name of the state in designVar
 
         xvVec: the volume mesh coordinate vector
 
         wVec: the state variable vector
     
     Output:
-        jacMat: the partial derivative matrix dFdArgVar to compute
+        jacMat: the partial derivative matrix dFdState to compute
     */
 
-    word objFuncName, objFuncPart;
-    dictionary objFuncSubDictPart = options.subDict("objFuncSubDictPart");
-    scalar argVarCoeff = objFuncSubDictPart.getScalar("argVarCoeff");
-    word argVarName = objFuncSubDictPart.getWord("argVarName");
-    const objectRegistry& db = mesh_.thisDb();
-    const volScalarField& argVar = db.lookupObject<volScalarField>(argVarName);
-
     // zero all the matrices
+
     MatZeroEntries(jacMat);
 
-    forAll(mesh_.cells(), cellI)
+    dictionary objFuncSubDictPart = options.subDict("objFuncSubDictPart");
+    word objFuncType = objFuncSubDictPart.getWord("type");
+    word stateNameInDesignVar = options.getWord("stateName");
+
+    if (objFuncType == "stateErrorNorm")
     {
-        label globalCellI = daIndex_.getGlobalCellIndex(cellI);
-        PetscScalar partDeriv = 2.0 * argVarCoeff * (argVar[cellI] - 1.0);
-        MatSetValue(jacMat, 0, globalCellI, partDeriv, INSERT_VALUES);
+        if (stateNameInDesignVar == "betaSA")
+        {
+            // if the stateName in designVar equals the state name defined in objFunc,
+            // compute dFdState, otherwise, set dFdState = 0
+            word stateNameInObjFunc = objFuncSubDictPart.getWord("stateName");
+            if (stateNameInDesignVar == stateNameInObjFunc)
+            {
+                scalar scale = objFuncSubDictPart.getScalar("scale");
+                word stateRefName = objFuncSubDictPart.getWord("stateRefName");
+                const objectRegistry& db = mesh_.thisDb();
+                const volScalarField& state = db.lookupObject<volScalarField>(stateNameInDesignVar);
+                const volScalarField& stateRef = db.lookupObject<volScalarField>(stateRefName);
+                forAll(mesh_.cells(), cellI)
+                {
+                    label globalCellI = daIndex_.getGlobalCellIndex(cellI);
+                    PetscScalar partDeriv = 2.0 * scale * (state[cellI] - stateRef[cellI]);
+                    MatSetValue(jacMat, 0, globalCellI, partDeriv, INSERT_VALUES);
+                }
+            }
+        }
+        else
+        {
+            FatalErrorIn("") << "stateName: " << stateNameInDesignVar << " not supported!"
+                             << abort(FatalError);
+        }
+    }
+    else
+    {
+        FatalErrorIn("") << "objFuncType: " << objFuncType << " not supported!"
+                         << abort(FatalError);
     }
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);

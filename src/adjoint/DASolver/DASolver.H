@@ -388,6 +388,13 @@ public:
     {
         return prevPrimalSolTime_;
     }
+
+    /// set the field value
+    void setFieldValue(
+        const word fieldName,
+        const scalar val,
+        const label cellI,
+        const label compI = 0);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

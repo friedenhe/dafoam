@@ -4,7 +4,7 @@
     Version : v2
 
     Description:
-        Child class for force 
+        Child class for state error L2 norm sum[(state-stateRef)^2]
 
 \*---------------------------------------------------------------------------*/
 
@@ -37,15 +37,6 @@ protected:
 
     /// state variable type: can be either scalar or vector
     word stateType_;
-
-    /// the name of the argument variable, e.g., betaSA
-    word argVarName_;
-
-    /// reference value of the argument variable to compute the error norm
-    scalar argVarRefVal_;
-
-    /// the lambda coefficient of the argument variable
-    scalar argVarCoeff_;
 
     /// scaling factor for the whole objective function
     scalar scale_;

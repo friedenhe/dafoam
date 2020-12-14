@@ -5,18 +5,18 @@
 
 \*---------------------------------------------------------------------------*/
 
-#include "DAPartDerivdRdArgVar.H"
+#include "DAPartDerivdRdState.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-defineTypeNameAndDebug(DAPartDerivdRdArgVar, 0);
-addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdRdArgVar, dictionary);
+defineTypeNameAndDebug(DAPartDerivdRdState, 0);
+addToRunTimeSelectionTable(DAPartDeriv, DAPartDerivdRdState, dictionary);
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-DAPartDerivdRdArgVar::DAPartDerivdRdArgVar(
+DAPartDerivdRdState::DAPartDerivdRdState(
     const word modelType,
     const fvMesh& mesh,
     const DAOption& daOption,
@@ -37,7 +37,7 @@ DAPartDerivdRdArgVar::DAPartDerivdRdArgVar(
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void DAPartDerivdRdArgVar::initializePartDerivMat(
+void DAPartDerivdRdState::initializePartDerivMat(
     const dictionary& options,
     Mat* jacMat)
 {
@@ -53,7 +53,7 @@ void DAPartDerivdRdArgVar::initializePartDerivMat(
     label localSize = daIndex_.nLocalAdjointStates;
     label nCells = mesh_.nCells();
 
-    // create dRdArgVar
+    // create dRdState
     MatCreate(PETSC_COMM_WORLD, jacMat);
     MatSetSizes(
         *jacMat,
@@ -70,7 +70,7 @@ void DAPartDerivdRdArgVar::initializePartDerivMat(
     Info << "Partial derivative matrix created. " << mesh_.time().elapsedClockTime() << " s" << endl;
 }
 
-void DAPartDerivdRdArgVar::calcPartDerivMat(
+void DAPartDerivdRdState::calcPartDerivMat(
     const dictionary& options,
     const Vec xvVec,
     const Vec wVec,
@@ -82,28 +82,41 @@ void DAPartDerivdRdArgVar::calcPartDerivMat(
     
     Input:
 
-        options.isPC: whether to compute the jacMat for preconditioner
+        options.stateName: the name of the state in designVar
 
         xvVec: the volume mesh coordinate vector
 
         wVec: the state variable vector
     
     Output:
-        jacMat: the partial derivative matrix dRdArgVar to compute
+        jacMat: the partial derivative matrix dRdState to compute
     */
 
     // zero all the matrices
     MatZeroEntries(jacMat);
 
-    scalarList prodTerm(mesh_.nCells());
-    daModel_.getTurbProdTerm(prodTerm);
+    word stateNameInDesignVar = options.getWord("stateName");
 
-    // dRdBetaSA only has diagonal component for the turbulence residual
-    forAll(mesh_.cells(), cellI)
+    if (stateNameInDesignVar == "betaSA")
     {
-        label globalIndex = daIndex_.getGlobalAdjointStateIndex("nuTilda", cellI);
-        scalar val = prodTerm[cellI];
-        MatSetValue(jacMat, globalIndex, cellI, val, INSERT_VALUES);
+
+        scalarList prodTerm(mesh_.nCells());
+        daModel_.getTurbProdTerm(prodTerm);
+
+        // dRdBetaSA only has diagonal component for the turbulence residual
+        forAll(mesh_.cells(), cellI)
+        {
+            label globalIndex = daIndex_.getGlobalAdjointStateIndex("nuTilda", cellI);
+            // note the dR/dBetaSA is the negative of the prod term because
+            // the prod term shows up on the right hand side of the residual equation
+            scalar val = -prodTerm[cellI];
+            MatSetValue(jacMat, globalIndex, cellI, val, INSERT_VALUES);
+        }
+    }
+    else
+    {
+        FatalErrorIn("") << "stateName: " << stateNameInDesignVar << "not supported!"
+                         << abort(FatalError);
     }
 
     MatAssemblyBegin(jacMat, MAT_FINAL_ASSEMBLY);

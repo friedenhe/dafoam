@@ -47,6 +47,8 @@ protected:
 
     volScalarField betaSA_;
 
+    volScalarField betaSATrue_;
+
     volVectorField UTrue_;
 
     //- Wall distance

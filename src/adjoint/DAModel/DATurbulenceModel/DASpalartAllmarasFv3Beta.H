@@ -70,6 +70,9 @@ protected:
     /// A beta field multiplying to the production term
     volScalarField& betaSA_; 
 
+    /// a reference beta field
+    volScalarField& betaSATrue_; 
+
     /// reference velocity
     volVectorField& UTrue_; 
 

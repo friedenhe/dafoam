@@ -42,15 +42,18 @@ DAObjFuncStateErrorNorm::DAObjFuncStateErrorNorm(
     stateName_ = objFuncDict_.getWord("stateName");
     stateRefName_ = objFuncDict_.getWord("stateRefName");
     stateType_ = objFuncDict_.getWord("stateType");
-    argVarName_ = objFuncDict_.getWord("argVarName");
-    argVarRefVal_ = objFuncDict_.getScalar("argVarRefVal");
-    argVarCoeff_ = objFuncDict_.getScalar("argVarCoeff");
     scale_ = objFuncDict_.getScalar("scale");
 
     // setup the connectivity, this is needed in Foam::DAJacCondFdW
     // this objFunc only depends on the state variable at the zero level cell
-    objFuncConInfo_ = {
-        {stateName_}}; // level 0
+    if (DAUtility::isInList<word>(stateName_, daIndex.adjStateNames))
+    {
+        objFuncConInfo_ = {{stateName_}}; // level 0
+    }
+    else
+    {
+        objFuncConInfo_ = {{}}; // level 0
+    }
 }
 
 /// calculate the value of objective function
@@ -64,7 +67,7 @@ void DAObjFuncStateErrorNorm::calcObjFunc(
     /*
     Description:
         Calculate the stateErrorNorm
-        f = L2Norm( state-stateRef ) + argVarCoeff_ * L2Norm( argVar - argVarRef )
+        f = scale * L2Norm( state-stateRef )
 
     Input:
         objFuncFaceSources: List of face source (index) for this objective
@@ -82,7 +85,7 @@ void DAObjFuncStateErrorNorm::calcObjFunc(
     */
 
     // initialize to zero
-    forAll(objFuncFaceValues, idxI)
+    forAll(objFuncCellValues, idxI)
     {
         objFuncCellValues[idxI] = 0.0;
     }
@@ -94,12 +97,10 @@ void DAObjFuncStateErrorNorm::calcObjFunc(
     {
         const volScalarField& state = db.lookupObject<volScalarField>(stateName_);
         const volScalarField& stateRef = db.lookupObject<volScalarField>(stateRefName_);
-        const volScalarField& argVar = db.lookupObject<volScalarField>(argVarName_);
         forAll(objFuncCellSources, idxI)
         {
             const label& cellI = objFuncCellSources[idxI];
-            objFuncCellValues[idxI] =
-                scale_ * (sqr(state[cellI] - stateRef[cellI]) + argVarCoeff_ * sqr(argVar[cellI] - argVarRefVal_));
+            objFuncCellValues[idxI] = scale_ * (sqr(state[cellI] - stateRef[cellI]));
             objFuncValue += objFuncCellValues[idxI];
         }
     }
@@ -107,12 +108,10 @@ void DAObjFuncStateErrorNorm::calcObjFunc(
     {
         const volVectorField& state = db.lookupObject<volVectorField>(stateName_);
         const volVectorField& stateRef = db.lookupObject<volVectorField>(stateRefName_);
-        const volScalarField& argVar = db.lookupObject<volScalarField>(argVarName_);
         forAll(objFuncCellSources, idxI)
         {
             const label& cellI = objFuncCellSources[idxI];
-            objFuncCellValues[idxI] =
-                scale_ * (sqr(mag(state[cellI] - stateRef[cellI])) + argVarCoeff_ * sqr(argVar[cellI] - argVarRefVal_));
+            objFuncCellValues[idxI] = scale_ * (sqr(mag(state[cellI] - stateRef[cellI])));
             objFuncValue += objFuncCellValues[idxI];
         }
     }

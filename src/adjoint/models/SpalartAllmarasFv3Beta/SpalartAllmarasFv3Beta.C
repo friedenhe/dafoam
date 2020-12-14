@@ -56,7 +56,15 @@ SpalartAllmarasFv3Beta<BasicTurbulenceModel>::SpalartAllmarasFv3Beta(
       betaSA_(
           IOobject(
               "betaSA",
-              this->mesh_.time().timeName(),
+              this->runTime_.timeName(),
+              this->mesh_,
+              IOobject::MUST_READ,
+              IOobject::AUTO_WRITE),
+          this->mesh_),
+      betaSATrue_(
+          IOobject(
+              "betaSATrue",
+              this->runTime_.timeName(),
               this->mesh_,
               IOobject::MUST_READ,
               IOobject::AUTO_WRITE),
@@ -64,7 +72,7 @@ SpalartAllmarasFv3Beta<BasicTurbulenceModel>::SpalartAllmarasFv3Beta(
       UTrue_(
           IOobject(
               "UTrue",
-              this->mesh_.time().timeName(),
+              this->runTime_.timeName(),
               this->mesh_,
               IOobject::MUST_READ,
               IOobject::AUTO_WRITE),

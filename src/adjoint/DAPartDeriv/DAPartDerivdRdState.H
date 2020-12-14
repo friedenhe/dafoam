@@ -4,12 +4,12 @@
     Version : v2
 
     Description:
-        Child class for dFdArgVar
+        Child class for dRdState
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef DAPartDerivdFdArgVar_H
-#define DAPartDerivdFdArgVar_H
+#ifndef DAPartDerivdRdState_H
+#define DAPartDerivdRdState_H
 
 #include "DAPartDeriv.H"
 #include "addToRunTimeSelectionTable.H"
@@ -20,18 +20,20 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-      Class DAPartDerivdFdArgVar Declaration
+      Class DAPartDerivdRdState Declaration
 \*---------------------------------------------------------------------------*/
 
-class DAPartDerivdFdArgVar
+class DAPartDerivdRdState
     : public DAPartDeriv
 {
+
+protected:
 public:
-    TypeName("dFdArgVar");
+    TypeName("dRdState");
     // Constructors
 
     //- Construct from components
-    DAPartDerivdFdArgVar(
+    DAPartDerivdRdState(
         const word modelType,
         const fvMesh& mesh,
         const DAOption& daOption,
@@ -41,7 +43,7 @@ public:
         const DAResidual& daResidual);
 
     //- Destructor
-    virtual ~DAPartDerivdFdArgVar()
+    virtual ~DAPartDerivdRdState()
     {
     }
 

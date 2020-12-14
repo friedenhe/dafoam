@@ -1753,10 +1753,10 @@ label DASolver::calcTotalDeriv(
         MatDestroy(&dRdACT);
     }
     // *****************************************************************************
-    // ******************************** ArgVar dvType ******************************
+    // ******************************** State dvType ******************************
     // *****************************************************************************
-    // actuator point parameters as the design variable
-    else if (designVarType == "ArgVar")
+    // volume scalar state variable as the design variable
+    else if (designVarType == "State")
     {
         // no coloring is need for actuator, so we create a dummy DAJacCon
         word dummyType = "dummy";
@@ -1766,11 +1766,11 @@ label DASolver::calcTotalDeriv(
             daOptionPtr_(),
             daModelPtr_(),
             daIndexPtr_()));
-        // ********************** compute dRdArgVar **********************
-        Mat dRdArgVar;
+        // ********************** compute dRdState **********************
+        Mat dRdState;
         {
             // create DAPartDeriv object
-            word modelType = "dRdArgVar";
+            word modelType = "dRdState";
             autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
                 modelType,
                 meshPtr_(),
@@ -1780,13 +1780,14 @@ label DASolver::calcTotalDeriv(
                 daJacCon(),
                 daResidualPtr_()));
 
-            // setup options to compute dRdACT*
+            // setup options to compute dRdState
             dictionary options;
-            // initialize the dRdArgVar matrix
-            daPartDeriv->initializePartDerivMat(options, &dRdArgVar);
+            options.set("stateName", dvSubDict.getWord("stateName"));
+            // initialize the dRdState matrix
+            daPartDeriv->initializePartDerivMat(options, &dRdState);
 
             // compute it using analytical method
-            daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dRdArgVar);
+            daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dRdState);
 
             if (daOptionPtr_->getOption<label>("debug"))
             {
@@ -1796,12 +1797,12 @@ label DASolver::calcTotalDeriv(
             if (daOptionPtr_->getOption<label>("writeJacobians"))
             {
                 word outputName = "dRd" + designVarType + "_" + designVarName;
-                DAUtility::writeMatrixBinary(dRdArgVar, outputName);
-                DAUtility::writeMatrixASCII(dRdArgVar, outputName);
+                DAUtility::writeMatrixBinary(dRdState, outputName);
+                DAUtility::writeMatrixASCII(dRdState, outputName);
             }
         }
 
-        // ********************** compute dFdArgVar **********************
+        // ********************** compute dFdState **********************
         dictionary objFuncDict = allOptions.subDict("objFunc");
 
         // loop over all objFuncName in the objFunc dict
@@ -1813,12 +1814,12 @@ label DASolver::calcTotalDeriv(
             // we only solve adjoint for objectives that have addToAdjoint = True
             if (DAUtility::isInList<word>(objFuncName, objFuncNames4Adj_))
             {
-                // the dFdArgVarVecAllParts vector contains the sum of dFdArgVarVec from all parts for this objFuncName
-                Vec dFdArgVarVecAllParts;
-                VecCreate(PETSC_COMM_WORLD, &dFdArgVarVecAllParts);
-                VecSetSizes(dFdArgVarVecAllParts, meshPtr_->nCells(), PETSC_DETERMINE);
-                VecSetFromOptions(dFdArgVarVecAllParts);
-                VecZeroEntries(dFdArgVarVecAllParts);
+                // the dFdStateVecAllParts vector contains the sum of dFdStateVec from all parts for this objFuncName
+                Vec dFdStateVecAllParts;
+                VecCreate(PETSC_COMM_WORLD, &dFdStateVecAllParts);
+                VecSetSizes(dFdStateVecAllParts, meshPtr_->nCells(), PETSC_DETERMINE);
+                VecSetFromOptions(dFdStateVecAllParts);
+                VecZeroEntries(dFdStateVecAllParts);
 
                 dictionary objFuncSubDict = objFuncDict.subDict(objFuncName);
                 // loop over all parts of this objFuncName
@@ -1832,15 +1833,10 @@ label DASolver::calcTotalDeriv(
                     if (addToAdjoint)
                     {
 
-                        if (objFuncSubDictPart.getWord("type") != "stateErrorNorm")
-                        {
-                            FatalErrorIn("") << "Only support stateErrorNorm" << abort(FatalError);
-                        }
+                        Mat dFdState;
 
-                        Mat dFdArgVar;
-
-                        // initialize DAPartDeriv for dFdArgVar
-                        word modelType = "dFdArgVar";
+                        // initialize DAPartDeriv for dFdState
+                        word modelType = "dFdState";
                         autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
                             modelType,
                             meshPtr_(),
@@ -1851,30 +1847,31 @@ label DASolver::calcTotalDeriv(
                             daResidualPtr_()));
 
                         dictionary options;
+                        options.set("stateName", dvSubDict.getWord("stateName"));
                         options.set("objFuncSubDictPart", objFuncSubDictPart);
-                        // initialize dFdArgVar
-                        daPartDeriv->initializePartDerivMat(options, &dFdArgVar);
+                        // initialize dFdState
+                        daPartDeriv->initializePartDerivMat(options, &dFdState);
 
                         // calculate it
-                        daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdArgVar);
+                        daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdState);
 
-                        // now we need to convert the dFdArgVar mat to dFdArgVarVec
-                        // NOTE: dFdArgVar is a 1 by nCells matrix but dFdArgVarVec is
+                        // now we need to convert the dFdState mat to dFdStateVec
+                        // NOTE: dFdState is a 1 by nCells matrix but dFdStateVec is
                         // a nCells by 1 vector, we need to do
-                        // dFdArgVarVec = (dFdArgVar)^T * oneVec
-                        Vec dFdArgVarVec, oneVec;
+                        // dFdStateVec = (dFdState)^T * oneVec
+                        Vec dFdStateVec, oneVec;
                         VecCreate(PETSC_COMM_WORLD, &oneVec);
                         VecSetSizes(oneVec, meshPtr_->nCells(), PETSC_DETERMINE);
                         VecSetFromOptions(oneVec);
                         VecSet(oneVec, 1.0);
-                        VecDuplicate(dFdArgVarVecAllParts, &dFdArgVarVec);
-                        VecZeroEntries(dFdArgVarVec);
-                        // dFdArgVarVec = oneVec*dFdArgVar
-                        MatMultTranspose(dFdArgVar, oneVec, dFdArgVarVec);
+                        VecDuplicate(dFdStateVecAllParts, &dFdStateVec);
+                        VecZeroEntries(dFdStateVec);
+                        // dFdStateVec = oneVec*dFdState
+                        MatMultTranspose(dFdState, oneVec, dFdStateVec);
 
-                        // we need to add dFdArgVarVec to dFdArgVarVecAllParts because we want to sum
-                        // all dFdArgVarVec for all parts of this objFuncName.
-                        VecAXPY(dFdArgVarVecAllParts, 1.0, dFdArgVarVec);
+                        // we need to add dFdStateVec to dFdStateVecAllParts because we want to sum
+                        // all dFdStateVec for all parts of this objFuncName.
+                        VecAXPY(dFdStateVecAllParts, 1.0, dFdStateVec);
 
                         if (daOptionPtr_->getOption<label>("debug"))
                         {
@@ -1883,18 +1880,18 @@ label DASolver::calcTotalDeriv(
 
                         if (daOptionPtr_->getOption<label>("writeJacobians"))
                         {
-                            word outputName = "dFdArgVarVec_" + designVarName;
-                            DAUtility::writeVectorBinary(dFdArgVarVec, outputName);
-                            DAUtility::writeVectorASCII(dFdArgVarVec, outputName);
+                            word outputName = "dFdStateVec_" + designVarName;
+                            DAUtility::writeVectorBinary(dFdStateVec, outputName);
+                            DAUtility::writeVectorASCII(dFdStateVec, outputName);
                         }
 
-                        MatDestroy(&dFdArgVar);
+                        MatDestroy(&dFdState);
                     }
                 }
 
-                // now we can compute totalDeriv = dFdArgVarVecAllParts - psiVec * dRdArgVar
+                // now we can compute totalDeriv = dFdStateVecAllParts - psiVec * dRdState
                 Vec psiVec, totalDerivVec;
-                VecDuplicate(dFdArgVarVecAllParts, &totalDerivVec);
+                VecDuplicate(dFdStateVecAllParts, &totalDerivVec);
                 VecZeroEntries(totalDerivVec);
                 VecDuplicate(wVec, &psiVec);
                 VecZeroEntries(psiVec);
@@ -1904,9 +1901,9 @@ label DASolver::calcTotalDeriv(
                 // function. i.e., we need to call solveAdjoint before calling calcTotalDeriv
                 this->getPsiVec(objFuncName, psiVec);
 
-                // totalDeriv = dFdArgVarVecAllParts - psiVec * dRdArgVar
-                MatMultTranspose(dRdArgVar, psiVec, totalDerivVec);
-                VecAXPY(totalDerivVec, -1.0, dFdArgVarVecAllParts);
+                // totalDeriv = dFdStateVecAllParts - psiVec * dRdState
+                MatMultTranspose(dRdState, psiVec, totalDerivVec);
+                VecAXPY(totalDerivVec, -1.0, dFdStateVecAllParts);
                 VecScale(totalDerivVec, -1.0);
 
                 // assign totalDerivVec to DASolver::totalDerivDict_ such that we can
@@ -1915,15 +1912,15 @@ label DASolver::calcTotalDeriv(
 
                 if (daOptionPtr_->getOption<label>("writeJacobians"))
                 {
-                    word outputName = "dFdArgVarTotal_" + objFuncName + "_" + designVarName;
+                    word outputName = "dFdStateTotal_" + objFuncName + "_" + designVarName;
                     DAUtility::writeVectorBinary(totalDerivVec, outputName);
                     DAUtility::writeVectorASCII(totalDerivVec, outputName);
                 }
             }
         }
 
-        // need to destroy dXvdArgVarMat_ to free memory
-        MatDestroy(&dRdArgVar);
+        // need to destroy dXvdStateMat_ to free memory
+        MatDestroy(&dRdState);
     }
     else
     {
@@ -2364,6 +2361,35 @@ void DASolver::writeAssociatedFields()
     }
 }
 
+void DASolver::setFieldValue(
+    const word fieldName,
+    const scalar val,
+    const label cellI,
+    const label compI)
+{
+    /*
+    Description:
+        Set the field value
+    */
+
+    if (meshPtr_->thisDb().foundObject<volVectorField>(fieldName))
+    {
+        volVectorField& field =
+            const_cast<volVectorField&>(meshPtr_->thisDb().lookupObject<volVectorField>(fieldName));
+        field[cellI][compI] = val;
+    }
+    else if (meshPtr_->thisDb().foundObject<volScalarField>(fieldName))
+    {
+        volScalarField& field =
+            const_cast<volScalarField&>(meshPtr_->thisDb().lookupObject<volScalarField>(fieldName));
+        field[cellI] = val;
+    }
+    else
+    {
+        FatalErrorIn("") << fieldName << " not found in volScalar and volVector Fields "
+                         << abort(FatalError);
+    }
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
