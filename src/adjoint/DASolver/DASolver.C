@@ -881,105 +881,176 @@ label DASolver::solveAdjoint(
                 // which objFuncName has addToAdjoint = True
                 objFuncNames4Adj_.append(objFuncName);
 
-                // NOTE: dFdW is a matrix here and it has nObjFuncCellSources+nObjFuncFaceSources rows
-                Mat dFdW;
-
-                // initialize DAJacCon object
-                word modelType = "dFdW";
-                autoPtr<DAJacCon> daJacCon(DAJacCon::New(
-                    modelType,
-                    meshPtr_(),
-                    daOptionPtr_(),
-                    daModelPtr_(),
-                    daIndexPtr_()));
-
-                // initialize objFunc to get objFuncCellSources and objFuncFaceSources
-                autoPtr<DAObjFunc> daObjFunc(DAObjFunc::New(
-                    meshPtr_(),
-                    daOptionPtr_(),
-                    daModelPtr_(),
-                    daIndexPtr_(),
-                    daResidualPtr_(),
-                    objFuncName,
-                    objFuncPart,
-                    objFuncSubDictPart));
-
-                // setup options for daJacCondFdW computation
-                dictionary options;
-                const List<List<word>>& objFuncConInfo = daObjFunc->getObjFuncConInfo();
-                const labelList& objFuncFaceSources = daObjFunc->getObjFuncFaceSources();
-                const labelList& objFuncCellSources = daObjFunc->getObjFuncCellSources();
-                options.set("objFuncConInfo", objFuncConInfo);
-                options.set("objFuncFaceSources", objFuncFaceSources);
-                options.set("objFuncCellSources", objFuncCellSources);
-                options.set("objFuncName", objFuncName);
-                options.set("objFuncPart", objFuncPart);
-                options.set("objFuncSubDictPart", objFuncSubDictPart);
-
-                // now we can initilaize dFdWCon
-                daJacCon->initializeJacCon(options);
-
-                // setup dFdWCon
-                daJacCon->setupJacCon(options);
-                Info << "dFdWCon Created. " << meshPtr_->time().elapsedClockTime() << " s" << endl;
-
-                // read the coloring
-                word postFix = "_" + objFuncName + "_" + objFuncPart;
-                daJacCon->readJacConColoring(postFix);
-
-                // initialize DAPartDeriv to computing dFdW
-                autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
-                    modelType,
-                    meshPtr_(),
-                    daOptionPtr_(),
-                    daModelPtr_(),
-                    daIndexPtr_(),
-                    daJacCon(),
-                    daResidualPtr_()));
-
-                // initialize dFdWMat
-                daPartDeriv->initializePartDerivMat(options, &dFdW);
-
-                // compute it
-                daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdW);
-
-                // now we need to add all the rows of dFdW together to get dFdWVec
-                // NOTE: dFdW is a matrix with nObjFuncCellSources+nObjFuncFaceSources rows
-                // and nLocalAdjStates columns. So we can do dFdWVec = oneVec*dFdW
-                Vec dFdWVec, oneVec;
-                label objGeoSize = objFuncFaceSources.size() + objFuncCellSources.size();
-                VecCreate(PETSC_COMM_WORLD, &oneVec);
-                VecSetSizes(oneVec, objGeoSize, PETSC_DETERMINE);
-                VecSetFromOptions(oneVec);
-                // assign one to all elements
-                VecSet(oneVec, 1.0);
-                VecDuplicate(wVec, &dFdWVec);
-                VecZeroEntries(dFdWVec);
-                // dFdWVec = oneVec*dFdW
-                MatMultTranspose(dFdW, oneVec, dFdWVec);
-
-                // we need to add dFdWVec to dFdWVecAllParts because we want to sum all dFdWVec
-                // for all parts of this objFuncName. When solving the adjoint equation, we use
-                // dFdWVecAllParts
-                VecAXPY(dFdWVecAllParts, 1.0, dFdWVec);
-
-                if (daOptionPtr_->getOption<label>("debug"))
+                if (daOptionPtr_->getOption<word>("adjJacobianOption") == "JacobianFree")
                 {
-                    this->calcPrimalResidualStatistics("print");
-                }
+                    Vec dFdW;
+                    VecDuplicate(wVec, &dFdW);
+                    VecZeroEntries(dFdW);
 
-                if (daOptionPtr_->getOption<label>("writeJacobians"))
+                    // initialize objFunc to get objFuncCellSources and objFuncFaceSources
+                    autoPtr<DAObjFunc> daObjFunc(DAObjFunc::New(
+                        meshPtr_(),
+                        daOptionPtr_(),
+                        daModelPtr_(),
+                        daIndexPtr_(),
+                        daResidualPtr_(),
+                        objFuncName,
+                        objFuncPart,
+                        objFuncSubDictPart));
+
+                    this->globalADTape_.reset();
+                    this->globalADTape_.setActive();
+                    this->registerStateVariableInput4AD();
+                    daResidualPtr_->correctBoundaryConditions();
+                    daResidualPtr_->updateIntermediateVariables();
+                    daModelPtr_->correctBoundaryConditions();
+                    daModelPtr_->updateIntermediateVariables();
+                    scalar fRef = daObjFunc->getObjFuncValue();
+                    Info << "fRef in dFdW: " << fRef << endl;
+                    // register f output
+                    this->globalADTape_.registerOutput(fRef);
+                    this->globalADTape_.setPassive();
+
+                    // Note: since we used reduced objFunc, we only need to
+                    // assign the seed for master proc
+                    if (Pstream::master())
+                    {
+                        fRef.setGradient(1.0);
+                    }
+                    this->globalADTape_.evaluate();
+
+                    this->assignStateGradient2Vec(dFdW);
+
+                    VecAssemblyBegin(dFdW);
+                    VecAssemblyEnd(dFdW);
+
+                    this->globalADTape_.clearAdjoints();
+
+                    // we need to add dFdXvVec to dFdXvVecAllParts because we want to sum
+                    // all dFdXvVec for all parts of this objFuncName.
+                    VecAXPY(dFdWVecAllParts, 1.0, dFdW);
+
+                    if (daOptionPtr_->getOption<label>("debug"))
+                    {
+                        this->calcPrimalResidualStatistics("print");
+                    }
+
+                    if (daOptionPtr_->getOption<label>("writeJacobians"))
+                    {
+                        word outputName = "dFdWVec_" + objFuncName + "_" + objFuncPart;
+                        DAUtility::writeVectorBinary(dFdW, outputName);
+                        DAUtility::writeVectorASCII(dFdW, outputName);
+                    }
+
+                    VecDestroy(&dFdW);
+                }
+                else if (daOptionPtr_->getOption<word>("adjJacobianOption") == "JacobianFD")
                 {
-                    word outputName = "dFdWVec_" + objFuncName + "_" + objFuncPart;
-                    DAUtility::writeVectorBinary(dFdWVec, outputName);
-                    DAUtility::writeVectorASCII(dFdWVec, outputName);
+
+                    // NOTE: dFdW is a matrix here and it has nObjFuncCellSources+nObjFuncFaceSources rows
+                    Mat dFdW;
+
+                    // initialize DAJacCon object
+                    word modelType = "dFdW";
+                    autoPtr<DAJacCon> daJacCon(DAJacCon::New(
+                        modelType,
+                        meshPtr_(),
+                        daOptionPtr_(),
+                        daModelPtr_(),
+                        daIndexPtr_()));
+
+                    // initialize objFunc to get objFuncCellSources and objFuncFaceSources
+                    autoPtr<DAObjFunc> daObjFunc(DAObjFunc::New(
+                        meshPtr_(),
+                        daOptionPtr_(),
+                        daModelPtr_(),
+                        daIndexPtr_(),
+                        daResidualPtr_(),
+                        objFuncName,
+                        objFuncPart,
+                        objFuncSubDictPart));
+
+                    // setup options for daJacCondFdW computation
+                    dictionary options;
+                    const List<List<word>>& objFuncConInfo = daObjFunc->getObjFuncConInfo();
+                    const labelList& objFuncFaceSources = daObjFunc->getObjFuncFaceSources();
+                    const labelList& objFuncCellSources = daObjFunc->getObjFuncCellSources();
+                    options.set("objFuncConInfo", objFuncConInfo);
+                    options.set("objFuncFaceSources", objFuncFaceSources);
+                    options.set("objFuncCellSources", objFuncCellSources);
+                    options.set("objFuncName", objFuncName);
+                    options.set("objFuncPart", objFuncPart);
+                    options.set("objFuncSubDictPart", objFuncSubDictPart);
+
+                    // now we can initilaize dFdWCon
+                    daJacCon->initializeJacCon(options);
+
+                    // setup dFdWCon
+                    daJacCon->setupJacCon(options);
+                    Info << "dFdWCon Created. " << meshPtr_->time().elapsedClockTime() << " s" << endl;
+
+                    // read the coloring
+                    word postFix = "_" + objFuncName + "_" + objFuncPart;
+                    daJacCon->readJacConColoring(postFix);
+
+                    // initialize DAPartDeriv to computing dFdW
+                    autoPtr<DAPartDeriv> daPartDeriv(DAPartDeriv::New(
+                        modelType,
+                        meshPtr_(),
+                        daOptionPtr_(),
+                        daModelPtr_(),
+                        daIndexPtr_(),
+                        daJacCon(),
+                        daResidualPtr_()));
+
+                    // initialize dFdWMat
+                    daPartDeriv->initializePartDerivMat(options, &dFdW);
+
+                    // compute it
+                    daPartDeriv->calcPartDerivMat(options, xvVec, wVec, dFdW);
+
+                    // now we need to add all the rows of dFdW together to get dFdWVec
+                    // NOTE: dFdW is a matrix with nObjFuncCellSources+nObjFuncFaceSources rows
+                    // and nLocalAdjStates columns. So we can do dFdWVec = oneVec*dFdW
+                    Vec dFdWVec, oneVec;
+                    label objGeoSize = objFuncFaceSources.size() + objFuncCellSources.size();
+                    VecCreate(PETSC_COMM_WORLD, &oneVec);
+                    VecSetSizes(oneVec, objGeoSize, PETSC_DETERMINE);
+                    VecSetFromOptions(oneVec);
+                    // assign one to all elements
+                    VecSet(oneVec, 1.0);
+                    VecDuplicate(wVec, &dFdWVec);
+                    VecZeroEntries(dFdWVec);
+                    // dFdWVec = oneVec*dFdW
+                    MatMultTranspose(dFdW, oneVec, dFdWVec);
+
+                    // we need to add dFdWVec to dFdWVecAllParts because we want to sum all dFdWVec
+                    // for all parts of this objFuncName. When solving the adjoint equation, we use
+                    // dFdWVecAllParts
+                    VecAXPY(dFdWVecAllParts, 1.0, dFdWVec);
+
+                    if (daOptionPtr_->getOption<label>("debug"))
+                    {
+                        this->calcPrimalResidualStatistics("print");
+                    }
+
+                    if (daOptionPtr_->getOption<label>("writeJacobians"))
+                    {
+                        word outputName = "dFdWVec_" + objFuncName + "_" + objFuncPart;
+                        DAUtility::writeVectorBinary(dFdWVec, outputName);
+                        DAUtility::writeVectorASCII(dFdWVec, outputName);
+                    }
+
+                    MatDestroy(&dFdW);
+
+                    // clear up
+                    daJacCon->clear();
+                    daObjFunc->clear();
                 }
-
-                MatDestroy(&dFdW);
-
-                // clear up
-                daJacCon->clear();
-                daObjFunc->clear();
+                else
+                {
+                    FatalErrorIn("") << "adjJacobianOption not supported!" << abort(FatalError);
+                }
             }
         }
 
@@ -1533,7 +1604,7 @@ label DASolver::calcTotalDeriv(
                             daModelPtr_->correctBoundaryConditions();
                             daModelPtr_->updateIntermediateVariables();
                             scalar fRef = daObjFunc->getObjFuncValue();
-                            Info << "fRef: " << fRef << endl;
+                            Info << "fRef in dFdXv: " << fRef << endl;
                             // register f output
                             this->globalADTape_.registerOutput(fRef);
                             this->globalADTape_.setPassive();
