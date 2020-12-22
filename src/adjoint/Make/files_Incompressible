@@ -41,6 +41,7 @@ DAFvSource/DAFvSource.C
 DAFvSource/DAFvSourceActuatorDisk.C
 DAFvSource/DAFvSourceActuatorPoint.C
 DAFvSource/DAFvSourceActuatorLine.C
+DAFvSource/DAFvSourceUniformPressureGradient.C
 
 DAResidual/DAResidual.C
 DAResidual/DAResidualDummy.C
