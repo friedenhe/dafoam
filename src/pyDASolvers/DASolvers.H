@@ -440,9 +440,14 @@ public:
     }
 
     /// return the value of objective
-    void getForces(Vec fX, Vec fY, Vec fZ)
+    void getForces(double* fX, double* fY, double* fZ)
     {
+#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
         DASolverPtr_->getForces(fX, fY, fZ);
+        return;
+#endif
+        FatalErrorIn("getForces") << "should not call this func in AD mode!"
+                                  << abort(FatalError);
     }
 
     /// call DASolver::printAllOptions

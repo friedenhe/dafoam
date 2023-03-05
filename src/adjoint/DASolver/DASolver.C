@@ -316,7 +316,7 @@ void DASolver::setDAObjFuncList()
     }
 }
 
-void DASolver::getForces(Vec fX, Vec fY, Vec fZ)
+void DASolver::getForces(scalar* fX, scalar* fY, scalar* fZ)
 {
     /*
     Description:
@@ -346,135 +346,9 @@ void DASolver::getForces(Vec fX, Vec fY, Vec fZ)
     List<scalar> fYTemp(nPoints);
     List<scalar> fZTemp(nPoints);
 
-    // Compute forces
-    this->getForcesInternal(fXTemp, fYTemp, fZTemp, patchList);
-
-    // Zero PETSc Arrays
-    VecZeroEntries(fX);
-    VecZeroEntries(fY);
-    VecZeroEntries(fZ);
-
-    // Get PETSc arrays
-    PetscScalar* vecArrayFX;
-    VecGetArray(fX, &vecArrayFX);
-    PetscScalar* vecArrayFY;
-    VecGetArray(fY, &vecArrayFY);
-    PetscScalar* vecArrayFZ;
-    VecGetArray(fZ, &vecArrayFZ);
-
-    // Transfer to PETSc Array
-    label pointCounter = 0;
-    forAll(fXTemp, cI)
-    {
-        // Get Values
-        PetscScalar val1, val2, val3;
-        assignValueCheckAD(val1, fXTemp[pointCounter]);
-        assignValueCheckAD(val2, fYTemp[pointCounter]);
-        assignValueCheckAD(val3, fZTemp[pointCounter]);
-
-        // Set Values
-        vecArrayFX[pointCounter] = val1;
-        vecArrayFY[pointCounter] = val2;
-        vecArrayFZ[pointCounter] = val3;
-
-        // Increment counter
-        pointCounter += 1;
-    }
-    VecRestoreArray(fX, &vecArrayFX);
-    VecRestoreArray(fY, &vecArrayFY);
-    VecRestoreArray(fZ, &vecArrayFZ);
-#endif
-    return;
-}
-
-void DASolver::getPatchInfo(
-    label& nPoints,
-    label& nFaces,
-    List<word>& patchList)
-{
-    /*
-    Description:
-        Compute information needed to compute surface forces and other vars on walls.
-        This includes total number of nodes and faces and a list of patches to
-        include in the computation.
-
-    Inputs:
-        nPoints: Number of nodes included in the force computation
-
-        nFaces: number of faces
-
-        patchList: Patches included in the force computation
-
-    Outputs:
-        nPoints and patchList are modified / set in-place
-    */
-    // Generate patches, point mesh, and point boundary mesh
-    const polyBoundaryMesh& patches = meshPtr_->boundaryMesh();
-    const pointMesh& pMesh = pointMesh::New(meshPtr_());
-    const pointBoundaryMesh& boundaryMesh = pMesh.boundary();
-
-    // we get the forces for the design surfaces
-    wordList designSurfaces;
-    daOptionPtr_->getAllOptions().readEntry<wordList>("designSurfaces", designSurfaces);
-
-    // Find wall patches and sort in alphabetical order
-    patchList.resize(designSurfaces.size());
-
-    label iDVPatch = 0;
-    forAll(patches, patchI)
-    {
-        word patchName = patches[patchI].name();
-        if (designSurfaces.found(patchName))
-        {
-            patchList[iDVPatch] = patchName;
-            iDVPatch += 1;
-        }
-    }
-    // sort patchList
-    sort(patchList);
-
-    // compute size of point and connectivity arrays
-    nPoints = 0;
-    nFaces = 0;
-    forAll(patchList, cI)
-    {
-        // Get number of points in patch
-        label patchIPoints = boundaryMesh.findPatchID(patchList[cI]);
-        nPoints += boundaryMesh[patchIPoints].size();
-
-        // get number of faces in patch
-        label patchI = meshPtr_->boundaryMesh().findPatchID(patchList[cI]);
-        nFaces += meshPtr_->boundaryMesh()[patchI].size();
-    }
-    return;
-}
-
-void DASolver::getForcesInternal(
-    List<scalar>& fX,
-    List<scalar>& fY,
-    List<scalar>& fZ,
-    List<word>& patchList)
-{
-    /*
-    Description:
-        Wrapped version force computation routine to perform match to compute forces specified patches.
-
-    Inputs:
-        fX: Vector of X-component of forces
-
-        fY: Vector of Y-component of forces
-
-        fZ: Vector of Z-component of forces
-
-    Output:
-        fX, fY, fZ, and patchList are modified / set in place.
-    */
-#ifndef SolidDASolver
     // Get reference pressure
     scalar pRef;
     daOptionPtr_->getAllOptions().subDict("fsi").readEntry<scalar>("pRef", pRef);
-
-    SortableList<word> patchListSort(patchList);
 
     // Initialize surface field for face-centered forces
     volVectorField volumeForceField(
@@ -506,10 +380,10 @@ void DASolver::getForcesInternal(
     const pointBoundaryMesh& boundaryMesh = pMesh.boundary();
 
     // iterate over patches and extract boundary surface forces
-    forAll(patchListSort, cI)
+    forAll(patchList, cI)
     {
         // get the patch id label
-        label patchI = meshPtr_->boundaryMesh().findPatchID(patchListSort[cI]);
+        label patchI = meshPtr_->boundaryMesh().findPatchID(patchList[cI]);
         // create a shorter handle for the boundary patch
         const fvPatch& patch = meshPtr_->boundary()[patchI];
         // normal force
@@ -533,11 +407,11 @@ void DASolver::getForcesInternal(
     vector nodeForce(vector::zero);
 
     label patchStart = 0;
-    forAll(patchListSort, cI)
+    forAll(patchList, cI)
     {
         // get the patch id label
-        label patchI = meshPtr_->boundaryMesh().findPatchID(patchListSort[cI]);
-        label patchIPoints = boundaryMesh.findPatchID(patchListSort[cI]);
+        label patchI = meshPtr_->boundaryMesh().findPatchID(patchList[cI]);
+        label patchIPoints = boundaryMesh.findPatchID(patchList[cI]);
 
         label nPointsPatch = boundaryMesh[patchIPoints].size();
         List<scalar> fXTemp(nPointsPatch);
@@ -613,6 +487,69 @@ void DASolver::getForcesInternal(
         patchStart += nPointsPatch;
     }
 #endif
+
+    return;
+}
+
+void DASolver::getPatchInfo(
+    label& nPoints,
+    label& nFaces,
+    List<word>& patchList)
+{
+    /*
+    Description:
+        Compute information needed to compute surface forces and other vars on walls.
+        This includes total number of nodes and faces and a list of patches to
+        include in the computation.
+
+    Inputs:
+        nPoints: Number of nodes included in the force computation
+
+        nFaces: number of faces
+
+        patchList: Patches included in the force computation
+
+    Outputs:
+        nPoints and patchList are modified / set in-place
+    */
+    // Generate patches, point mesh, and point boundary mesh
+    const polyBoundaryMesh& patches = meshPtr_->boundaryMesh();
+    const pointMesh& pMesh = pointMesh::New(meshPtr_());
+    const pointBoundaryMesh& boundaryMesh = pMesh.boundary();
+
+    // we get the forces for the design surfaces
+    wordList designSurfaces;
+    daOptionPtr_->getAllOptions().readEntry<wordList>("designSurfaces", designSurfaces);
+
+    // Find wall patches and sort in alphabetical order
+    patchList.resize(designSurfaces.size());
+
+    label iDVPatch = 0;
+    forAll(patches, patchI)
+    {
+        word patchName = patches[patchI].name();
+        if (designSurfaces.found(patchName))
+        {
+            patchList[iDVPatch] = patchName;
+            iDVPatch += 1;
+        }
+    }
+    // sort patchList
+    sort(patchList);
+
+    // compute size of point and connectivity arrays
+    nPoints = 0;
+    nFaces = 0;
+    forAll(patchList, cI)
+    {
+        // Get number of points in patch
+        label patchIPoints = boundaryMesh.findPatchID(patchList[cI]);
+        nPoints += boundaryMesh[patchIPoints].size();
+
+        // get number of faces in patch
+        label patchI = meshPtr_->boundaryMesh().findPatchID(patchList[cI]);
+        nFaces += meshPtr_->boundaryMesh()[patchI].size();
+    }
     return;
 }
 
@@ -3929,6 +3866,15 @@ void DASolver::calcdForcedXvAD(
 
     Info << "Calculating dForcedXvAD using reverse-mode AD" << endl;
 
+    // Allocate arrays
+    label nPoints, nFaces;
+    List<word> patchList;
+    this->getPatchInfo(nPoints, nFaces, patchList);
+
+    scalar* fX = new scalar[nPoints];
+    scalar* fY = new scalar[nPoints];
+    scalar* fZ = new scalar[nPoints];
+
     VecZeroEntries(dForcedXv);
 
     this->updateOFField(wVec);
@@ -3951,20 +3897,33 @@ void DASolver::calcdForcedXvAD(
     daResidualPtr_->updateIntermediateVariables();
     daModelPtr_->correctBoundaryConditions();
     daModelPtr_->updateIntermediateVariables();
+    
+    this->getForces(fX, fY, fZ);
 
-    // Allocate arrays
-    label nPoints, nFaces;
-    List<word> patchList;
-    this->getPatchInfo(nPoints, nFaces, patchList);
-    List<scalar> fX(nPoints);
-    List<scalar> fY(nPoints);
-    List<scalar> fZ(nPoints);
+    for(label cI = 0; cI < nPoints; cI++)
+    {
+        // Set seeds
+        this->globalADTape_.registerOutput(fX[cI]);
+        this->globalADTape_.registerOutput(fY[cI]);
+        this->globalADTape_.registerOutput(fZ[cI]);
+    }
 
-    this->getForcesInternal(fX, fY, fZ, patchList);
-    this->registerForceOutput4AD(fX, fY, fZ);
     this->globalADTape_.setPassive();
 
-    this->assignVec2ForceGradient(fBarVec, fX, fY, fZ);
+    PetscScalar* vecArray;
+    VecGetArray(fBarVec, &vecArray);
+    label i = 0;
+    for(label cI = 0; cI < nPoints; cI++)
+    {
+        // Set seeds
+        fX[cI].setGradient(vecArray[i]);
+        fY[cI].setGradient(vecArray[i + 1]);
+        fZ[cI].setGradient(vecArray[i + 2]);
+        // Increment counter
+        i += 3;
+    }
+    VecRestoreArray(fBarVec, &vecArray);
+
     this->globalADTape_.evaluate();
 
     forAll(meshPoints, i)
@@ -3979,6 +3938,10 @@ void DASolver::calcdForcedXvAD(
 
     VecAssemblyBegin(dForcedXv);
     VecAssemblyEnd(dForcedXv);
+
+    delete[] fX;
+    delete[] fY;
+    delete[] fZ;
 
     this->globalADTape_.clearAdjoints();
     this->globalADTape_.reset();
@@ -4380,6 +4343,15 @@ void DASolver::calcdForcedWAD(
 
     VecZeroEntries(dForcedW);
 
+    // Allocate arrays
+    label nPoints, nFaces;
+    List<word> patchList;
+    this->getPatchInfo(nPoints, nFaces, patchList);
+
+    scalar* fX = new scalar[nPoints];
+    scalar* fY = new scalar[nPoints];
+    scalar* fZ = new scalar[nPoints];
+
     // this is needed because the self.solverAD object in the Python layer
     // never run the primal solution, so the wVec and xvVec is not always
     // update to date
@@ -4397,19 +4369,32 @@ void DASolver::calcdForcedWAD(
     daModelPtr_->correctBoundaryConditions();
     daModelPtr_->updateIntermediateVariables();
 
-    // Allocate arrays
-    label nPoints, nFaces;
-    List<word> patchList;
-    this->getPatchInfo(nPoints, nFaces, patchList);
-    List<scalar> fX(nPoints);
-    List<scalar> fY(nPoints);
-    List<scalar> fZ(nPoints);
+    this->getForces(fX, fY, fZ);
 
-    this->getForcesInternal(fX, fY, fZ, patchList);
-    this->registerForceOutput4AD(fX, fY, fZ);
+    for(label cI = 0; cI < nPoints; cI++)
+    {
+        // Set seeds
+        this->globalADTape_.registerOutput(fX[cI]);
+        this->globalADTape_.registerOutput(fY[cI]);
+        this->globalADTape_.registerOutput(fZ[cI]);
+    }
+
     this->globalADTape_.setPassive();
 
-    this->assignVec2ForceGradient(fBarVec, fX, fY, fZ);
+    PetscScalar* vecArray;
+    VecGetArray(fBarVec, &vecArray);
+    label i = 0;
+    for(label cI = 0; cI < nPoints; cI++)
+    {
+        // Set seeds
+        fX[cI].setGradient(vecArray[i]);
+        fY[cI].setGradient(vecArray[i + 1]);
+        fZ[cI].setGradient(vecArray[i + 2]);
+        // Increment counter
+        i += 3;
+    }
+    VecRestoreArray(fBarVec, &vecArray);
+    
     this->globalADTape_.evaluate();
 
     // get the deriv values
@@ -4420,6 +4405,10 @@ void DASolver::calcdForcedWAD(
 
     VecAssemblyBegin(dForcedW);
     VecAssemblyEnd(dForcedW);
+
+    delete[] fX;
+    delete[] fY;
+    delete[] fZ;
 
     this->globalADTape_.clearAdjoints();
     this->globalADTape_.reset();

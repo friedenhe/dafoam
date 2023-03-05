@@ -14,6 +14,7 @@
 
 # for using Petsc
 from petsc4py.PETSc cimport Vec, PetscVec, Mat, PetscMat, KSP, PetscKSP
+cimport numpy as np
 
 # declare cpp functions
 cdef extern from "DASolvers.H" namespace "Foam":
@@ -64,7 +65,7 @@ cdef extern from "DASolvers.H" namespace "Foam":
         int getNLocalCells()
         int checkMesh()
         double getObjFuncValue(char *)
-        void getForces(PetscVec, PetscVec, PetscVec)
+        void getForces(double *, double *, double *)
         void printAllOptions()
         void updateDAOption(object)
         double getPrevPrimalSolTime()
@@ -281,8 +282,14 @@ cdef class pyDASolvers:
     def getObjFuncValue(self, objFuncName):
         return self._thisptr.getObjFuncValue(objFuncName)
 
-    def getForces(self, Vec fX, Vec fY, Vec fZ):
-        self._thisptr.getForces(fX.vec, fY.vec, fZ.vec)
+    def getForces(self, 
+            np.ndarray[double, ndim=1, mode="c"] fX,
+            np.ndarray[double, ndim=1, mode="c"] fY,
+            np.ndarray[double, ndim=1, mode="c"] fZ):
+        cdef double *fX_data = <double*>fX.data
+        cdef double *fY_data = <double*>fY.data
+        cdef double *fZ_data = <double*>fZ.data
+        self._thisptr.getForces(fX_data, fY_data, fZ_data)
 
     def printAllOptions(self):
         self._thisptr.printAllOptions()
