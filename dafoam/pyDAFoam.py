@@ -2473,23 +2473,17 @@ class PYDAFOAM(object):
             groupName = self.designFamilyGroup
         nPts, _ = self._getSurfaceSize(groupName)
 
-        fX = np.zeros(nPts, dtype='d')
-        fY = np.zeros(nPts, dtype='d')
-        fZ = np.zeros(nPts, dtype='d')
+        forces = np.zeros(nPts * 3, dtype='d')
 
         # Compute forces
-        self.solver.getForces(fX, fY, fZ)
+        self.solver.getForces(forces)
 
-        # Copy data from PETSc vectors
-        forces = np.zeros((nPts, 3))
-        forces[:, 0] = fX
-        forces[:, 1] = fY
-        forces[:, 2] = fZ
+        forcesPrint = forces.reshape((nPts, 3))
 
         # Print total force
-        fXSum = np.sum(forces[:, 0])
-        fYSum = np.sum(forces[:, 1])
-        fZSum = np.sum(forces[:, 2])
+        fXSum = np.sum(forcesPrint[:, 0])
+        fYSum = np.sum(forcesPrint[:, 1])
+        fZSum = np.sum(forcesPrint[:, 2])
 
         fXTot = self.comm.allreduce(fXSum, op=MPI.SUM)
         fYTot = self.comm.allreduce(fYSum, op=MPI.SUM)

@@ -1261,7 +1261,7 @@ class DAFoamForces(ExplicitComponent):
 
         self.DASolver.setStates(inputs["dafoam_states"])
 
-        outputs["f_aero"] = self.DASolver.getForces().flatten(order="C")
+        outputs["f_aero"] = self.DASolver.getForces()
 
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
 

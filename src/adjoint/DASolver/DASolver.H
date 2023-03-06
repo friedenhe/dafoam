@@ -660,9 +660,7 @@ public:
 
     /// return the forces of the desired fluid-structure-interaction patches
     void getForces(
-        scalar* fX,
-        scalar* fY,
-        scalar* fZ);
+        scalar* forces);
 
     /// return the number of points and faces for MDO patches
     void getPatchInfo(

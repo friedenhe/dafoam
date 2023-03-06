@@ -316,24 +316,18 @@ void DASolver::setDAObjFuncList()
     }
 }
 
-void DASolver::getForces(scalar* fX, scalar* fY, scalar* fZ)
+void DASolver::getForces(
+    scalar* forces)
 {
     /*
     Description:
         Compute the nodal forces for all of the nodes on the fluid-structure-interaction
-        patches. This routine is a wrapper that exposes the actual force computation
-        routine to the Python layer using PETSc vectors. For the actual force computation
-        routine view the getForcesInternal() function.
+        patches.
 
-    Inputs:
-        fX: Vector of X-component of forces
-
-        fY: Vector of Y-component of forces
-
-        fZ: Vector of Z-component of forces
-
-    Output:
-        fX, fY, fZ, and pointList are modified / set in place.
+    Inputs/Outputs:
+        
+        forces: array of forces on the FSI patches. This array contains three components of forces
+        i.e., fx, fy, and fz.
     */
 #ifndef SolidDASolver
     // Get Data
@@ -341,10 +335,9 @@ void DASolver::getForces(scalar* fX, scalar* fY, scalar* fZ)
     List<word> patchList;
     this->getPatchInfo(nPoints, nFaces, patchList);
 
-    // Allocate arrays
-    List<scalar> fXTemp(nPoints);
-    List<scalar> fYTemp(nPoints);
-    List<scalar> fZTemp(nPoints);
+    List<scalar> fX(nPoints);
+    List<scalar> fY(nPoints);
+    List<scalar> fZ(nPoints);
 
     // Get reference pressure
     scalar pRef;
@@ -486,6 +479,13 @@ void DASolver::getForces(scalar* fX, scalar* fY, scalar* fZ)
         // Increment Patch Start Index
         patchStart += nPointsPatch;
     }
+
+    forAll(fX, cI)
+    {
+        forces[cI * 3 + 0] = fX[cI];
+        forces[cI * 3 + 1] = fY[cI];
+        forces[cI * 3 + 2] = fZ[cI];
+    }
 #endif
 
     return;
@@ -554,10 +554,10 @@ void DASolver::getPatchInfo(
 }
 
 void DASolver::calcForceProfile(
-        Vec center,
-        Vec aForceL,
-        Vec tForceL,
-        Vec rDistL)
+    Vec center,
+    Vec aForceL,
+    Vec tForceL,
+    Vec rDistL)
 {
     /*
     Description:
@@ -634,7 +634,6 @@ void DASolver::calcForceProfile(
 
     return;
     */
-
 }
 
 void DASolver::calcForceProfileInternal(
@@ -809,33 +808,33 @@ void DASolver::calcFvSourceInternal(
 
     // Extraction of inner and outer radii, and resizing of the blade radius distribution.
     // scalar rInner = rDistExt[0];
-    scalar rOuter = rDistExt[rDistExt.size()-1];
-    scalarField rDist = aForce * 0.0;         // real blade radius distribution
-    scalarField rNorm = rDist;                // normalized blade radius distribution
+    scalar rOuter = rDistExt[rDistExt.size() - 1];
+    scalarField rDist = aForce * 0.0; // real blade radius distribution
+    scalarField rNorm = rDist; // normalized blade radius distribution
     forAll(aForce, index)
     {
-        rDist[index] = rDistExt [index+1];
+        rDist[index] = rDistExt[index + 1];
     }
     forAll(rDist, index)
     {
-        rNorm[index] = rDist[index]/rOuter;
+        rNorm[index] = rDist[index] / rOuter;
     }
 
     // Inner and outer radius distribution limits
     scalar rStarMin = rNorm[0];
-    scalar rStarMax = rNorm[rNorm.size()-1];
+    scalar rStarMax = rNorm[rNorm.size() - 1];
 
     // Polynomial (inner) and Normal (outer) distribution  parameters' initialization
-    scalar f1 = aForce[aForce.size()-2];
-    scalar f2 = aForce[aForce.size()-1];
+    scalar f1 = aForce[aForce.size() - 2];
+    scalar f2 = aForce[aForce.size() - 1];
     scalar f3 = aForce[0];
     scalar f4 = aForce[1];
-    scalar g1 = tForce[tForce.size()-2];
-    scalar g2 = tForce[tForce.size()-1];
+    scalar g1 = tForce[tForce.size() - 2];
+    scalar g2 = tForce[tForce.size() - 1];
     scalar g3 = tForce[0];
     scalar g4 = tForce[1];
-    scalar r1 = rNorm[rNorm.size()-2];
-    scalar r2 = rNorm[rNorm.size()-1];
+    scalar r1 = rNorm[rNorm.size() - 2];
+    scalar r2 = rNorm[rNorm.size() - 1];
     scalar r3 = rNorm[0];
     scalar r4 = rNorm[1];
 
@@ -845,7 +844,7 @@ void DASolver::calcFvSourceInternal(
     scalar maxI = 100;
     scalar sigmaS = 0;
     scalar i = 0;
-    for(i = 0; i < maxI; i++)
+    for (i = 0; i < maxI; i++)
     {
         sigmaS = ((r2 - mu) * (r2 - mu) - (r1 - mu) * (r1 - mu)) / (2 * log(f1 / f2));
         mu = r1 - sqrt(-2 * sigmaS * log(f1 * sqrt(2 * degToRad(180) * sigmaS)));
@@ -859,7 +858,7 @@ void DASolver::calcFvSourceInternal(
 
     // Tangential Outer
     mu = 2 * r1 - r2;
-    for(i = 0; i < maxI; i++)
+    for (i = 0; i < maxI; i++)
     {
         sigmaS = ((r2 - mu) * (r2 - mu) - (r1 - mu) * (r1 - mu)) / (2 * log(g1 / g2));
         mu = r1 - sqrt(-2 * sigmaS * log(g1 * sqrt(2 * degToRad(180) * sigmaS)));
@@ -884,13 +883,13 @@ void DASolver::calcFvSourceInternal(
     {
         // Finding directional vector from mesh cell to the actuator center
         vector cellDir = meshC[cellI] - center;
-        scalar length = sqrt(sqr(cellDir[0])+sqr(cellDir[1])+sqr(cellDir[2]));
+        scalar length = sqrt(sqr(cellDir[0]) + sqr(cellDir[1]) + sqr(cellDir[2]));
         cellDir = cellDir / length;
 
         // Finding axial distance from mesh cell to the actuator center & projected point of mesh cell on the axis
         scalar meshDist = (axis & cellDir) * length;
         vector projP = {center[0] - axis[0] * meshDist, center[1] - axis[1] * meshDist, center[2] - axis[2] * meshDist};
-        meshDist = mag(meshDist); 
+        meshDist = mag(meshDist);
 
         // Finding the radius of the point
         scalar meshR = sqrt(sqr(meshC[cellI][0] - projP[0]) + sqr(meshC[cellI][1] - projP[1]) + sqr(meshC[cellI][2] - projP[2]));
@@ -905,17 +904,17 @@ void DASolver::calcFvSourceInternal(
 
         if (rStar < rStarMin)
         {
-            fvSource[cellI] = ((coefAAxialIn * rStar * rStar + coefBAxialIn * rStar) * axis + (coefATangentialIn * rStar * rStar + coefBTangentialIn * rStar) * cellAxDir * rotDirCon) * exp(-sqr(meshDist/actEps));
+            fvSource[cellI] = ((coefAAxialIn * rStar * rStar + coefBAxialIn * rStar) * axis + (coefATangentialIn * rStar * rStar + coefBTangentialIn * rStar) * cellAxDir * rotDirCon) * exp(-sqr(meshDist / actEps));
         }
         else if (rStar > rStarMax)
         {
             fvSource[cellI] = (1 / (sigmaAxialOut * sqrt(2 * degToRad(180)))) * exp(-0.5 * sqr((rStar - muAxialOut) / sigmaAxialOut)) * axis;
             fvSource[cellI] = fvSource[cellI] + (1 / (sigmaTangentialOut * sqrt(2 * degToRad(180)))) * exp(-0.5 * sqr((rStar - muTangentialOut) / sigmaTangentialOut)) * cellAxDir * rotDirCon;
-            fvSource[cellI] = fvSource[cellI] * exp(-sqr(meshDist/actEps));
+            fvSource[cellI] = fvSource[cellI] * exp(-sqr(meshDist / actEps));
         }
         else
         {
-            fvSource[cellI] = (interpolateSplineXY(rStar, rNorm, aForce) * axis + interpolateSplineXY(rStar, rNorm, tForce) * cellAxDir * rotDirCon) * exp(-sqr(meshDist/actEps));
+            fvSource[cellI] = (interpolateSplineXY(rStar, rNorm, aForce) * axis + interpolateSplineXY(rStar, rNorm, tForce) * cellAxDir * rotDirCon) * exp(-sqr(meshDist / actEps));
         }
     }
 
@@ -968,7 +967,7 @@ void DASolver::calcFvSource(
     // Allocate Arrays
     Field<scalar> aForceTemp(nPoints);
     Field<scalar> tForceTemp(nPoints);
-    List<scalar> rDistExtTemp(nPoints+2);
+    List<scalar> rDistExtTemp(nPoints + 2);
     List<scalar> targetForceTemp(2);
     Vector<scalar> centerTemp;
     volVectorField fvSourceTemp(
@@ -1028,9 +1027,9 @@ void DASolver::calcFvSource(
         assignValueCheckAD(val3, fvSourceTemp[cI][2]);
 
         // Set Values
-        vecArrayFvSource[3*cI] = val1;
-        vecArrayFvSource[3*cI+1] = val2;
-        vecArrayFvSource[3*cI+2] = val3;
+        vecArrayFvSource[3 * cI] = val1;
+        vecArrayFvSource[3 * cI + 1] = val2;
+        vecArrayFvSource[3 * cI + 2] = val3;
     }
 
     VecRestoreArray(aForce, &vecArrayAForce);
@@ -3871,9 +3870,7 @@ void DASolver::calcdForcedXvAD(
     List<word> patchList;
     this->getPatchInfo(nPoints, nFaces, patchList);
 
-    scalar* fX = new scalar[nPoints];
-    scalar* fY = new scalar[nPoints];
-    scalar* fZ = new scalar[nPoints];
+    scalar* forces = new scalar[nPoints * 3];
 
     VecZeroEntries(dForcedXv);
 
@@ -3897,30 +3894,23 @@ void DASolver::calcdForcedXvAD(
     daResidualPtr_->updateIntermediateVariables();
     daModelPtr_->correctBoundaryConditions();
     daModelPtr_->updateIntermediateVariables();
-    
-    this->getForces(fX, fY, fZ);
 
-    for(label cI = 0; cI < nPoints; cI++)
+    this->getForces(forces);
+
+    for (label cI = 0; cI < nPoints * 3; cI++)
     {
         // Set seeds
-        this->globalADTape_.registerOutput(fX[cI]);
-        this->globalADTape_.registerOutput(fY[cI]);
-        this->globalADTape_.registerOutput(fZ[cI]);
+        this->globalADTape_.registerOutput(forces[cI]);
     }
 
     this->globalADTape_.setPassive();
 
     PetscScalar* vecArray;
     VecGetArray(fBarVec, &vecArray);
-    label i = 0;
-    for(label cI = 0; cI < nPoints; cI++)
+    for (label cI = 0; cI < nPoints * 3; cI++)
     {
         // Set seeds
-        fX[cI].setGradient(vecArray[i]);
-        fY[cI].setGradient(vecArray[i + 1]);
-        fZ[cI].setGradient(vecArray[i + 2]);
-        // Increment counter
-        i += 3;
+        forces[cI].setGradient(vecArray[cI]);
     }
     VecRestoreArray(fBarVec, &vecArray);
 
@@ -3939,9 +3929,7 @@ void DASolver::calcdForcedXvAD(
     VecAssemblyBegin(dForcedXv);
     VecAssemblyEnd(dForcedXv);
 
-    delete[] fX;
-    delete[] fY;
-    delete[] fZ;
+    delete[] forces;
 
     this->globalADTape_.clearAdjoints();
     this->globalADTape_.reset();
@@ -4348,9 +4336,7 @@ void DASolver::calcdForcedWAD(
     List<word> patchList;
     this->getPatchInfo(nPoints, nFaces, patchList);
 
-    scalar* fX = new scalar[nPoints];
-    scalar* fY = new scalar[nPoints];
-    scalar* fZ = new scalar[nPoints];
+    scalar* forces = new scalar[nPoints * 3];
 
     // this is needed because the self.solverAD object in the Python layer
     // never run the primal solution, so the wVec and xvVec is not always
@@ -4369,32 +4355,25 @@ void DASolver::calcdForcedWAD(
     daModelPtr_->correctBoundaryConditions();
     daModelPtr_->updateIntermediateVariables();
 
-    this->getForces(fX, fY, fZ);
+    this->getForces(forces);
 
-    for(label cI = 0; cI < nPoints; cI++)
+    for (label cI = 0; cI < nPoints * 3; cI++)
     {
         // Set seeds
-        this->globalADTape_.registerOutput(fX[cI]);
-        this->globalADTape_.registerOutput(fY[cI]);
-        this->globalADTape_.registerOutput(fZ[cI]);
+        this->globalADTape_.registerOutput(forces[cI]);
     }
 
     this->globalADTape_.setPassive();
 
     PetscScalar* vecArray;
     VecGetArray(fBarVec, &vecArray);
-    label i = 0;
-    for(label cI = 0; cI < nPoints; cI++)
+    for (label cI = 0; cI < nPoints * 3; cI++)
     {
         // Set seeds
-        fX[cI].setGradient(vecArray[i]);
-        fY[cI].setGradient(vecArray[i + 1]);
-        fZ[cI].setGradient(vecArray[i + 2]);
-        // Increment counter
-        i += 3;
+        forces[cI].setGradient(vecArray[cI]);
     }
     VecRestoreArray(fBarVec, &vecArray);
-    
+
     this->globalADTape_.evaluate();
 
     // get the deriv values
@@ -4406,9 +4385,7 @@ void DASolver::calcdForcedWAD(
     VecAssemblyBegin(dForcedW);
     VecAssemblyEnd(dForcedW);
 
-    delete[] fX;
-    delete[] fY;
-    delete[] fZ;
+    delete[] forces;
 
     this->globalADTape_.clearAdjoints();
     this->globalADTape_.reset();
