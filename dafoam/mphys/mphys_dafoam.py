@@ -1254,14 +1254,35 @@ class DAFoamForces(ExplicitComponent):
         self.add_input("dafoam_vol_coords", distributed=True, shape_by_conn=True, tags=["mphys_coupling"])
         self.add_input("dafoam_states", distributed=True, shape_by_conn=True, tags=["mphys_coupling"])
 
-        local_surface_coord_size = self.DASolver.getSurfaceCoordinates(self.DASolver.designFamilyGroup).size
-        self.add_output("f_aero", distributed=True, shape=local_surface_coord_size, tags=["mphys_coupling"])
+        self.n_f_nodes = self.DASolver.getSurfaceCoordinates(self.DASolver.designFamilyGroup).size
+        self.add_output("f_aero", distributed=True, shape=self.n_f_nodes, tags=["mphys_coupling"])
 
     def compute(self, inputs, outputs):
 
-        self.DASolver.setStates(inputs["dafoam_states"])
+        states = inputs["dafoam_states"]
+        vol_coords = inputs["dafoam_vol_coords"]
+        forces = np.zeros(self.n_f_nodes, dtype="d")
 
-        outputs["f_aero"] = self.DASolver.getForces()
+        self.DASolver.solver.getForces(vol_coords, states, forces)
+
+        forcesPrint = forces.reshape((self.n_f_nodes // 3, 3))
+
+        # Print total force
+        fXSum = np.sum(forcesPrint[:, 0])
+        fYSum = np.sum(forcesPrint[:, 1])
+        fZSum = np.sum(forcesPrint[:, 2])
+
+        fXTot = self.comm.allreduce(fXSum, op=MPI.SUM)
+        fYTot = self.comm.allreduce(fYSum, op=MPI.SUM)
+        fZTot = self.comm.allreduce(fZSum, op=MPI.SUM)
+
+        if self.comm.rank == 0:
+            print("Total force:")
+            print("Fx = %e" % fXTot)
+            print("Fy = %e" % fYTot)
+            print("Fz = %e" % fZTot)
+
+        outputs["f_aero"] = forces
 
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
 
@@ -1271,21 +1292,19 @@ class DAFoamForces(ExplicitComponent):
             raise AnalysisError("fwd not implemented!")
 
         if "f_aero" in d_outputs:
-            fBar = d_outputs["f_aero"]
-            fBarVec = DASolver.array2Vec(fBar)
+            states = inputs["dafoam_states"]
+            vol_coords = inputs["dafoam_vol_coords"]
+            forces = np.zeros_like(d_outputs["f_aero"])
+            seeds = d_outputs["f_aero"]
 
             if "dafoam_vol_coords" in d_inputs:
-                dForcedXv = DASolver.xvVec.duplicate()
-                dForcedXv.zeroEntries()
-                DASolver.solverAD.calcdForcedXvAD(DASolver.xvVec, DASolver.wVec, fBarVec, dForcedXv)
-                xVBar = DASolver.vec2Array(dForcedXv)
-                d_inputs["dafoam_vol_coords"] += xVBar
+                product = np.zeros_like(d_inputs["dafoam_vol_coords"])
+                DASolver.solverAD.getForcesAD("volCoords".encode(), vol_coords, states, seeds, forces, product)
+                d_inputs["dafoam_vol_coords"] += product
             if "dafoam_states" in d_inputs:
-                dForcedW = DASolver.wVec.duplicate()
-                dForcedW.zeroEntries()
-                DASolver.solverAD.calcdForcedWAD(DASolver.xvVec, DASolver.wVec, fBarVec, dForcedW)
-                wBar = DASolver.vec2Array(dForcedW)
-                d_inputs["dafoam_states"] += wBar
+                product = np.zeros_like(d_inputs["dafoam_states"])
+                DASolver.solverAD.getForcesAD("states".encode(), vol_coords, states, seeds, forces, product)
+                d_inputs["dafoam_states"] += product
 
 
 class DAFoamPropForce(ExplicitComponent):

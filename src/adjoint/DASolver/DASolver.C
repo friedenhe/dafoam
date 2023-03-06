@@ -317,6 +317,8 @@ void DASolver::setDAObjFuncList()
 }
 
 void DASolver::getForces(
+    const scalar* volCoords,
+    const scalar* states,
     scalar* forces)
 {
     /*
@@ -324,12 +326,22 @@ void DASolver::getForces(
         Compute the nodal forces for all of the nodes on the fluid-structure-interaction
         patches.
 
-    Inputs/Outputs:
-        
+    Inputs:
+
+        volCoords: volume coordinates
+
+        states: flow/adjoint state variables
+
+    Output:
+
         forces: array of forces on the FSI patches. This array contains three components of forces
         i.e., fx, fy, and fz.
     */
 #ifndef SolidDASolver
+
+    this->updateOFField(states);
+    this->updateOFMesh(volCoords);
+
     // Get Data
     label nPoints, nFaces;
     List<word> patchList;
@@ -3325,6 +3337,29 @@ label DASolver::solveLinearEqn(
     return error;
 }
 
+void DASolver::updateOFField(const scalar* states)
+{
+    label printInfo = 0;
+    if (daOptionPtr_->getOption<label>("debug"))
+    {
+        Info << "Updating the OpenFOAM field..." << endl;
+        printInfo = 1;
+    }
+    this->setPrimalBoundaryConditions(printInfo);
+    daFieldPtr_->state2OFField(states);
+    // We need to call correctBC multiple times to reproduce
+    // the exact residual, this is needed for some boundary conditions
+    // and intermediate variables (e.g., U for inletOutlet, nut with wall functions)
+    label maxCorrectBCCalls = daOptionPtr_->getOption<label>("maxCorrectBCCalls");
+    for (label i = 0; i < maxCorrectBCCalls; i++)
+    {
+        daResidualPtr_->correctBoundaryConditions();
+        daResidualPtr_->updateIntermediateVariables();
+        daModelPtr_->correctBoundaryConditions();
+        daModelPtr_->updateIntermediateVariables();
+    }
+}
+
 void DASolver::updateOFField(const Vec wVec)
 {
     /*
@@ -3358,6 +3393,25 @@ void DASolver::updateOFField(const Vec wVec)
         daModelPtr_->correctBoundaryConditions();
         daModelPtr_->updateIntermediateVariables();
     }
+}
+
+void DASolver::updateOFMesh(const scalar* volCoords)
+{
+    /*
+    Description:
+        Update the OpenFOAM mesh based on the volume coordinates point volCoords
+
+    Input:
+        volCoords: point coordinate array
+
+    Output:
+        OpenFoam flow fields (internal and boundary)
+    */
+    if (daOptionPtr_->getOption<label>("debug"))
+    {
+        Info << "Updating the OpenFOAM mesh..." << endl;
+    }
+    daFieldPtr_->point2OFMesh(volCoords);
 }
 
 void DASolver::updateOFMesh(const Vec xvVec)
@@ -3840,102 +3894,6 @@ void DASolver::calcdRdXvTPsiAD(
 #endif
 }
 
-void DASolver::calcdForcedXvAD(
-    const Vec xvVec,
-    const Vec wVec,
-    const Vec fBarVec,
-    Vec dForcedXv)
-{
-#ifdef CODI_AD_REVERSE
-    /*
-    Description:
-        Calculate dForcedXv using reverse-mode AD
-    
-    Input:
-
-        xvVec: the volume mesh coordinate vector
-
-        wVec: the state variable vector
-
-        fBarVec: the derivative seed vector
-    
-    Output:
-        dForcedXv: dForce/dXv
-    */
-
-    Info << "Calculating dForcedXvAD using reverse-mode AD" << endl;
-
-    // Allocate arrays
-    label nPoints, nFaces;
-    List<word> patchList;
-    this->getPatchInfo(nPoints, nFaces, patchList);
-
-    scalar* forces = new scalar[nPoints * 3];
-
-    VecZeroEntries(dForcedXv);
-
-    this->updateOFField(wVec);
-    this->updateOFMesh(xvVec);
-
-    pointField meshPoints = meshPtr_->points();
-    this->globalADTape_.reset();
-    this->globalADTape_.setActive();
-    forAll(meshPoints, i)
-    {
-        for (label j = 0; j < 3; j++)
-        {
-            this->globalADTape_.registerInput(meshPoints[i][j]);
-        }
-    }
-    meshPtr_->movePoints(meshPoints);
-    meshPtr_->moving(false);
-    // compute residuals
-    daResidualPtr_->correctBoundaryConditions();
-    daResidualPtr_->updateIntermediateVariables();
-    daModelPtr_->correctBoundaryConditions();
-    daModelPtr_->updateIntermediateVariables();
-
-    this->getForces(forces);
-
-    for (label cI = 0; cI < nPoints * 3; cI++)
-    {
-        // Set seeds
-        this->globalADTape_.registerOutput(forces[cI]);
-    }
-
-    this->globalADTape_.setPassive();
-
-    PetscScalar* vecArray;
-    VecGetArray(fBarVec, &vecArray);
-    for (label cI = 0; cI < nPoints * 3; cI++)
-    {
-        // Set seeds
-        forces[cI].setGradient(vecArray[cI]);
-    }
-    VecRestoreArray(fBarVec, &vecArray);
-
-    this->globalADTape_.evaluate();
-
-    forAll(meshPoints, i)
-    {
-        for (label j = 0; j < 3; j++)
-        {
-            label rowI = daIndexPtr_->getGlobalXvIndex(i, j);
-            PetscScalar val = meshPoints[i][j].getGradient();
-            VecSetValue(dForcedXv, rowI, val, INSERT_VALUES);
-        }
-    }
-
-    VecAssemblyBegin(dForcedXv);
-    VecAssemblyEnd(dForcedXv);
-
-    delete[] forces;
-
-    this->globalADTape_.clearAdjoints();
-    this->globalADTape_.reset();
-#endif
-}
-
 void DASolver::calcdRdFieldTPsiAD(
     const Vec xvVec,
     const Vec wVec,
@@ -4305,90 +4263,210 @@ void DASolver::calcdRdActTPsiAD(
 #endif
 }
 
-void DASolver::calcdForcedWAD(
-    const Vec xvVec,
-    const Vec wVec,
-    const Vec fBarVec,
-    Vec dForcedW)
+void DASolver::createScalarArrays(
+    const double* doubleArray,
+    const label size,
+    scalar* scalarArray)
 {
-#ifdef CODI_AD_REVERSE
     /*
     Description:
-        Calculate dForcedW using reverse-mode AD
-    
-    Input:
-        xvVec: the volume mesh coordinate vector
+        Initialize scalar arrays from double arrays
+        This function is mainly for converting the double arrays to 
+        scalar arrays for AD.
 
-        wVec: the state variable vector
-
-        fBarVec: the derivative seed vector
-    
-    Output:
-        dForcedW: dForce/dW
+        **************************************************************
+        NOTE: we need to manually delete the created scalar arrays 
+        to avoid memory leak!!
+        **************************************************************
     */
 
-    Info << "Calculating dForcesdW using reverse-mode AD" << endl;
+    scalarArray = new scalar[size];
 
-    VecZeroEntries(dForcedW);
+    for (label i = 0; i < size; i++)
+    {
+        scalarArray[i] = doubleArray[i];
+    }
+}
 
-    // Allocate arrays
+void DASolver::resetOFSeeds()
+{
+    /*
+    Description:
+        RESET the seeds to all state variables and vol coordinates to zeros
+        This is done by passing a double array to the OpenFOAM's scalar field
+        and setting all the gradient part to zero.
+        In CODIPack, if we pass a double value to a scalar value, it will assign
+        an zero to the scalar variable's gradient part (seeds).
+        NOTE. this is important because CODIPack's tape.reset does not clean
+        the seeds in the OpenFOAM's variables. So we need to manually reset them
+        Not doing this will cause inaccurate AD values.
+    
+    Outputs:
+        
+        The OpenFOAM variables's seed values
+    */
+
+    // here we create scalar arrays to save the
+    label printInfo = 0;
+    if (daOptionPtr_->getOption<label>("debug"))
+    {
+        Info << "Resetting the OpenFOAM field seeds..." << endl;
+        printInfo = 1;
+    }
+
+    this->setPrimalBoundaryConditions(printInfo);
+    daFieldPtr_->resetOFSeeds();
+    // We need to call correctBC multiple times to reproduce
+    // the exact residual, this is needed for some boundary conditions
+    // and intermediate variables (e.g., U for inletOutlet, nut with wall functions)
+    label maxCorrectBCCalls = daOptionPtr_->getOption<label>("maxCorrectBCCalls");
+    for (label i = 0; i < maxCorrectBCCalls; i++)
+    {
+        daResidualPtr_->correctBoundaryConditions();
+        daResidualPtr_->updateIntermediateVariables();
+        daModelPtr_->correctBoundaryConditions();
+        daModelPtr_->updateIntermediateVariables();
+    }
+}
+
+void DASolver::getForcesAD(
+    const word mode,
+    const double* volCoords,
+    const double* states,
+    const double* seeds,
+    double* forces,
+    double* product)
+{
+
+#ifdef CODI_AD_REVERSE
+
+    Info << "Calculating matrix-vector products for getForces " << endl;
+
     label nPoints, nFaces;
     List<word> patchList;
     this->getPatchInfo(nPoints, nFaces, patchList);
 
-    scalar* forces = new scalar[nPoints * 3];
+    // convert double arrays to scalar arrays
+    /*
+    // for some reason these lines caused seg fault...
+    scalar* volCoordsArray = NULL;
+    scalar* statesArray = NULL;
+    scalar* forcesArray = NULL;
+    this->createScalarArrays(volCoords, daIndexPtr_->nLocalXv, volCoordsArray);
+    this->createScalarArrays(states, daIndexPtr_->nLocalAdjointStates, statesArray);
+    this->createScalarArrays(forces, nPoints * 3, forcesArray);
+    */
 
-    // this is needed because the self.solverAD object in the Python layer
-    // never run the primal solution, so the wVec and xvVec is not always
-    // update to date
-    this->updateOFField(wVec);
-    this->updateOFMesh(xvVec);
+    scalar* volCoordsArray = new scalar[daIndexPtr_->nLocalXv];
+    for (label i = 0; i < daIndexPtr_->nLocalXv; i++)
+    {
+        volCoordsArray[i] = volCoords[i];
+    }
 
+    scalar* statesArray = new scalar[daIndexPtr_->nLocalAdjointStates];
+    for (label i = 0; i < daIndexPtr_->nLocalAdjointStates; i++)
+    {
+        statesArray[i] = states[i];
+    }
+
+    scalar* forcesArray = new scalar[nPoints * 3];
+    for (label i = 0; i < nPoints * 3; i++)
+    {
+        forcesArray[i] = forces[i];
+    }
+
+    // update the OpenFOAM variables and reset their seeds (gradient part) to zeros
+    this->resetOFSeeds();
+    // reset the AD tape
     this->globalADTape_.reset();
+    // start recording
     this->globalADTape_.setActive();
 
-    this->registerStateVariableInput4AD();
-
-    // compute residuals
-    daResidualPtr_->correctBoundaryConditions();
-    daResidualPtr_->updateIntermediateVariables();
-    daModelPtr_->correctBoundaryConditions();
-    daModelPtr_->updateIntermediateVariables();
-
-    this->getForces(forces);
-
-    for (label cI = 0; cI < nPoints * 3; cI++)
+    if (mode == "volCoords")
     {
-        // Set seeds
-        this->globalADTape_.registerOutput(forces[cI]);
+        // register inputs
+        for (label i = 0; i < daIndexPtr_->nLocalXv; i++)
+        {
+            this->globalADTape_.registerInput(volCoordsArray[i]);
+        }
+
+        // calculate outputs
+        this->getForces(volCoordsArray, statesArray, forcesArray);
+
+        // register outputs
+        for (label i = 0; i < nPoints * 3; i++)
+        {
+            this->globalADTape_.registerOutput(forcesArray[i]);
+        }
+
+        // stop recording
+        this->globalADTape_.setPassive();
+
+        // set seeds to the outputs
+        for (label i = 0; i < nPoints * 3; i++)
+        {
+            forcesArray[i].setGradient(seeds[i]);
+        }
+
+        // now calculate the reverse matrix-vector product
+        this->globalADTape_.evaluate();
+
+        // get the matrix-vector product from the inputs
+        for (label i = 0; i < daIndexPtr_->nLocalXv; i++)
+        {
+            product[i] = volCoordsArray[i].getGradient();
+        }
+    }
+    else if (mode == "states")
+    {
+        // register inputs
+        for (label i = 0; i < daIndexPtr_->nLocalAdjointStates; i++)
+        {
+            this->globalADTape_.registerInput(statesArray[i]);
+        }
+
+        // calculate outputs
+        this->getForces(volCoordsArray, statesArray, forcesArray);
+
+        // register outputs
+        for (label i = 0; i < nPoints * 3; i++)
+        {
+            this->globalADTape_.registerOutput(forcesArray[i]);
+        }
+
+        // stop recording
+        this->globalADTape_.setPassive();
+
+        // set seeds to the outputs
+        for (label i = 0; i < nPoints * 3; i++)
+        {
+            forcesArray[i].setGradient(seeds[i]);
+        }
+
+        // now calculate the reverse matrix-vector product
+        this->globalADTape_.evaluate();
+
+        // get the matrix-vector product from the inputs
+        for (label i = 0; i < daIndexPtr_->nLocalAdjointStates; i++)
+        {
+            product[i] = statesArray[i].getGradient();
+        }
+    }
+    else
+    {
+        FatalErrorIn("getForcesAD") << "mode " << mode << " not valid! "
+                                    << "Options are: volCoords or states"
+                                    << abort(FatalError);
     }
 
-    this->globalADTape_.setPassive();
+    delete[] volCoordsArray;
+    delete[] statesArray;
+    delete[] forcesArray;
 
-    PetscScalar* vecArray;
-    VecGetArray(fBarVec, &vecArray);
-    for (label cI = 0; cI < nPoints * 3; cI++)
-    {
-        // Set seeds
-        forces[cI].setGradient(vecArray[cI]);
-    }
-    VecRestoreArray(fBarVec, &vecArray);
-
-    this->globalADTape_.evaluate();
-
-    // get the deriv values
-    this->assignStateGradient2Vec(dForcedW);
-
-    // NOTE: we need to normalize dForcedW!
-    this->normalizeGradientVec(dForcedW);
-
-    VecAssemblyBegin(dForcedW);
-    VecAssemblyEnd(dForcedW);
-
-    delete[] forces;
-
+    // clean up AD
     this->globalADTape_.clearAdjoints();
     this->globalADTape_.reset();
+
 #endif
 }
 

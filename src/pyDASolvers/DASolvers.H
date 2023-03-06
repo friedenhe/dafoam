@@ -119,16 +119,6 @@ public:
         DASolverPtr_->calcdRdXvTPsiAD(xvVec, wVec, psi, dRdXvTPsi);
     }
 
-    /// compute dForcedXv
-    void calcdForcedXvAD(
-        const Vec xvVec,
-        const Vec wVec,
-        const Vec fBarVec,
-        Vec dForcedW)
-    {
-        DASolverPtr_->calcdForcedXvAD(xvVec, wVec, fBarVec, dForcedW);
-    }
-
     /// compute dRdAct^T*Psi
     void calcdRdActTPsiAD(
         const Vec xvVec,
@@ -138,16 +128,6 @@ public:
         Vec dRdActTPsi)
     {
         DASolverPtr_->calcdRdActTPsiAD(xvVec, wVec, psi, designVarName, dRdActTPsi);
-    }
-
-    /// compute dForcedW
-    void calcdForcedWAD(
-        const Vec xvVec,
-        const Vec wVec,
-        const Vec fBarVec,
-        Vec dForcedW)
-    {
-        DASolverPtr_->calcdForcedWAD(xvVec, wVec, fBarVec, dForcedW);
     }
 
     /// compute dRdAOA^T*Psi
@@ -440,14 +420,28 @@ public:
     }
 
     /// return the value of objective
-    void getForces(double* forces)
+    void getForces(
+        const double* volCoords,
+        const double* states,
+        double* forces)
     {
 #if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
-        DASolverPtr_->getForces(forces);
+        DASolverPtr_->getForces(volCoords, states, forces);
         return;
 #endif
         FatalErrorIn("getForces") << "should not call this func in AD mode!"
                                   << abort(FatalError);
+    }
+
+    void getForcesAD(
+        const word mode,
+        const double* volCoords,
+        const double* states,
+        const double* seeds,
+        double* forces,
+        double* product)
+    {
+        DASolverPtr_->getForcesAD(mode, volCoords, states, seeds, forces, product);
     }
 
     /// call DASolver::printAllOptions

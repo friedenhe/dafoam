@@ -316,6 +316,21 @@ public:
     /// Update the OpenFoam mesh point coordinates based on the point vector xvVec
     void updateOFMesh(const Vec xvVec);
 
+    /// Update the OpenFOAM field values (including both internal and boundary fields) based on the state vector wVec
+    void updateOFField(const scalar*);
+
+    /// Update the OpenFoam mesh point coordinates based on the point vector xvVec
+    void updateOFMesh(const scalar*);
+
+    /// reset the seeds to zeros for all OpenFOAM vars
+    void createScalarArrays(
+        const double* doubleArray,
+        const label size,
+        scalar* scalarArray);
+
+    /// reset the seeds (gradient to zeros) for all OpenFOAM variables
+    void resetOFSeeds();
+
     /// compute dRdBC
     void calcdRdBC(
         const Vec xvVec,
@@ -437,13 +452,6 @@ public:
         const Vec psi,
         Vec dRdXvTPsi);
 
-    /// compute dForcedXv
-    void calcdForcedXvAD(
-        const Vec xvVec,
-        const Vec wVec,
-        const Vec fBarVec,
-        Vec dForcedXv);
-
     /// compute dFdXv AD
     void calcdFdXvAD(
         const Vec xvVec,
@@ -458,12 +466,6 @@ public:
         const Vec psi,
         const word designVarName,
         Vec dRdActTPsi);
-
-    void calcdForcedWAD(
-        const Vec xvVec,
-        const Vec wVec,
-        const Vec fBarVec,
-        Vec dForcedW);
 
     /// compute dFdACT AD
     void calcdFdACTAD(
@@ -660,7 +662,17 @@ public:
 
     /// return the forces of the desired fluid-structure-interaction patches
     void getForces(
+        const scalar* volCoords,
+        const scalar* states,
         scalar* forces);
+
+    void getForcesAD(
+        const word mode,
+        const double* volCoords,
+        const double* states,
+        const double* seeds,
+        double* forces,
+        double* product);
 
     /// return the number of points and faces for MDO patches
     void getPatchInfo(
