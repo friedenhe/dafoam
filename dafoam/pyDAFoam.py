@@ -2487,7 +2487,7 @@ class PYDAFOAM(object):
 
         return dFdFFD
 
-    def getThermal(self, varName, groupName=None):
+    def getThermal(self, groupName=None):
         """
         Return the forces on this processor on the families defined by groupName.
         Parameters
@@ -2510,8 +2510,6 @@ class PYDAFOAM(object):
             Note that N may be 0, and an empty array of shape (0) can be returned.
         """
 
-        Info("Computing %s" % varName)
-
         # Calculate number of surface points
         if groupName is None:
             groupName = self.couplingSurfacesGroup
@@ -2523,7 +2521,7 @@ class PYDAFOAM(object):
         thermalVec.setFromOptions()
 
         # Compute forces
-        self.solver.getThermal(varName.encode(), thermalVec)
+        self.solver.getThermal(thermalVec)
 
         # Copy data from PETSc vectors
         thermal = np.zeros(nFaces)

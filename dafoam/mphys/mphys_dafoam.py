@@ -225,7 +225,7 @@ class DAFoamGroup(Group):
             if self.discipline == "aero":
                 self.add_subsystem(
                     "get_heat",
-                    DAFoamThermal(solver=self.DASolver, var_name="heatFlux"),
+                    DAFoamThermal(solver=self.DASolver, var_name="aero"),
                     promotes_inputs=["%s_vol_coords" % self.discipline, "%s_states" % self.discipline],
                     promotes_outputs=["q_convect"],
                 )
@@ -233,7 +233,7 @@ class DAFoamGroup(Group):
             if self.discipline == "thermal":
                 self.add_subsystem(
                     "get_temp",
-                    DAFoamThermal(solver=self.DASolver, var_name="temperature"),
+                    DAFoamThermal(solver=self.DASolver, var_name="thermal"),
                     promotes_inputs=["%s_vol_coords" % self.discipline, "%s_states" % self.discipline],
                     promotes_outputs=["T_conduct"],
                 )
@@ -693,10 +693,10 @@ class DAFoamSolver(ImplicitComponent):
             if couplingInfo["aerothermal"]["active"]:
                 if self.discipline == "aero":
                     T_convect = inputs["T_convect"]
-                    DASolver.solver.setThermal("temperature".encode(), T_convect)
+                    DASolver.solver.setThermal(T_convect)
                 if self.discipline == "thermal":
                     q_conduct = inputs["q_conduct"]
-                    DASolver.solver.setThermal("heatFlux".encode(), q_conduct)
+                    DASolver.solver.setThermal(q_conduct)
 
             # solve the flow with the current design variable
             DASolver()
@@ -773,7 +773,7 @@ class DAFoamSolver(ImplicitComponent):
                     prodVec = thermalVec.duplicate()
                     prodVec.zeroEntries()
                     DASolver.solverAD.calcdRdThermalTPsiAD(
-                        "heatFlux".encode(), DASolver.xvVec, DASolver.wVec, resBarVec, thermalVec, prodVec
+                        DASolver.xvVec, DASolver.wVec, resBarVec, thermalVec, prodVec
                     )
                     thermalBar = DASolver.vec2Array(prodVec)
                     d_inputs["q_conduct"] += thermalBar
@@ -784,7 +784,7 @@ class DAFoamSolver(ImplicitComponent):
                     prodVec = thermalVec.duplicate()
                     prodVec.zeroEntries()
                     DASolver.solverAD.calcdRdThermalTPsiAD(
-                        "temperature".encode(), DASolver.xvVec, DASolver.wVec, resBarVec, thermalVec, prodVec
+                        DASolver.xvVec, DASolver.wVec, resBarVec, thermalVec, prodVec
                     )
                     thermalBar = DASolver.vec2Array(prodVec)
                     d_inputs["T_convect"] += thermalBar
@@ -1411,27 +1411,27 @@ class DAFoamThermal(ExplicitComponent):
         self.add_input("%s_vol_coords" % self.discipline, distributed=True, shape_by_conn=True, tags=["mphys_coupling"])
         self.add_input("%s_states" % self.discipline, distributed=True, shape_by_conn=True, tags=["mphys_coupling"])
 
-        if self.var_name == "temperature":
+        if self.var_name == "thermal":
             self.add_output("T_conduct", distributed=True, shape=nFaces, tags=["mphys_coupling"])
-        elif self.var_name == "heatFlux":
+        elif self.var_name == "aero":
             self.add_output("q_convect", distributed=True, shape=nFaces, tags=["mphys_coupling"])
         else:
-            raise AnalysisError("%s not supported! Options are: temperature or heatFlux" % self.var_name)
+            raise AnalysisError("%s not supported! Options are: aero or thermal" % self.var_name)
 
     def compute(self, inputs, outputs):
 
         self.DASolver.setStates(inputs["%s_states" % self.discipline])
 
-        if self.var_name == "temperature":
+        if self.var_name == "thermal":
 
-            outputs["T_conduct"] = self.DASolver.getThermal(varName="temperature")
+            outputs["T_conduct"] = self.DASolver.getThermal()
 
-        elif self.var_name == "heatFlux":
+        elif self.var_name == "aero":
 
-            outputs["q_convect"] = self.DASolver.getThermal(varName="heatFlux")
+            outputs["q_convect"] = self.DASolver.getThermal()
 
         else:
-            raise AnalysisError("%s not supported! Options are: temperature or heatFlux" % self.var_name)
+            raise AnalysisError("%s not supported! Options are: aero or thermal" % self.var_name)
 
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
 
@@ -1447,18 +1447,14 @@ class DAFoamThermal(ExplicitComponent):
             if "%s_states" % self.discipline in d_inputs:
                 prodVec = DASolver.wVec.duplicate()
                 prodVec.zeroEntries()
-                DASolver.solverAD.calcdThermaldWTPsiAD(
-                    "temperature".encode(), DASolver.xvVec, DASolver.wVec, fBarVec, prodVec
-                )
+                DASolver.solverAD.calcdThermaldWTPsiAD(DASolver.xvVec, DASolver.wVec, fBarVec, prodVec)
                 wBar = DASolver.vec2Array(prodVec)
                 d_inputs["%s_states" % self.discipline] += wBar
 
             if "%s_vol_coords" % self.discipline in d_inputs:
                 prodVec = DASolver.xvVec.duplicate()
                 prodVec.zeroEntries()
-                DASolver.solverAD.calcdThermaldXvTPsiAD(
-                    "temperature".encode(), DASolver.xvVec, DASolver.wVec, fBarVec, prodVec
-                )
+                DASolver.solverAD.calcdThermaldXvTPsiAD(DASolver.xvVec, DASolver.wVec, fBarVec, prodVec)
                 xVBar = DASolver.vec2Array(prodVec)
                 d_inputs["%s_vol_coords" % self.discipline] += xVBar
 
@@ -1469,18 +1465,14 @@ class DAFoamThermal(ExplicitComponent):
             if "%s_states" % self.discipline in d_inputs:
                 prodVec = DASolver.wVec.duplicate()
                 prodVec.zeroEntries()
-                DASolver.solverAD.calcdThermaldWTPsiAD(
-                    "heatFlux".encode(), DASolver.xvVec, DASolver.wVec, fBarVec, prodVec
-                )
+                DASolver.solverAD.calcdThermaldWTPsiAD(DASolver.xvVec, DASolver.wVec, fBarVec, prodVec)
                 wBar = DASolver.vec2Array(prodVec)
                 d_inputs["%s_states" % self.discipline] += wBar
 
             if "%s_vol_coords" % self.discipline in d_inputs:
                 prodVec = DASolver.xvVec.duplicate()
                 prodVec.zeroEntries()
-                DASolver.solverAD.calcdThermaldXvTPsiAD(
-                    "heatFlux".encode(), DASolver.xvVec, DASolver.wVec, fBarVec, prodVec
-                )
+                DASolver.solverAD.calcdThermaldXvTPsiAD(DASolver.xvVec, DASolver.wVec, fBarVec, prodVec)
                 xVBar = DASolver.vec2Array(prodVec)
                 d_inputs["%s_vol_coords" % self.discipline] += xVBar
 
