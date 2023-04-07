@@ -50,6 +50,12 @@ jobs:
         docker exec regtest sed -i 's/-lfiniteVolume$(DF_LIB_SUFFIX)/-lfiniteVolume$(DF_LIB_SUFFIX) -lgcov/g' ${{env.DOCKER_WORKING_DIR}}/src/adjoint/Make/options_Compressible
         docker exec regtest sed -i 's/-std=c++11/-std=c++11 -fprofile-arcs -ftest-coverage/g' ${{env.DOCKER_WORKING_DIR}}/src/adjoint/Make/options_Solid
         docker exec regtest sed -i 's/-lfiniteVolume$(DF_LIB_SUFFIX)/-lfiniteVolume$(DF_LIB_SUFFIX) -lgcov/g' ${{env.DOCKER_WORKING_DIR}}/src/adjoint/Make/options_Solid
+        docker exec regtest sed -i 's/\"-std=c++11\",/\"-std=c++11\", \"-fprofile-arcs\", \"-ftest-coverage\",/g' ${{env.DOCKER_WORKING_DIR}}/src/pyDASolvers/setup_Incompressible.py
+        docker exec regtest sed -i 's/\"-std=c++11\",/\"-std=c++11\", \"-fprofile-arcs\", \"-ftest-coverage\",/g' ${{env.DOCKER_WORKING_DIR}}/src/pyDASolvers/setup_Compressible.py
+        docker exec regtest sed -i 's/\"-std=c++11\",/\"-std=c++11\", \"-fprofile-arcs\", \"-ftest-coverage\",/g' ${{env.DOCKER_WORKING_DIR}}/src/pyDASolvers/setup_Solid.py
+        docker exec regtest sed -i 's/\"petsc\",/\"petsc\", \"gcov\",/g' ${{env.DOCKER_WORKING_DIR}}/src/pyDASolvers/setup_Incompressible.py
+        docker exec regtest sed -i 's/\"petsc\",/\"petsc\", \"gcov\",/g' ${{env.DOCKER_WORKING_DIR}}/src/pyDASolvers/setup_Compressible.py
+        docker exec regtest sed -i 's/\"petsc\",/\"petsc\", \"gcov\",/g' ${{env.DOCKER_WORKING_DIR}}/src/pyDASolvers/setup_Solid.py
         docker exec -i regtest /bin/bash -c "cd ${{env.DOCKER_WORKING_DIR}}/src && cp -r adjoint adjointAD && cp -r pyDASolvers pyDASolversAD"
         if [ "${{matrix.args}}" = "forward" ]; then
            docker exec -i regtest /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd ${{env.DOCKER_WORKING_DIR}} && ./Allmake incompressible"
