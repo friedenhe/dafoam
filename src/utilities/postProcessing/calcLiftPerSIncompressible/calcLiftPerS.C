@@ -25,7 +25,6 @@ using namespace Foam;
 
 int main(int argc, char* argv[])
 {
-    Info << "Computing liftPerS...." << endl;
 
     argList::addOption(
         "patchNames",
@@ -34,13 +33,18 @@ int main(int argc, char* argv[])
 
     argList::addOption(
         "liftDir",
-        "'(0 0 1)'",
-        "Lift direction");
+        "y",
+        "Lift direction, can be either y or z");
 
     argList::addOption(
         "time",
         "1000",
         "Tme instance to compute");
+
+    argList::addOption(
+        "aoa",
+        "1.5",
+        "angle of attack in degree");
 
 #include "setRootCase.H"
 #include "createTime.H"
@@ -71,20 +75,46 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    List<scalar> liftDir1;
-    if (args.optionFound("liftDir"))
+    scalar aoa;
+    if (args.optionFound("aoa"))
     {
-        liftDir1 = scalarList(args.optionLookup("liftDir")());
+        aoa = readScalar(args.optionLookup("aoa")());
     }
     else
     {
-        Info << "liftDir not set! Exit." << endl;
+        Info << "aoa not set! Exit." << endl;
         return 1;
     }
+    scalar aoaRad = aoa * Foam::constant::mathematical::pi / 180.0;
+
+    word liftDir1 = "y";
+    if (args.optionFound("liftDir"))
+    {
+        liftDir1 = word(args.optionLookup("liftDir")());
+    }
+    else
+    {
+        Info << "liftDir not set! Using default y." << endl;
+    }
+
     vector liftDir(vector::zero);
-    liftDir.x() = liftDir1[0];
-    liftDir.y() = liftDir1[1];
-    liftDir.z() = liftDir1[2];
+    liftDir[0] = -Foam::sin(aoaRad);
+
+    if (liftDir1 == "y")
+    {
+        liftDir[1] = Foam::cos(aoaRad);
+    }
+    else if (liftDir1 == "z")
+    {
+        liftDir[2] = Foam::cos(aoaRad);
+    }
+    else
+    {
+        Info << "liftDir can be either y or z" << endl;
+    }
+
+    Info << "Computing liftPerS: patches = " << patchNames << " aoa = " << aoa
+         << " lift direction = " << liftDir << " time = " << time << endl;
 
     volScalarField liftPerS(
         IOobject(
@@ -108,6 +138,7 @@ int main(int argc, char* argv[])
     tmp<volSymmTensorField> tdevRhoReff = turbulence->devRhoReff();
     const volSymmTensorField::Boundary& devRhoReffb = tdevRhoReff().boundaryField();
 
+    scalar totalLift = 0;
     forAll(patchNames, cI)
     {
         // get the patch id label
@@ -126,12 +157,13 @@ int main(int argc, char* argv[])
             forces.y() = fN[faceI].y() + fT[faceI].y();
             forces.z() = fN[faceI].z() + fT[faceI].z();
             scalar lift = forces & liftDir;
+            totalLift += lift;
             liftPerS.boundaryFieldRef()[patchI][faceI] = lift / magSfb[patchI][faceI];
         }
     }
     liftPerS.write();
 
-    Info << "Force: " << forces << endl;
+    Info << "totalLift: " << totalLift << endl;
 
     Info << "Computing liftPerS.... Completed!" << endl;
 
