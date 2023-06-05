@@ -669,6 +669,12 @@ class DAOPTION(object):
             "batchSize": 1000,
         }
 
+        self.postProcessing = {
+            "type": "None",
+            "patchNames": ["None"],
+            "aoa": 0.0
+        }
+
 
 class PYDAFOAM(object):
 

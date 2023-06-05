@@ -38,3 +38,6 @@ daIndexPtr_->printIndices();
 daFieldPtr_.reset(new DAField(mesh, daOptionPtr_(), daModelPtr_(), daIndexPtr_()));
 
 daResidualPtr_.reset(DAResidual::New(solverName, mesh, daOptionPtr_(), daModelPtr_(), daIndexPtr_()));
+
+word modelType = daOptionPtr_->getSubDictOption<word>("postProcessing", "type");
+daPostPtr_.reset(DAPost::New(modelType, meshPtr_(), daOptionPtr_(), daModelPtr_()));

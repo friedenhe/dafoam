@@ -43,7 +43,8 @@ DASolver::DASolver(
       daFieldPtr_(nullptr),
       daCheckMeshPtr_(nullptr),
       daLinearEqnPtr_(nullptr),
-      daResidualPtr_(nullptr)
+      daResidualPtr_(nullptr),
+      daPostPtr_(nullptr)
 #ifdef CODI_AD_REVERSE
       ,
       globalADTape_(codi::RealReverse::getTape())

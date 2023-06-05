@@ -33,6 +33,7 @@
 #include "DAField.H"
 #include "DAPartDeriv.H"
 #include "DALinearEqn.H"
+#include "DAPost.H"
 #include "volPointInterpolation.H"
 #include "IOMRFZoneListDF.H"
 #include "interpolateSplineXY.H"
@@ -98,6 +99,9 @@ protected:
 
     /// DAStateInfo pointer
     autoPtr<DAStateInfo> daStateInfoPtr_;
+
+    /// DAPost pointer
+    autoPtr<DAPost> daPostPtr_;
 
     /// the stateInfo_ list from DAStateInfo object
     HashTable<wordList> stateInfo_;
