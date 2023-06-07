@@ -225,21 +225,12 @@ class DAFoamGroup(Group):
 
         if self.thermal_coupling:
 
-            if self.discipline == "aero":
-                self.add_subsystem(
-                    "get_heat",
-                    DAFoamThermal(solver=self.DASolver, var_name="heatFlux"),
-                    promotes_inputs=["%s_vol_coords" % self.discipline, "%s_states" % self.discipline],
-                    promotes_outputs=["q_convect"],
-                )
-
-            if self.discipline == "thermal":
-                self.add_subsystem(
-                    "get_temp",
-                    DAFoamThermal(solver=self.DASolver, var_name="temperature"),
-                    promotes_inputs=["%s_vol_coords" % self.discipline, "%s_states" % self.discipline],
-                    promotes_outputs=["T_conduct"],
-                )
+            self.add_subsystem(
+                "get_%s" % self.discipline,
+                DAFoamThermal(solver=self.DASolver),
+                promotes_inputs=["*"],
+                promotes_outputs=["*"],
+            )
 
         # Setup unmasking
         self.mphys_set_unmasking(forces=self.struct_coupling)
@@ -697,12 +688,13 @@ class DAFoamSolver(ImplicitComponent):
 
             couplingInfo = DASolver.getOption("couplingInfo")
             if couplingInfo["aerothermal"]["active"]:
+                inputVarName = DASolver.getOption("couplingInfo")["aerothermal"]["inputVarName"]
                 if self.discipline == "aero":
                     T_convect = inputs["T_convect"]
-                    DASolver.solver.setThermal("temperature", T_convect)
+                    DASolver.solver.setThermal(inputVarName, T_convect)
                 elif self.discipline == "thermal":
                     q_conduct = inputs["q_conduct"]
-                    DASolver.solver.setThermal("heatFlux", q_conduct)
+                    DASolver.solver.setThermal(inputVarName, q_conduct)
                 else:
                     raise AnalysisError("discipline not valid!")
 
@@ -782,19 +774,21 @@ class DAFoamSolver(ImplicitComponent):
                     d_inputs["%s_vol_coords" % self.discipline] += xVBar
                 elif inputName == "q_conduct":
                     # calculate [dRdQ]^T*Psi for thermal
+                    inputVarName = DASolver.getOption("couplingInfo")["aerothermal"]["inputVarName"]
                     volCoords = inputs["%s_vol_coords" % self.discipline]
                     states = outputs["%s_states" % self.discipline]
                     thermal = inputs["q_conduct"]
                     product = np.zeros_like(thermal)
-                    DASolver.solverAD.calcdRdThermalTPsiAD("heatFlux", volCoords, states, thermal, resBar, product)
+                    DASolver.solverAD.calcdRdThermalTPsiAD(inputVarName, volCoords, states, thermal, resBar, product)
                     d_inputs["q_conduct"] += product
                 elif inputName == "T_convect":
                     # calculate [dRdT]^T*Psi for aero
+                    inputVarName = DASolver.getOption("couplingInfo")["aerothermal"]["inputVarName"]
                     volCoords = inputs["%s_vol_coords" % self.discipline]
                     states = outputs["%s_states" % self.discipline]
                     thermal = inputs["T_convect"]
                     product = np.zeros_like(thermal)
-                    DASolver.solverAD.calcdRdThermalTPsiAD("temperature", volCoords, states, thermal, resBar, product)
+                    DASolver.solverAD.calcdRdThermalTPsiAD(inputVarName, volCoords, states, thermal, resBar, product)
                     d_inputs["T_convect"] += product
                 else:  # now we deal with general input output names
                     # compute [dRdAOA]^T*Psi using reverse mode AD
@@ -1428,27 +1422,26 @@ class DAFoamThermal(ExplicitComponent):
 
     def initialize(self):
         self.options.declare("solver", recordable=False)
-        self.options.declare("var_name", recordable=False)
 
     def setup(self):
 
         self.DASolver = self.options["solver"]
 
-        self.var_name = self.options["var_name"]
-
         self.discipline = self.DASolver.getOption("discipline")
 
         self.nCouplingFaces = self.DASolver.solver.getNCouplingFaces()
 
+        self.outputVarName = self.DASolver.getOption("couplingInfo")["aerothermal"]["outputVarName"]
+
         self.add_input("%s_vol_coords" % self.discipline, distributed=True, shape_by_conn=True, tags=["mphys_coupling"])
         self.add_input("%s_states" % self.discipline, distributed=True, shape_by_conn=True, tags=["mphys_coupling"])
 
-        if self.var_name == "temperature":
+        if self.discipline == "thermal":
             self.add_output("T_conduct", distributed=True, shape=self.nCouplingFaces, tags=["mphys_coupling"])
-        elif self.var_name == "heatFlux":
+        elif self.discipline == "aero":
             self.add_output("q_convect", distributed=True, shape=self.nCouplingFaces, tags=["mphys_coupling"])
         else:
-            raise AnalysisError("%s not supported! Options are: temperature or heatFlux" % self.var_name)
+            raise AnalysisError("%s not supported! Options are: aero or thermal" % self.discipline)
 
     def compute(self, inputs, outputs):
 
@@ -1459,20 +1452,20 @@ class DAFoamThermal(ExplicitComponent):
 
         thermal = np.zeros(self.nCouplingFaces)
 
-        if self.var_name == "temperature":
+        if self.discipline == "thermal":
 
-            self.DASolver.solver.getThermal("temperature", vol_coords, states, thermal)
+            self.DASolver.solver.getThermal(self.outputVarName, vol_coords, states, thermal)
 
             outputs["T_conduct"] = thermal
 
-        elif self.var_name == "heatFlux":
+        elif self.discipline == "aero":
 
-            self.DASolver.solver.getThermal("heatFlux", vol_coords, states, thermal)
+            self.DASolver.solver.getThermal(self.outputVarName, vol_coords, states, thermal)
 
             outputs["q_convect"] = thermal
 
         else:
-            raise AnalysisError("%s not supported! Options are: temperature or heatFlux" % self.var_name)
+            raise AnalysisError("%s not supported! Options are: aero or thermal" % self.discipline)
 
     def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
 
@@ -1495,12 +1488,12 @@ class DAFoamThermal(ExplicitComponent):
 
             if "%s_states" % self.discipline in d_inputs:
                 product = np.zeros_like(d_inputs["%s_states" % self.discipline])
-                DASolver.solverAD.getThermalAD("states", "temperature", vol_coords, states, seeds, product)
+                DASolver.solverAD.getThermalAD("states", self.outputVarName, vol_coords, states, seeds, product)
                 d_inputs["%s_states" % self.discipline] += product
 
             if "%s_vol_coords" % self.discipline in d_inputs:
                 product = np.zeros_like(d_inputs["%s_vol_coords" % self.discipline])
-                DASolver.solverAD.getThermalAD("volCoords", "temperature", vol_coords, states, seeds, product)
+                DASolver.solverAD.getThermalAD("volCoords", self.outputVarName, vol_coords, states, seeds, product)
                 d_inputs["%s_vol_coords" % self.discipline] += product
 
         if "q_convect" in d_outputs:
@@ -1508,12 +1501,12 @@ class DAFoamThermal(ExplicitComponent):
 
             if "%s_states" % self.discipline in d_inputs:
                 product = np.zeros_like(d_inputs["%s_states" % self.discipline])
-                DASolver.solverAD.getThermalAD("states", "heatFlux", vol_coords, states, seeds, product)
+                DASolver.solverAD.getThermalAD("states", self.outputVarName, vol_coords, states, seeds, product)
                 d_inputs["%s_states" % self.discipline] += product
 
             if "%s_vol_coords" % self.discipline in d_inputs:
                 product = np.zeros_like(d_inputs["%s_vol_coords" % self.discipline])
-                DASolver.solverAD.getThermalAD("volCoords", "heatFlux", vol_coords, states, seeds, product)
+                DASolver.solverAD.getThermalAD("volCoords", self.outputVarName, vol_coords, states, seeds, product)
                 d_inputs["%s_vol_coords" % self.discipline] += product
 
 

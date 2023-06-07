@@ -11,7 +11,7 @@
 
 """
 
-__version__ = "3.0.6"
+__version__ = "3.0.7"
 
 import subprocess
 import os
@@ -323,6 +323,9 @@ class DAOPTION(object):
                 "couplingSurfaceGroups": {
                     "wallGroup": ["fin_wall"],
                 },
+                "inputVarName": "temperature",
+                "outputVarName": "heatFlux",
+                "h": 10
             },
             "aeroacoustic": {
                 "active": False,
@@ -862,7 +865,7 @@ class PYDAFOAM(object):
         self.solverRegistry = {
             "Incompressible": ["DASimpleFoam", "DASimpleTFoam", "DAPisoFoam", "DAPimpleFoam", "DAPimpleDyMFoam"],
             "Compressible": ["DARhoSimpleFoam", "DARhoSimpleCFoam", "DATurboFoam"],
-            "Solid": ["DASolidDisplacementFoam", "DALaplacianFoam", "DAScalarTransportFoam"],
+            "Solid": ["DASolidDisplacementFoam", "DALaplacianFoam", "DAScalarTransportFoam", "DAHeatTransferFoam"],
         }
 
     def __call__(self):

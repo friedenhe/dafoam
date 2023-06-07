@@ -26,12 +26,13 @@ if gcomm.rank == 0:
 U0 = 10.0
 p0 = 101325.0
 nuTilda0 = 1.0e-4
-T0 = 300
+T0 = 400
 
 daOptionsAero = {
     "designSurfaces": ["bot"],
     "solverName": "DARhoSimpleFoam",
-    "primalMinResTol": 1.0e-7,
+    "primalMinResTol": 1.0e-17,
+    "primalMinResTolDiff": 1.0e17,
     "discipline": "aero",
     "primalBC": {
         "U0": {"variable": "U", "patches": ["inlet"], "value": [U0, 0.0, 0.0]},
@@ -76,9 +77,21 @@ daOptionsAero = {
             "couplingSurfaceGroups": {
                 "wallGroup": ["bot"],
             },
+            "inputVarName": "neighbourTemperature",
+            "outputVarName": "neighbourTemperature",
+            "h": 10,
+            "k": 200,
+            "Cp": 1000,
+            "alpha": 2.1e-5
         }
     },
-    "adjEqnOption": {"gmresRelTol": 1.0e-6, "pcFillLevel": 1, "jacMatReOrdering": "rcm"},
+    "adjStateOrdering": "cell",
+    "adjEqnOption": {
+        "gmresRelTol": 1e-3,
+        "pcFillLevel": 2,
+        "jacMatReOrdering": "natural",
+        "useNonZeroInitGuess": True,
+    },
     "normalizeStates": {
         "U": U0,
         "p": p0,
@@ -93,8 +106,9 @@ daOptionsAero = {
 
 daOptionsThermal = {
     "designSurfaces": ["top"],
-    "solverName": "DALaplacianFoam",
-    "primalMinResTol": 1.0e-8,
+    "solverName": "DAHeatTransferFoam",
+    "primalMinResTol": 1.0e-17,
+    "primalMinResTolDiff": 1.0e17,
     "discipline": "thermal",
     "objFunc": {
         "HF": {
@@ -113,9 +127,21 @@ daOptionsThermal = {
             "couplingSurfaceGroups": {
                 "wallGroup": ["top"],
             },
+            "inputVarName": "neighbourTemperature",
+            "outputVarName": "neighbourTemperature",
+            "h": 10,
+            "k": 200,
+            "Cp": 1000,
+            "alpha": 2.1e-5
         }
     },
-    "adjEqnOption": {"gmresRelTol": 1.0e-6, "pcFillLevel": 1, "jacMatReOrdering": "rcm"},
+    "adjStateOrdering": "cell",
+    "adjEqnOption": {
+        "gmresRelTol": 1e-3,
+        "pcFillLevel": 1,
+        "jacMatReOrdering": "natural",
+        "useNonZeroInitGuess": True,
+    },
     "normalizeStates": {
         "T": 300.0,
     },
@@ -168,8 +194,8 @@ class Top(Multipoint):
                 thermal_builder=dafoam_builder_thermal,
                 thermalxfer_builder=thermalxfer_builder,
             ),
-            om.NonlinearBlockGS(maxiter=10, iprint=2, use_aitken=True, rtol=1e-6, atol=1e-3),
-            om.LinearBlockGS(maxiter=10, iprint=2, use_aitken=True, rtol=1e-6, atol=1e-3),
+            om.NonlinearBlockGS(maxiter=10, iprint=2, use_aitken=True, rtol=1e-8, atol=1e-1),
+            om.LinearBlockGS(maxiter=10, iprint=2, use_aitken=True, rtol=1e-8, atol=1e-1),
         )
 
         # need to manually connect the x_aero0 between the mesh and geometry components
@@ -239,7 +265,7 @@ prob.recording_options["record_objectives"] = True
 prob.recording_options["record_constraints"] = True
 
 prob.setup(mode="rev")
-om.n2(prob, show_browser=False, outfile="mphys_aerostruct.html")
+om.n2(prob, show_browser=False, outfile="mphys_aerothermal.html")
 
 optFuncs = OptFuncs([daOptionsAero, daOptionsThermal], prob)
 
