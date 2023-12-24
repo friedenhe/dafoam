@@ -171,6 +171,8 @@ label DAPimpleFoam::solvePrimal(
         this->disableStateAutoWrite();
     }
 
+    label useOFTurbModel = daOptionPtr_->getAllOptions().subDict("unsteadyAdjoint").getLabel("useOFTurbModel");
+
     scalar endTime = runTime.endTime().value();
     scalar deltaT = runTime.deltaT().value();
     label nInstances = round(endTime / deltaT);
@@ -209,7 +211,14 @@ label DAPimpleFoam::solvePrimal(
             }
 
             laminarTransport.correct();
-            daTurbulenceModelPtr_->correct(pimplePrintToScreen);
+            if (useOFTurbModel)
+            {
+                turbulencePtr_->correct();
+            }
+            else
+            {
+                daTurbulenceModelPtr_->correct(pimplePrintToScreen);
+            }
         }
 
         this->calcUnsteadyObjFuncs();

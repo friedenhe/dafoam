@@ -101,6 +101,9 @@ protected:
     /// whether to write mesh for the reduceIO
     label reduceIOWriteMesh_ = 0;
 
+    /// whether to use OF's default turbulence models such as LES and DDES
+    label useOFTurbModel_ = 0;
+
 public:
     TypeName("DAPimpleFoam");
     // Constructors

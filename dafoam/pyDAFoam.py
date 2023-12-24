@@ -469,6 +469,7 @@ class DAOPTION(object):
             "PCMatPrecomputeInterval": 100,
             "PCMatUpdateInterval": 1,
             "reduceIO": True,
+            "useOFTurbModel": False,
         }
 
         ## At which iteration should we start the averaging of objective functions.
