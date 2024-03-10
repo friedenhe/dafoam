@@ -174,8 +174,6 @@ void DASolver::calcUnsteadyObjFuncs()
                                              << abort(FatalError);
     }
 
-    scalar objFuncValue = 0.0;
-
     word timeOperator = daOptionPtr_->getSubDictOption<word>("unsteadyAdjoint", "objFuncTimeOperator");
 
     forAll(daObjFuncPtrList_, idxI)

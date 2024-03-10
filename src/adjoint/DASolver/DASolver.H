@@ -806,6 +806,11 @@ public:
                 return idxI;
             }
         }
+
+        FatalErrorIn("getObjFuncListIndex") << "index not found. objFuncName and objFuncPart not valid!"
+                                            << abort(FatalError);
+
+        return -1;
     }
 
     /// calculate and save the unsteady objective function
