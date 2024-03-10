@@ -38,7 +38,7 @@ jobs:
     - uses: codecov/codecov-action@v3
     - uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.9
     - name: Create the docker container and run the tests
       run: |
         docker pull dafoam/opt-packages:${{env.DOCKER_TAG}}
