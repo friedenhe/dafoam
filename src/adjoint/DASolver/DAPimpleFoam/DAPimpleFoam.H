@@ -122,6 +122,11 @@ public:
     virtual label solvePrimal(
         const Vec xvVec,
         Vec wVec);
+    
+    virtual void runPrimalStep(
+        double* volCoords,
+        double* states,
+        label stepI);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

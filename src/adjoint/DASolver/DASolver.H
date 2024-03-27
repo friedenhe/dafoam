@@ -255,6 +255,12 @@ public:
         Vec dFdW,
         Vec psi);
 
+    // Solve the unsteady primal for one step
+    virtual void solvePrimalStep(
+        double* volCoords,
+        double* states,
+        label stepI);
+
     /// assign primal variables based on the current time instance
     void setTimeInstanceField(const label instanceI);
 

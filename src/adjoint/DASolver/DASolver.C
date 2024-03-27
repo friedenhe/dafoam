@@ -65,6 +65,13 @@ DASolver::DASolver(
     primalMinIters_ = daOptionPtr_->getOption<label>("primalMinIters");
 
     Info << "DAOpton initialized " << endl;
+
+    // initialize the useMeanStates stuff
+    useMeanStates_ = daOptionPtr_->getSubDictOption<label>("useMeanStates", "active");
+    if (useMeanStates_)
+    {
+        meanStateWindow_ = daOptionPtr_->getSubDictOption<scalar>("useMeanStates", "window");
+    }
 }
 
 // * * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * d* * * * //
@@ -9554,6 +9561,21 @@ void DASolver::setPrimalBoundaryConditions(const label printInfo)
         }
         daFieldPtr_->setPrimalBoundaryConditions(printInfo);
     }
+}
+
+void DASolver::solvePrimalStep(
+    double* volCoords,
+    double* states,
+    label stepI)
+{
+    /*
+    Description:
+        Solve the unsteady primal for one step
+    */
+
+    FatalErrorIn("DASolver::runUnsteadyStep")
+        << "Child class not implemented!"
+        << abort(FatalError);
 }
 
 label DASolver::runFPAdj(

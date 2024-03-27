@@ -10,6 +10,7 @@ import numpy as np
 from mpi4py import MPI
 from mphys import MaskedConverter, UnmaskedConverter, MaskedVariableDescription
 from mphys.utils.directory_utils import cd
+from mphys.mphys_group import MphysGroup
 
 petsc4py.init(sys.argv)
 
@@ -2520,3 +2521,49 @@ class OptFuncs(object):
                 dvName = designVars[i]
                 comp = designVarsComp[i]
                 self.om_prob.set_val(dvName, dv1[i], indices=comp)
+
+
+class IntegratorAerodynamic(om.ExplicitComponent):
+    """
+    Integrator for unsteady optimization
+    """
+
+    def initialize(self):
+        self.options.declare("aero_builder")
+        self.options.declare("dt")
+        self.options.declare("nsteps")
+
+    def setup(self):
+        aero_builder = self.options["aero_builder"]
+
+        self.problem = om.Problem()
+        self.problem.model = TimeStepAerodynamic(aero_builder=aero_builder)
+        self.problem.setup()
+
+    def compute(self, inputs, outputs):
+        self.problem.run_model()
+
+
+class TimeStepAerodynamic(MphysGroup):
+    """
+    Aerodynamic simulation for one time step
+    """
+
+    def initialize(self):
+        self.options.declare("aero_builder")
+
+    def setup(self):
+        aero_builder = self.options["aero_builder"]
+        self._mphys_add_pre_coupling_subsystem_from_builder("aero", aero_builder)
+        self.mphys_add_subsystem("coupling", aero_builder.get_coupling_group_subsystem(self.name))
+        self._mphys_add_post_coupling_subsystem_from_builder("aero", aero_builder)
+
+    def _mphys_add_pre_coupling_subsystem_from_builder(self, name, builder):
+        subsystem = builder.get_pre_coupling_subsystem(self.name)
+        if subsystem is not None:
+            self.mphys_add_subsystem(name + "_pre", subsystem)
+
+    def _mphys_add_post_coupling_subsystem_from_builder(self, name, builder):
+        subsystem = builder.get_post_coupling_subsystem(self.name)
+        if subsystem is not None:
+            self.mphys_add_subsystem(name + "_post", subsystem)

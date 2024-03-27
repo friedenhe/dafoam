@@ -279,6 +279,13 @@ label DAPimpleFoam::solvePrimal(
     return 0;
 }
 
+void DAPimpleFoam::runPrimalStep(
+    double* volCoords,
+    double* states,
+    label stepI)
+{
+}
+
 } // End namespace Foam
 
 // ************************************************************************* //
