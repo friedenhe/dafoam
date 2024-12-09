@@ -90,11 +90,10 @@ autoPtr<DASolver> DASolver::New(
         Info << "Selecting " << modelType << " for DASolver" << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelType);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
     // if the solver name is not found in any child class, print an error
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DASolver::New"
@@ -111,7 +110,7 @@ autoPtr<DASolver> DASolver::New(
 
     // child class found
     return autoPtr<DASolver>(
-        cstrIter()(argsAll, pyOptions));
+        ctorPtr(argsAll, pyOptions));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

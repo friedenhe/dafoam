@@ -53,11 +53,10 @@ autoPtr<DAStateInfo> DAStateInfo::New(
         Info << "Selecting " << modelType << " for DAStateInfo" << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelType);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
     // if the solver name is not found in any child class, print an error
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DAStateInfo::New"
@@ -76,7 +75,7 @@ autoPtr<DAStateInfo> DAStateInfo::New(
 
     // child class found
     return autoPtr<DAStateInfo>(
-        cstrIter()(modelType, mesh, daOption, daModel));
+        ctorPtr(modelType, mesh, daOption, daModel));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

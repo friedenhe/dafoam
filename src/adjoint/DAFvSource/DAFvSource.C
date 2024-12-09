@@ -58,11 +58,10 @@ autoPtr<DAFvSource> DAFvSource::New(
         Info << "Selecting " << modelType << " for DAFvSource" << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelType);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
     // if the solver name is not found in any child class, print an error
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DAFvSource::New"
@@ -82,7 +81,11 @@ autoPtr<DAFvSource> DAFvSource::New(
 
     // child class found
     return autoPtr<DAFvSource>(
-        cstrIter()(modelType, mesh, daOption, daModel, daIndex));
+        ctorPtr(modelType,
+                mesh,
+                daOption,
+                daModel,
+                daIndex));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

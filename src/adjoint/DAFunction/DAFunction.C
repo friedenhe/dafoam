@@ -70,11 +70,10 @@ autoPtr<DAFunction> DAFunction::New(
              << " part: " << functionPart << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelType);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
     // if the solver name is not found in any child class, print an error
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DAFunction::New"
@@ -96,13 +95,13 @@ autoPtr<DAFunction> DAFunction::New(
 
     // child class found
     return autoPtr<DAFunction>(
-        cstrIter()(mesh,
-                   daOption,
-                   daModel,
-                   daIndex,
-                   functionName,
-                   functionPart,
-                   functionDict));
+        ctorPtr(mesh,
+                daOption,
+                daModel,
+                daIndex,
+                functionName,
+                functionPart,
+                functionDict));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

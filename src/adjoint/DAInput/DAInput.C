@@ -53,11 +53,10 @@ autoPtr<DAInput> DAInput::New(
         Info << "Selecting input: " << inputName << " for DAInput." << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(inputName);
+    auto* ctorPtr = dictionaryConstructorTable(inputName);
 
     // if the solver name is not found in any child class, print an error
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DAInput::New"
@@ -77,11 +76,11 @@ autoPtr<DAInput> DAInput::New(
 
     // child class found
     return autoPtr<DAInput>(
-        cstrIter()(inputName,
-                   mesh,
-                   daOption,
-                   daModel,
-                   daIndex));
+        ctorPtr(inputName,
+                mesh,
+                daOption,
+                daModel,
+                daIndex));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

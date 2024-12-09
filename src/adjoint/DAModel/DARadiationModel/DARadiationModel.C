@@ -49,10 +49,9 @@ autoPtr<DARadiationModel> DARadiationModel::New(
         Info << "Selecting " << modelType << " for DARadiationModel" << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelType);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DARadiationModel::New"
@@ -69,7 +68,7 @@ autoPtr<DARadiationModel> DARadiationModel::New(
     }
 
     return autoPtr<DARadiationModel>(
-        cstrIter()(modelType, mesh, daOption));
+        ctorPtr(modelType, mesh, daOption));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

@@ -167,10 +167,9 @@ autoPtr<DATurbulenceModel> DATurbulenceModel::New(
         Info << "Selecting " << modelType << " for DATurbulenceModel" << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelType);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DATurbulenceModel::New"
@@ -187,7 +186,7 @@ autoPtr<DATurbulenceModel> DATurbulenceModel::New(
     }
 
     return autoPtr<DATurbulenceModel>(
-        cstrIter()(modelType, mesh, daOption));
+        ctorPtr(modelType, mesh, daOption));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

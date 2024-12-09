@@ -49,11 +49,10 @@ autoPtr<DAResidual> DAResidual::New(
         Info << "Selecting " << modelType << " for DAResidual" << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelType);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
     // if the solver name is not found in any child class, print an error
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DAResidual::New"
@@ -73,7 +72,7 @@ autoPtr<DAResidual> DAResidual::New(
 
     // child class found
     return autoPtr<DAResidual>(
-        cstrIter()(modelType, mesh, daOption, daModel, daIndex));
+        ctorPtr(modelType, mesh, daOption, daModel, daIndex));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

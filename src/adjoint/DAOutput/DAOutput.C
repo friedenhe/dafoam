@@ -59,11 +59,10 @@ autoPtr<DAOutput> DAOutput::New(
         Info << "Selecting output: " << outputName << " for DAOutput." << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(outputName);
+    auto* ctorPtr = dictionaryConstructorTable(outputName);
 
     // if the solver name is not found in any child class, print an error
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
         FatalErrorIn(
             "DAOutput::New"
@@ -85,13 +84,13 @@ autoPtr<DAOutput> DAOutput::New(
 
     // child class found
     return autoPtr<DAOutput>(
-        cstrIter()(outputName,
-                   mesh,
-                   daOption,
-                   daModel,
-                   daIndex,
-                   daResidual,
-                   daFunctionList));
+        ctorPtr(outputName,
+                mesh,
+                daOption,
+                daModel,
+                daIndex,
+                daResidual,
+                daFunctionList));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
