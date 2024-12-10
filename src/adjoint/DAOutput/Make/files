@@ -2,4 +2,4 @@ DAOutput.C
 DAOutputResidual.C
 DAOutputFunction.C
 
-LIB = $(FOAM_LIBBIN)/OpenFOAM/sharedLibs/libDAOutput$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAOutput$(DF_LIB_SUFFIX)

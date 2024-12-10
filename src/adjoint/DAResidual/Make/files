@@ -1,4 +1,4 @@
 DAResidual.C
 DAResidualSimpleFoam.C
 
-LIB = $(FOAM_LIBBIN)/OpenFOAM/sharedLibs/libDAResidual$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAResidual$(DF_LIB_SUFFIX)

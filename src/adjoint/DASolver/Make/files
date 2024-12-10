@@ -2,4 +2,4 @@ DASolver.C
 DASimpleFoam/DASimpleFoam.C
 
 
-LIB = $(FOAM_LIBBIN)/OpenFOAM/sharedLibs/libDASolver$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDASolver$(DF_LIB_SUFFIX)

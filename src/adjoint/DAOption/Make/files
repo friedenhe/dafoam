@@ -1,3 +1,3 @@
 DAOption.C
 
-LIB = $(FOAM_LIBBIN)/OpenFOAM/sharedLibs/libDAOption$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAOption$(DF_LIB_SUFFIX)

@@ -1,4 +1,4 @@
 DAStateInfo.C
 DAStateInfoSimpleFoam.C
 
-LIB = $(FOAM_LIBBIN)/OpenFOAM/sharedLibs/libDAStateInfo$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAStateInfo$(DF_LIB_SUFFIX)

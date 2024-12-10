@@ -1,4 +1,4 @@
 DAFunction.C
 DAFunctionForce.C
 
-LIB = $(FOAM_LIBBIN)/OpenFOAM/sharedLibs/libDAFunction$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAFunction$(DF_LIB_SUFFIX)

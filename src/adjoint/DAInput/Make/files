@@ -2,4 +2,4 @@ DAInput.C
 DAInputVolCoord.C
 DAInputStateVar.C
 
-LIB = $(FOAM_LIBBIN)/OpenFOAM/sharedLibs/libDAInput$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAInput$(DF_LIB_SUFFIX)
