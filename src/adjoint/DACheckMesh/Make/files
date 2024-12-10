@@ -1,0 +1,5 @@
+DACheckMesh.C
+checkGeometry.C
+checkTools.C
+
+LIB = $(FOAM_LIBBIN)/libDACheckMesh

@@ -27,7 +27,24 @@
 
 \*---------------------------------------------------------------------------*/
 
+#include "PatchTools.H"
 #include "checkGeometry.H"
+#include "polyMesh.H"
+#include "cellSet.H"
+#include "faceSet.H"
+#include "pointSet.H"
+#include "edgeHashes.H"
+#include "wedgePolyPatch.H"
+#include "unitConversion.H"
+#include "polyMeshTetDecomposition.H"
+#include "checkTools.H"
+#include "functionObject.H"
+
+#include "vtkSurfaceWriter.H"
+#include "writer.H"
+
+#include "cyclicACMIPolyPatch.H"
+#include "Time.H"
 
 namespace Foam
 {
@@ -218,27 +235,26 @@ bool Foam::checkCoupledPoints(
 
         return true;
     }
-    else
-    {
-        if (report)
-        {
-            Info << "    Coupled point location match (average "
-                 << avgMismatch << ") OK." << endl;
-        }
 
-        return false;
+    if (report)
+    {
+        Info << "    Coupled point location match (average "
+             << avgMismatch << ") OK." << endl;
     }
+
+    return false;
 }
 
 Foam::label Foam::checkGeometry(
     const polyMesh& mesh,
-    const autoPtr<surfaceWriter>& surfWriter,
-    const autoPtr<writer<scalar>>& setWriter,
     const label maxIncorrectlyOrientedFaces)
 {
     label noFailedChecks = 0;
 
-    //Info << "\nChecking geometry..." << endl;
+    autoPtr<surfaceWriter> surfWriter;
+    surfWriter = surfaceWriter::New("vtk");
+
+    Info << "\nChecking mesh quality..." << endl;
 
     // Get a small relative length from the bounding box
     const boundBox& globalBb = mesh.bounds();
@@ -247,17 +263,14 @@ Foam::label Foam::checkGeometry(
          << globalBb.min() << " " << globalBb.max() << endl;
 
     // Geometric directions
-    const Vector<label> validDirs = (mesh.geometricD() + Vector<label>::one);
-    labelList tmpList(3);
-    forAll(tmpList, idxI) tmpList[idxI] = validDirs[idxI] / 2;
+    const Vector<label> validDirs = (mesh.geometricD() + Vector<label>::one) / 2;
     Info << "    Mesh has " << mesh.nGeometricD()
-         << " geometric (non-empty/wedge) directions " << tmpList << endl;
+         << " geometric (non-empty/wedge) directions " << validDirs << endl;
 
     // Solution directions
-    const Vector<label> solDirs = (mesh.solutionD() + Vector<label>::one);
-    forAll(tmpList, idxI) tmpList[idxI] = solDirs[idxI] / 2;
+    const Vector<label> solDirs = (mesh.solutionD() + Vector<label>::one) / 2;
     Info << "    Mesh has " << mesh.nSolutionD()
-         << " solution (non-empty) directions " << tmpList << endl;
+         << " solution (non-empty) directions " << solDirs << endl;
 
     if (mesh.nGeometricD() < 3)
     {
@@ -291,9 +304,9 @@ Foam::label Foam::checkGeometry(
                      << " non closed cells to set " << cells.name() << endl;
                 cells.instance() = mesh.pointsInstance();
                 cells.write();
-                if (surfWriter.valid())
+                if (surfWriter)
                 {
-                    mergeAndWrite(surfWriter(), cells);
+                    mergeAndWrite(*surfWriter, cells);
                 }
             }
         }
@@ -307,9 +320,9 @@ Foam::label Foam::checkGeometry(
                  << aspectCells.name() << endl;
             aspectCells.instance() = mesh.pointsInstance();
             aspectCells.write();
-            if (surfWriter.valid())
+            if (surfWriter)
             {
-                mergeAndWrite(surfWriter(), aspectCells);
+                mergeAndWrite(*surfWriter, aspectCells);
             }
         }
     }
@@ -328,9 +341,9 @@ Foam::label Foam::checkGeometry(
                      << " zero area faces to set " << faces.name() << endl;
                 faces.instance() = mesh.pointsInstance();
                 faces.write();
-                if (surfWriter.valid())
+                if (surfWriter)
                 {
-                    mergeAndWrite(surfWriter(), faces);
+                    mergeAndWrite(*surfWriter, faces);
                 }
             }
         }
@@ -350,9 +363,9 @@ Foam::label Foam::checkGeometry(
                      << " zero volume cells to set " << cells.name() << endl;
                 cells.instance() = mesh.pointsInstance();
                 cells.write();
-                if (surfWriter.valid())
+                if (surfWriter)
                 {
-                    mergeAndWrite(surfWriter(), cells);
+                    mergeAndWrite(*surfWriter, cells);
                 }
             }
         }
@@ -373,9 +386,9 @@ Foam::label Foam::checkGeometry(
                  << " non-orthogonal faces to set " << faces.name() << endl;
             faces.instance() = mesh.pointsInstance();
             faces.write();
-            if (surfWriter.valid())
+            if (surfWriter)
             {
-                mergeAndWrite(surfWriter(), faces);
+                mergeAndWrite(*surfWriter, faces);
             }
         }
     }
@@ -407,9 +420,9 @@ Foam::label Foam::checkGeometry(
                      << faces.name() << endl;
                 faces.instance() = mesh.pointsInstance();
                 faces.write();
-                if (surfWriter.valid())
+                if (surfWriter)
                 {
-                    mergeAndWrite(surfWriter(), faces);
+                    mergeAndWrite(*surfWriter, faces);
                 }
             }
         }
@@ -429,9 +442,9 @@ Foam::label Foam::checkGeometry(
                      << " skew faces to set " << faces.name() << endl;
                 faces.instance() = mesh.pointsInstance();
                 faces.write();
-                if (surfWriter.valid())
+                if (surfWriter)
                 {
-                    mergeAndWrite(surfWriter(), faces);
+                    mergeAndWrite(*surfWriter, faces);
                 }
             }
         }
@@ -453,9 +466,9 @@ Foam::label Foam::checkGeometry(
                      << faces.name() << endl;
                 faces.instance() = mesh.pointsInstance();
                 faces.write();
-                if (surfWriter.valid())
+                if (surfWriter)
                 {
-                    mergeAndWrite(surfWriter(), faces);
+                    mergeAndWrite(*surfWriter, faces);
                 }
             }
         }

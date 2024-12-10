@@ -1,4 +1,4 @@
 DALinearEqn.C
 
 
-LIB = $(FOAM_LIBBIN)/libDALinearEqn$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDALinearEqn

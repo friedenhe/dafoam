@@ -58,10 +58,7 @@ private:
     label maxIncorrectlyOrientedFaces_ = 0;
 
     /// surface writer pointer for failed mesh
-    autoPtr<surfaceWriter> surfWriter;
-
-    /// set writer pointer for failed mesh
-    autoPtr<writer<scalar>> setWriter;
+    //autoPtr<surfaceWriter> surfWriter;
 
 public:
     // Constructors

@@ -51,7 +51,7 @@
 
 void Foam::mergeAndWrite(
     const polyMesh& mesh,
-    const surfaceWriter& writer,
+    surfaceWriter& writer,
     const word& name,
     const indirectPrimitivePatch& setPatch,
     const fileName& outputDir)
@@ -81,27 +81,33 @@ void Foam::mergeAndWrite(
         // Write
         if (Pstream::master())
         {
-            writer.write(
-                outputDir,
-                name,
-                meshedSurfRef(
-                    mergedPoints,
-                    mergedFaces));
+            writer.open(
+                mergedPoints,
+                mergedFaces,
+                (outputDir / name),
+                false // serial - already merged
+            );
+
+            writer.write();
+            writer.clear();
         }
     }
     else
     {
-        writer.write(
-            outputDir,
-            name,
-            meshedSurfRef(
-                setPatch.localPoints(),
-                setPatch.localFaces()));
+        writer.open(
+            setPatch.localPoints(),
+            setPatch.localFaces(),
+            (outputDir / name),
+            false // serial - already merged
+        );
+
+        writer.write();
+        writer.clear();
     }
 }
 
 void Foam::mergeAndWrite(
-    const surfaceWriter& writer,
+    surfaceWriter& writer,
     const faceSet& set)
 {
     const polyMesh& mesh = refCast<const polyMesh>(set.db());
@@ -115,13 +121,13 @@ void Foam::mergeAndWrite(
         / functionObject::outputPrefix
         / mesh.pointsInstance()
         / set.name());
-    outputDir.clean();
+    outputDir.clean(); // Remove unneeded ".."
 
     mergeAndWrite(mesh, writer, set.name(), setPatch, outputDir);
 }
 
 void Foam::mergeAndWrite(
-    const surfaceWriter& writer,
+    surfaceWriter& writer,
     const cellSet& set)
 {
     const polyMesh& mesh = refCast<const polyMesh>(set.db());
@@ -129,9 +135,9 @@ void Foam::mergeAndWrite(
 
     // Determine faces on outside of cellSet
     bitSet isInSet(mesh.nCells());
-    forAllConstIter(cellSet, set, iter)
+    for (const label celli : set)
     {
-        isInSet.set(iter.key());
+        isInSet.set(celli);
     }
 
     boolList bndInSet(mesh.nBoundaryFaces());
@@ -196,9 +202,108 @@ void Foam::mergeAndWrite(
         / functionObject::outputPrefix
         / mesh.pointsInstance()
         / set.name());
-    outputDir.clean();
+    outputDir.clean(); // Remove unneeded ".."
 
     mergeAndWrite(mesh, writer, set.name(), setPatch, outputDir);
+}
+
+void Foam::mergeAndWrite(
+    const writer<scalar>& writer,
+    const pointSet& set)
+{
+    const polyMesh& mesh = refCast<const polyMesh>(set.db());
+
+    pointField mergedPts;
+    labelList mergedIDs;
+
+    if (Pstream::parRun())
+    {
+        // Note: we explicitly do not merge the points
+        // (mesh.globalData().mergePoints etc) since this might
+        // hide any synchronisation problem
+
+        globalIndex globalNumbering(mesh.nPoints());
+
+        mergedPts.setSize(returnReduce(set.size(), sumOp<label>()));
+        mergedIDs.setSize(mergedPts.size());
+
+        labelList setPointIDs(set.sortedToc());
+
+        // Get renumbered local data
+        pointField myPoints(mesh.points(), setPointIDs);
+        labelList myIDs(globalNumbering.toGlobal(setPointIDs));
+
+        if (Pstream::master())
+        {
+            // Insert master data first
+            label pOffset = 0;
+            SubList<point>(mergedPts, myPoints.size(), pOffset) = myPoints;
+            SubList<label>(mergedIDs, myIDs.size(), pOffset) = myIDs;
+            pOffset += myPoints.size();
+
+            // Receive slave ones
+            for (const int slave : Pstream::subProcs())
+            {
+                IPstream fromSlave(Pstream::commsTypes::scheduled, slave);
+
+                pointField slavePts(fromSlave);
+                labelList slaveIDs(fromSlave);
+
+                SubList<point>(mergedPts, slavePts.size(), pOffset) = slavePts;
+                SubList<label>(mergedIDs, slaveIDs.size(), pOffset) = slaveIDs;
+                pOffset += slaveIDs.size();
+            }
+        }
+        else
+        {
+            // Construct processor stream with estimate of size. Could
+            // be improved.
+            OPstream toMaster(
+                Pstream::commsTypes::scheduled,
+                Pstream::masterNo(),
+                myPoints.byteSize() + myIDs.byteSize());
+            toMaster << myPoints << myIDs;
+        }
+    }
+    else
+    {
+        mergedIDs = set.sortedToc();
+        mergedPts = pointField(mesh.points(), mergedIDs);
+    }
+
+    // Write with scalar pointID
+    if (Pstream::master())
+    {
+        scalarField scalarPointIDs(mergedIDs.size());
+        forAll(mergedIDs, i)
+        {
+            scalarPointIDs[i] = 1.0 * mergedIDs[i];
+        }
+
+        coordSet points(set.name(), "distance", mergedPts, mag(mergedPts));
+
+        List<const scalarField*> flds(1, &scalarPointIDs);
+
+        wordList fldNames(1, "pointID");
+
+        // Output e.g. pointSet p0 to
+        // postProcessing/<time>/p0.vtk
+        fileName outputDir(
+            set.time().globalPath()
+            / functionObject::outputPrefix
+            / mesh.pointsInstance()
+            // set.name()
+        );
+        outputDir.clean(); // Remove unneeded ".."
+        mkDir(outputDir);
+
+        fileName outputFile(outputDir / writer.getFileName(points, wordList()));
+        //fileName outputFile(outputDir/set.name());
+
+        OFstream os(outputFile);
+
+        writer.write(points, fldNames, flds, os);
+    }
 }
 
 // ************************************************************************* //

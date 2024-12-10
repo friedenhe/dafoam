@@ -6,4 +6,4 @@ DARadiationModel/DARadiationModel.C
 DARadiationModel/DAP1.C
 
 
-LIB = $(FOAM_LIBBIN)/libDAModel$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAModel

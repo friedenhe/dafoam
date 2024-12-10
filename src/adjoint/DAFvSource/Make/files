@@ -2,4 +2,4 @@ DAFvSource.C
 DAFvSourceActuatorDisk.C
 
 
-LIB = $(FOAM_LIBBIN)/libDAFvSource$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAFvSource

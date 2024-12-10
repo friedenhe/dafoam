@@ -1,3 +1,3 @@
 DAIndex.C
 
-LIB = $(FOAM_LIBBIN)/libDAIndex$(DF_LIB_SUFFIX)
+LIB = $(FOAM_LIBBIN)/libDAIndex
