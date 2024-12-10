@@ -22,15 +22,18 @@ os.environ["CXX"] = "mpicxx"
 
 solverName = "pyColoring"
 
-if os.getenv("WM_CODI_AD_MODE") is None:
+if os.getenv("DAOF_AD_MODE") == "Passive":
     libSuffix = ""
-    codiADMode = "CODI_AD_NONE"
-elif os.getenv("WM_CODI_AD_MODE") == "CODI_AD_FORWARD":
+    definedADMode = "-DDAOF_AD_MODE_Passive"
+elif os.getenv("DAOF_AD_MODE") == "T1S":
     libSuffix = "ADF"
-    codiADMode = os.getenv("WM_CODI_AD_MODE")
-elif os.getenv("WM_CODI_AD_MODE") == "CODI_AD_REVERSE":
+    definedADMode = "-DDAOF_AD_MODE_T1S"
+elif os.getenv("DAOF_AD_MODE") == "A1S":
     libSuffix = "ADR"
-    codiADMode = os.getenv("WM_CODI_AD_MODE")
+    definedADMode = "-DDAOF_AD_MODE_A1S"
+else:
+    print("DAOF_AD_MODE not found!")
+    exit(1)
 
 # These setup should reproduce calling wmake to compile OpenFOAM libraries and solvers
 ext = [
@@ -60,10 +63,10 @@ ext = [
             os.getenv("FOAM_SRC") + "/OpenFOAM/lnInclude",
             os.getenv("FOAM_SRC") + "/OSspecific/POSIX/lnInclude",
             os.getenv("FOAM_LIBBIN"),
-            # CoDiPack and MeDiPack
-            os.getenv("FOAM_SRC") + "/codipack/include",
-            os.getenv("FOAM_SRC") + "/medipack/include",
-            os.getenv("FOAM_SRC") + "/medipack/src",
+            # CoDiPack and AdjointMPI
+            os.getenv("FOAM_SRC") + "/../CoDiPack/include",
+            os.getenv("FOAM_SRC") + "/Pstream/mpi/AdjointMPI/include",
+            os.getenv("FOAM_SRC") + "/Pstream/mpi/AdjointMPI/src",
             # DAFoam include
             os.getenv("PETSC_DIR") + "/include",
             petsc4py.get_include(),
@@ -75,60 +78,60 @@ ext = [
         ],
         # These are from Make/options:EXE_LIBS
         libraries=[
-            "turbulenceModels" + libSuffix,
-            "incompressibleTurbulenceModels" + libSuffix,
-            "compressibleTurbulenceModels" + libSuffix,
-            "fluidThermophysicalModels" + libSuffix,
-            "specie" + libSuffix,
-            "incompressibleTransportModels" + libSuffix,
-            "compressibleTransportModels" + libSuffix,
-            "radiationModels" + libSuffix,
-            "finiteVolume" + libSuffix,
-            "sampling" + libSuffix,
-            "dynamicFvMesh" + libSuffix,
-            "dynamicMesh" + libSuffix,
-            "meshTools" + libSuffix,
-            "fvOptions" + libSuffix,
-            "DAOption" + libSuffix,
-            "DAUtility" + libSuffix,
-            "DACheckMesh" + libSuffix,
-            "DAStateInfo" + libSuffix,
-            "DAFvSource" + libSuffix,
-            "DAModel" + libSuffix,
-            "DAIndex" + libSuffix,
-            "DAFunction" + libSuffix,
-            "DAJacCon" + libSuffix,
-            "DAColoring" + libSuffix,
-            "DAResidual" + libSuffix,
-            "DAField" + libSuffix,
-            "DAPartDeriv" + libSuffix,
-            "DALinearEqn" + libSuffix,
-            "DARegression" + libSuffix,
-            "DAMisc" + libSuffix,
-            "DASolver" + libSuffix,
+            "turbulenceModels",
+            "incompressibleTurbulenceModels",
+            "compressibleTurbulenceModels",
+            "fluidThermophysicalModels",
+            "specie",
+            "incompressibleTransportModels",
+            "compressibleTransportModels",
+            "radiationModels",
+            "finiteVolume",
+            "sampling",
+            "dynamicFvMesh",
+            "dynamicMesh",
+            "meshTools",
+            "fvOptions",
+            "DAOption",
+            "DAUtility",
+            "DACheckMesh",
+            "DAStateInfo",
+            "DAFvSource",
+            "DAModel",
+            "DAIndex",
+            "DAFunction",
+            "DAJacCon",
+            "DAColoring",
+            "DAResidual",
+            "DAField",
+            "DAPartDeriv",
+            "DALinearEqn",
+            "DARegression",
+            "DAMisc",
+            "DASolver",
             "petsc",
         ],
         # These are pathes of linked libraries
         library_dirs=[
             os.getenv("FOAM_LIBBIN"),
-            os.getenv("DAFOAM_ROOT_PATH") + "/OpenFOAM/sharedLibs",
             os.getenv("PETSC_DIR") + "/lib",
             petsc4py.get_include(),
             os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/lib",
         ],
         # All other flags for OpenFOAM, users don't need to touch this
         extra_compile_args=[
-            "-std=c++11",
-            "-w",
-            "-Wno-deprecated-copy",
+            "-std=c++17",
             "-m64",
-            "-DOPENFOAM_PLUS=1812",
-            "-Dlinux64",
-            "-DWM_ARCH_OPTION=64",
+            "-pthread",
+            "-DOPENFOAM=2112",
+            "-DDAOF_AD_TOOL_DCO_FOAM",
+            #"-Dlinux64",
+            #"-DWM_ARCH_OPTION=64",
             "-DWM_DP",
             "-DWM_LABEL_SIZE=32",
             "-Wall",
             "-Wextra",
+            "-Wno-deprecated-copy",
             "-Wnon-virtual-dtor",
             "-Wno-unused-parameter",
             "-Wno-invalid-offsetof",
@@ -137,10 +140,10 @@ ext = [
             "-ftemplate-depth-100",
             "-fPIC",
             "-c",
-            "-D" + codiADMode,
+            definedADMode,
         ],
         # Extra link flags for OpenFOAM, users don't need to touch this
-        extra_link_args=["-Xlinker", "--add-needed", "-Xlinker", "--no-as-needed"],
+        extra_link_args=["-shared", "-Xlinker", "--add-needed", "-Xlinker", "--no-as-needed"],
     )
 ]
 
