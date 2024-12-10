@@ -1619,12 +1619,14 @@ void DASolver::getForcesInternal(
     Output:
         fX, fY, fZ, and patchList are modified / set in place.
     */
-#ifndef SolidDASolver
+
     // Get reference pressure
     dictionary couplingInfo = daOptionPtr_->getAllOptions().subDict("couplingInfo");
     scalar pRef = couplingInfo.subDict("aerostructural").getScalar("pRef");
 
-    SortableList<word> patchListSort(patchList);
+    SortableList<word> patchListSort;
+    patchListSort = patchList;
+    patchListSort.sort();
 
     // Initialize surface field for face-centered forces
     volVectorField volumeForceField(
@@ -1751,7 +1753,9 @@ void DASolver::getForcesInternal(
         }
 
         // Sort Patch Indices and Insert into Global Arrays
-        SortableList<label> pointListSort(pointListTemp);
+        SortableList<label> pointListSort;
+        pointListSort = pointListTemp;
+        pointListSort.sort();
         forAll(pointListSort.indices(), indexI)
         {
             fX[patchStart + indexI] = fXTemp[pointListSort.indices()[indexI]];
@@ -1762,7 +1766,7 @@ void DASolver::getForcesInternal(
         // Increment Patch Start Index
         patchStart += nPointsPatch;
     }
-#endif
+
     return;
 }
 
@@ -1814,7 +1818,9 @@ void DASolver::getAcousticDataInternal(
     scalar pRef;
     daOptionPtr_->getAllOptions().subDict("couplingInfo").subDict("aeroacoustic").readEntry<scalar>("pRef", pRef);
 
-    SortableList<word> patchListSort(patchList);
+    SortableList<word> patchListSort;
+    patchListSort = patchList;
+    patchListSort.sort();
 
     // ========================================================================
     // Compute Values
@@ -2346,6 +2352,8 @@ void DASolver::calcFvSourceInternal(
     axis[1] = axisDummy[1];
     axis[2] = axisDummy[2];
 
+    scalar pi = constant::mathematical::pi;
+
     if (interpScheme == "poly4Gauss")
     {
         // Fit a 4th order polynomial for the inner and Gaussian function for the outer
@@ -2409,7 +2417,7 @@ void DASolver::calcFvSourceInternal(
         for (i = 0; i < maxI; i++)
         {
             sigmaS = ((r2 - mu) * (r2 - mu) - (r1 - mu) * (r1 - mu)) / (2 * log(f1 / f2));
-            mu = r1 - sqrt(-2 * sigmaS * log(f1 * sqrt(2 * degToRad(180) * sigmaS)));
+            mu = r1 - sqrt(-2 * sigmaS * log(f1 * sqrt(2 * pi * sigmaS)));
             if (mu > r1)
             {
                 mu = 2 * r1 - mu;
@@ -2423,7 +2431,7 @@ void DASolver::calcFvSourceInternal(
         for (i = 0; i < maxI; i++)
         {
             sigmaS = ((r2 - mu) * (r2 - mu) - (r1 - mu) * (r1 - mu)) / (2 * log(g1 / g2));
-            mu = r1 - sqrt(-2 * sigmaS * log(g1 * sqrt(2 * degToRad(180) * sigmaS)));
+            mu = r1 - sqrt(-2 * sigmaS * log(g1 * sqrt(2 * pi * sigmaS)));
             if (mu > r1)
             {
                 mu = 2 * r1 - mu;
@@ -2470,8 +2478,8 @@ void DASolver::calcFvSourceInternal(
             }
             else if (rStar > rStarMax)
             {
-                fvSource[cellI] = (1 / (sigmaAxialOut * sqrt(2 * degToRad(180)))) * exp(-0.5 * sqr((rStar - muAxialOut) / sigmaAxialOut)) * axis;
-                fvSource[cellI] = fvSource[cellI] + (1 / (sigmaTangentialOut * sqrt(2 * degToRad(180)))) * exp(-0.5 * sqr((rStar - muTangentialOut) / sigmaTangentialOut)) * cellAxDir * rotDirCon;
+                fvSource[cellI] = (1 / (sigmaAxialOut * sqrt(2 * pi))) * exp(-0.5 * sqr((rStar - muAxialOut) / sigmaAxialOut)) * axis;
+                fvSource[cellI] = fvSource[cellI] + (1 / (sigmaTangentialOut * sqrt(2 * pi))) * exp(-0.5 * sqr((rStar - muTangentialOut) / sigmaTangentialOut)) * cellAxDir * rotDirCon;
                 fvSource[cellI] = fvSource[cellI] * exp(-sqr(meshDist / actEps));
             }
             else

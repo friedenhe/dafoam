@@ -64,6 +64,9 @@ public:
                 return idxI;
             }
         }
+        FatalErrorIn("getFunctionListIndex") << "function name and part not found!"
+                                             << exit(FatalError);
+        return -1;
     }
 
     virtual void run(scalarList& output);
