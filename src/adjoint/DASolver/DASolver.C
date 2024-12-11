@@ -129,6 +129,8 @@ label DASolver::loop(
     scalar deltaT = runTime.deltaT().value();
     scalar t = runTime.timeOutputValue();
 
+    // Had to comment out functionObj for v2112, otherwise, it returns MPI errors
+    /*
     // execute functionObjectList, e.g., field averaging, sampling
     functionObjectList& funcObj = const_cast<functionObjectList&>(runTime.functionObjects());
     if (runTime.timeIndex() == runTime.startTimeIndex())
@@ -139,7 +141,7 @@ label DASolver::loop(
     {
         funcObj.execute();
     }
-
+    */
     // calculate the objective function standard deviation. It will be used in determining if the primal converges
     this->calcObjStd(runTime);
 
@@ -160,14 +162,14 @@ label DASolver::loop(
         this->printAllFunctions();
         runTime.writeNow();
         prevPrimalSolTime_ = t;
-        funcObj.end();
+        //funcObj.end();
         daRegressionPtr_->writeFeatures();
         return 0;
     }
     else if (t > endTime - 0.5 * deltaT)
     {
         prevPrimalSolTime_ = t;
-        funcObj.end();
+        //funcObj.end();
         daRegressionPtr_->writeFeatures();
         return 0;
     }
