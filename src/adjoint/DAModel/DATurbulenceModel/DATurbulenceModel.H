@@ -275,6 +275,11 @@ public:
         scalarField& diag,
         scalarField& upper,
         scalarField& lower);
+    
+    word getTurbModelType()
+    {
+        return turbModelType_;
+    }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

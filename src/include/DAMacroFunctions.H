@@ -96,7 +96,7 @@
 #endif
 
 // If AD is used, do valA=valB.getValue(), otherwise, do valA=valB
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_T1S) || defined(DAOF_AD_MODE_A1S)
 #define assignValueCheckAD(valA, valB) \
     valA = valB.getValue();
 #else

@@ -48,9 +48,10 @@ DASolver::DASolver(
       daLinearEqnPtr_(nullptr),
       daResidualPtr_(nullptr),
       daRegressionPtr_(nullptr)
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
       ,
-      globalADTape_(codi::RealReverse::getTape())
+      //globalADTape_(codi::RealReverse::getTape())
+      globalADTape_(codi::RealReverse::getGlobalTape())
 #endif
 {
     // initialize fvMesh and Time object pointer
@@ -380,7 +381,7 @@ void DASolver::printAllFunctions()
         {
             Info << " Unsteady " << timeOperator << " " << unsteadyFunctions_[uKey];
         }
-#ifdef CODI_AD_FORWARD
+#ifdef DAOF_AD_MODE_T1S
 
         // if the forwardModeAD is active,, we need to get the total derivatives here
         if (daOptionPtr_->getAllOptions().subDict("useAD").getWord("mode") == "forward")
@@ -692,7 +693,7 @@ void DASolver::calcCouplingFaceCoordsAD(
     const double* seeds,
     double* product)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
 
     label nCouplingFaces = this->getNCouplingFaces();
 
@@ -1195,7 +1196,7 @@ void DASolver::getThermalAD(
         product: [dTemperature/dW]^T * psi, [dTemperature/dXv]^T * psi, [dHeatFlux/dW]^T * psi, or [dHeatFlux/dXv]^T * psi
     */
 
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
 
     label nCouplingFaces = this->getNCouplingFaces();
 
@@ -1370,7 +1371,7 @@ void DASolver::getForces(Vec fX, Vec fY, Vec fZ)
     Output:
         fX, fY, fZ, and pointList are modified / set in place.
     */
-#ifndef SolidDASolver
+
     // Get Data
     label nPoints, nFaces;
     List<word> patchList;
@@ -1419,7 +1420,7 @@ void DASolver::getForces(Vec fX, Vec fY, Vec fZ)
     VecRestoreArray(fX, &vecArrayFX);
     VecRestoreArray(fY, &vecArrayFY);
     VecRestoreArray(fZ, &vecArrayFZ);
-#endif
+
     return;
 }
 
@@ -1458,7 +1459,7 @@ void DASolver::getAcousticData(Vec x, Vec y, Vec z, Vec nX, Vec nY, Vec nZ, Vec 
     Output:
         x, y, z, nX, nY, nZ, a, fX, fY, fZ, and patchList are modified / set in place.
     */
-#ifndef SolidDASolver
+
     // Get Data
     label nPoints, nFaces;
     List<word> patchList;
@@ -1556,7 +1557,7 @@ void DASolver::getAcousticData(Vec x, Vec y, Vec z, Vec nX, Vec nY, Vec nZ, Vec 
     VecRestoreArray(fX, &vecArrayFX);
     VecRestoreArray(fY, &vecArrayFY);
     VecRestoreArray(fZ, &vecArrayFZ);
-#endif
+
     return;
 }
 
@@ -1815,7 +1816,7 @@ void DASolver::getAcousticDataInternal(
     Output:
         x, y, z, nX, nY, nZ, a, fX, fY, fZ, and patchList are modified / set in place.
     */
-#ifndef SolidDASolver
+
     // Get reference pressure
     scalar pRef;
     daOptionPtr_->getAllOptions().subDict("couplingInfo").subDict("aeroacoustic").readEntry<scalar>("pRef", pRef);
@@ -1877,7 +1878,7 @@ void DASolver::getAcousticDataInternal(
             iFace++;
         }
     }
-#endif
+
     return;
 }
 
@@ -1970,8 +1971,6 @@ void DASolver::calcForceProfileInternal(
     Description:
         Same as calcForceProfile but for internal AD
     */
-
-#ifndef SolidDASolver
 
     const dictionary& propSubDict = daOptionPtr_->getAllOptions().subDict("wingProp").subDict(propName);
     label sections = propSubDict.getLabel("nForceSections");
@@ -2122,8 +2121,6 @@ void DASolver::calcForceProfileInternal(
     {
         Info << "integral force " << integralForce << endl;
     }
-
-#endif
 }
 
 void DASolver::calcdForceProfiledXvWAD(
@@ -2140,7 +2137,7 @@ void DASolver::calcdForceProfiledXvWAD(
         Calculate the matrix-vector product for [dForceProfile/dParamteres]^T * psi
     */
 
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
 
     Info << "Calculating [dForceProfile/dInputs]^T*Psi using reverse-mode AD. PropName: "
          << propName << " inputMode: " << inputMode << " ouputMode: " << outputMode << endl;
@@ -2806,7 +2803,7 @@ void DASolver::calcdFvSourcedInputsTPsiAD(
         Calculate the matrix-vector product for either [dFvSource/dParameters]^T * psi, or [dFvSource/dForce]^T * psi
     */
 
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
 
     Info << "Calculating [dFvSource/dInputs]^T*Psi using reverse-mode AD. PropName: "
          << propName << " mode: " << mode << endl;
@@ -3693,7 +3690,7 @@ void DASolver::calcdRdBCTPsiAD(
     const word designVarName,
     Vec dRdBCTPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdBC^T*Psi using reverse-mode AD
@@ -3845,7 +3842,7 @@ void DASolver::calcdFdBCAD(
     const word designVarName,
     Vec dFdBC)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         This function computes partials derivatives dFdBC
@@ -4043,7 +4040,7 @@ void DASolver::calcdRdAOATPsiAD(
     const word designVarName,
     Vec dRdAOATPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdAOA^T*Psi using reverse-mode AD
@@ -4182,7 +4179,7 @@ void DASolver::calcdRdAOATPsiAD(
     this->globalADTape_.evaluate();
 
     // need to convert dFdAOA from radian to degree
-    PetscScalar derivVal = aoa.getGradient() * constant::mathematical::pi.getValue() / 180.0;
+    PetscScalar derivVal = aoa.getGradient() * constant::mathematical::pi / 180.0;
     // we need to do ADD_VALUES to get contribution from all procs
     VecSetValue(dRdAOATPsi, 0, derivVal, ADD_VALUES);
 
@@ -4252,7 +4249,7 @@ void DASolver::calcdFdFieldAD(
     const word designVarName,
     Vec dFdField)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         This function computes partials derivatives dFdField
@@ -4399,7 +4396,7 @@ void DASolver::createMLRKSPMatrixFree(
     const Mat jacPCMat,
     KSP ksp)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Call createMLRKSP from DALinearEqn
@@ -4580,7 +4577,7 @@ void DASolver::updateOFMesh(const scalar* volCoords)
 
 void DASolver::initializedRdWTMatrixFree()
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         This function initialize the matrix-free dRdWT, which will be
@@ -4612,7 +4609,7 @@ void DASolver::initializedRdWTMatrixFree()
 
 void DASolver::destroydRdWTMatrixFree()
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Destroy dRdWTMF_
@@ -4623,7 +4620,7 @@ void DASolver::destroydRdWTMatrixFree()
 
 PetscErrorCode DASolver::dRdWTMatVecMultFunction(Mat dRdWTMF, Vec vecX, Vec vecY)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         This function implements a way to compute matrix-vector products
@@ -4664,7 +4661,7 @@ PetscErrorCode DASolver::dRdWTMatVecMultFunction(Mat dRdWTMF, Vec vecX, Vec vecY
 
 void DASolver::initializeGlobalADTape4dRdWT()
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Initialize the global tape for computing dRdWT*psi
@@ -4699,7 +4696,7 @@ void DASolver::normalizeJacTVecProduct(
     double* product)
 {
 
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_A1S) || defined(DAOF_AD_MODE_T1S)
     /*
     Description:
         Normalize the jacobian vector product that has states as the input such as dFdW and dRdW
@@ -4817,7 +4814,7 @@ void DASolver::calcJacTVecProduct(
     const double* seed,
     double* product)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Calculate the Jacobian-matrix-transposed and vector product for [dOutput/dInput]^T * psi
@@ -4950,7 +4947,7 @@ void DASolver::calcdFdWAD(
     const word functionName,
     Vec dFdW)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         This function computes partials derivatives dFdW using AD
@@ -5070,7 +5067,7 @@ void DASolver::calcdFdXvAD(
     const word designVarName,
     Vec dFdXv)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute dFdXv using reverse-mode AD
@@ -5214,7 +5211,7 @@ void DASolver::calcdFdRegParAD(
     const word modelName,
     double* dFdRegPar)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute dFdRegPar using reverse-mode AD
@@ -5367,7 +5364,7 @@ void DASolver::calcdRdThermalTPsiAD(
     const double* seeds,
     double* product)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdThermal^T*Psi using reverse-mode AD
@@ -5477,7 +5474,7 @@ void DASolver::calcdRdRegParTPsiAD(
     const word modelName,
     double* product)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products [dR/dRegParameters]^T*Psi using reverse-mode AD
@@ -5595,7 +5592,7 @@ void DASolver::calcdRdXvTPsiAD(
     const Vec psi,
     Vec dRdXvTPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdXv^T*Psi using reverse-mode AD
@@ -5682,7 +5679,7 @@ void DASolver::calcdForcedXvAD(
     const Vec fBarVec,
     Vec dForcedXv)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Calculate dForcedXv using reverse-mode AD
@@ -5780,7 +5777,7 @@ void DASolver::calcdAcousticsdXvAD(
     const word varName,
     const word groupName)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Calculate dAcoudXv using reverse-mode AD
@@ -5927,7 +5924,7 @@ void DASolver::calcdRdFieldTPsiAD(
     const word designVarName,
     Vec dRdFieldTPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdField^T*Psi using reverse-mode AD
@@ -6007,7 +6004,7 @@ void DASolver::calcdFdACTAD(
     const word designVarName,
     Vec dFdACT)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute dFdACT using reverse-mode AD
@@ -6185,7 +6182,7 @@ void DASolver::calcdFdHSCAD(
     const word designVarName,
     Vec dFdHSC)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute dFdHSC using reverse-mode AD
@@ -6364,7 +6361,7 @@ void DASolver::calcdRdActTPsiAD(
     const word designVarName,
     Vec dRdActTPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdAct^T*Psi using reverse-mode AD
@@ -6494,7 +6491,7 @@ void DASolver::calcdRdHSCTPsiAD(
     const word designVarName,
     Vec dRdHSCTPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdHST^T*Psi using reverse-mode AD
@@ -6624,7 +6621,7 @@ void DASolver::calcdForcedWAD(
     const Vec fBarVec,
     Vec dForcedW)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Calculate dForcedW using reverse-mode AD
@@ -6704,7 +6701,7 @@ void DASolver::calcdAcousticsdWAD(
     word varName,
     word groupName)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Calculate dForcedW using reverse-mode AD
@@ -6831,7 +6828,7 @@ void DASolver::calcdRdWTPsiAD(
     const Vec psi,
     Vec dRdWTPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdW^T*Psi using reverse-mode AD
@@ -6890,7 +6887,7 @@ void DASolver::calcdRdWTPsiAD(
     const Vec psi,
     Vec dRdWTPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdW^T*Psi using reverse-mode AD
@@ -6966,7 +6963,7 @@ void DASolver::calcdRdWOldTPsiAD(
     const Vec psi,
     Vec dRdWOldTPsi)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Compute the matrix-vector products dRdWOld^T*Psi using reverse-mode AD
@@ -7038,7 +7035,7 @@ void DASolver::calcdRdWOldTPsiAD(
 
 void DASolver::registerStateVariableInput4AD(const label oldTimeLevel)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Register all state variables as the input for reverse-mode AD
@@ -7195,7 +7192,7 @@ void DASolver::registerStateVariableInput4AD(const label oldTimeLevel)
 
 void DASolver::deactivateStateVariableInput4AD(const label oldTimeLevel)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Deactivate all state variables as the input for reverse-mode AD
@@ -7353,7 +7350,7 @@ void DASolver::registerFieldVariableInput4AD(
     const word fieldName,
     const word fieldType)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Register field variables as the input for reverse-mode AD
@@ -7400,7 +7397,7 @@ void DASolver::deactivateFieldVariableInput4AD(
     const word fieldName,
     const word fieldType)
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Deacitvate field variables as the input for reverse-mode AD
@@ -7445,7 +7442,7 @@ void DASolver::deactivateFieldVariableInput4AD(
 
 void DASolver::registerResidualOutput4AD()
 {
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Register all residuals as the output for reverse-mode AD
@@ -7520,7 +7517,7 @@ void DASolver::registerForceOutput4AD(
     List<scalar>& fY,
     List<scalar>& fZ)
 {
-#if defined(CODI_AD_REVERSE)
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Register all force components as the output for reverse-mode AD
@@ -7545,7 +7542,7 @@ void DASolver::registerForceOutput4AD(
 void DASolver::registerAcousticOutput4AD(
     List<scalar>& a)
 {
-#if defined(CODI_AD_REVERSE)
+#ifdef DAOF_AD_MODE_A1S
     /*
     Description:
         Register all acoustic components as the output for reverse-mode AD
@@ -7563,7 +7560,7 @@ void DASolver::registerAcousticOutput4AD(
 
 void DASolver::normalizeGradientVec(Vec vecY)
 {
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_A1S) || defined(DAOF_AD_MODE_T1S)
     /*
     Description:
         Normalize the reverse-mode AD derivatives stored in vecY
@@ -7680,7 +7677,7 @@ void DASolver::assignSeeds2ResidualGradient(const double* seeds)
     Output:
         All residual variables in OpenFOAM will be set: stateRes[cellI].setGradient(vecX[localIdx])
     */
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_A1S) || defined(DAOF_AD_MODE_T1S)
 
     forAll(stateInfo_["volVectorStates"], idxI)
     {
@@ -7756,7 +7753,7 @@ void DASolver::assignSeeds2ResidualGradient(const double* seeds)
 
 void DASolver::assignVec2ResidualGradient(Vec vecX)
 {
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_A1S) || defined(DAOF_AD_MODE_T1S)
     /*
     Description:
         Assign the reverse-mode AD input seeds from vecX to the residuals in OpenFOAM
@@ -7851,7 +7848,7 @@ void DASolver::assignVec2ForceGradient(
     List<scalar>& fY,
     List<scalar>& fZ)
 {
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_A1S) || defined(DAOF_AD_MODE_T1S)
     /*
     Description:
         Assign the reverse-mode AD input seeds from fBarVec to the force vectors
@@ -7893,7 +7890,7 @@ void DASolver::assignVec2AcousticGradient(
     label offset,
     label step)
 {
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_A1S) || defined(DAOF_AD_MODE_T1S)
     /*
     Description:
         Assign the reverse-mode AD input seeds from fBarVec to the force vectors
@@ -7927,7 +7924,7 @@ void DASolver::assignStateGradient2Vec(
     Vec vecY,
     const label oldTimeLevel)
 {
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_A1S) || defined(DAOF_AD_MODE_T1S)
     /*
     Description:
         Set the reverse-mode AD derivatives from the state variables in OpenFOAM to vecY
@@ -8110,7 +8107,7 @@ void DASolver::assignFieldGradient2Vec(
     const word fieldType,
     Vec vecY)
 {
-#if defined(CODI_AD_FORWARD) || defined(CODI_AD_REVERSE)
+#if defined(DAOF_AD_MODE_A1S) || defined(DAOF_AD_MODE_T1S)
     /*
     Description:
         Set the reverse-mode AD derivatives from the field variables in OpenFOAM to vecY
@@ -8715,7 +8712,6 @@ void DASolver::calcPCMatWithFvMatrix(Mat PCMat)
         e.g., dR_U/dU, dR_p/dp, etc.
     */
 
-#ifndef SolidDASolver
     //DAUtility::writeMatrixASCII(PCMat, "MatOrig");
 
     // MatZeroEntries(PCMat);
@@ -8805,7 +8801,6 @@ void DASolver::calcPCMatWithFvMatrix(Mat PCMat)
     MatAssemblyEnd(PCMat, MAT_FINAL_ASSEMBLY);
 
     //DAUtility::writeMatrixASCII(PCMat, "MatNew");
-#endif
 }
 
 /*
@@ -10092,6 +10087,46 @@ void DASolver::writeAdjointFields(
         }
         adjointVar.write();
     }
+}
+
+/// get the unsteady adjoint start time index
+label DASolver::getUnsteadyFunctionStartTimeIndex()
+{
+    // we assume the adjoint is for deltaT to endTime
+    // but users can also prescribed a custom time range
+    scalar startTime = this->getRunTime().deltaT().value();
+    scalar startTimeRead = daOptionPtr_->getSubDictOption<scalar>("unsteadyAdjoint", "functionStartTime");
+    if (startTimeRead >= 0)
+    {
+        startTime = startTimeRead;
+    }
+    scalar deltaT = this->getRunTime().deltaT().value();
+#if defined(DAOF_AD_MODE_Passive)
+    scalar val = startTime / deltaT;
+#else
+    double val = startTime.getValue() / deltaT.getValue();
+#endif
+    return round(val);
+}
+
+/// get the unsteady adjoint end time index
+label DASolver::getUnsteadyFunctionEndTimeIndex()
+{
+    // we assume the adjoint is for deltaT to endTime
+    // but users can also prescribed a custom time range
+    scalar endTime = this->getRunTime().endTime().value();
+    scalar endTimeRead = daOptionPtr_->getSubDictOption<scalar>("unsteadyAdjoint", "functionEndTime");
+    if (endTimeRead >= 0)
+    {
+        endTime = endTimeRead;
+    }
+    scalar deltaT = this->getRunTime().deltaT().value();
+#if defined(DAOF_AD_MODE_Passive)
+    scalar val = endTime / deltaT;
+#else
+    double val = endTime.getValue() / deltaT.getValue();
+#endif
+    return round(val);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

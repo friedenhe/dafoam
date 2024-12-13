@@ -16,21 +16,27 @@ from Cython.Build import cythonize
 import os
 import petsc4py
 import numpy
+from shell_source import source
+
+#variables = source(os.getenv("DAFOAM_ROOT_PATH") + "/loadDAFoam.sh", "bash")
+#print(variables)
 
 os.environ["CC"] = "mpicc"
 os.environ["CXX"] = "mpicxx"
+
+#os.system("printenv")
 
 solverName = "pyDASolver"
 
 if os.getenv("DAOF_AD_MODE") == "Passive":
     libSuffix = ""
-    definedADMode = "-DDAOF_AD_MODE_Passive"
+    definedADMode = "-DDAOF_AD_MODE_Passive -DDAOF_AD_TOOL_DCO_FOAM"
 elif os.getenv("DAOF_AD_MODE") == "T1S":
     libSuffix = "ADF"
-    definedADMode = "-DDAOF_AD_MODE_T1S"
+    definedADMode = "-DDAOF_AD_MODE_T1S -DDAOF_AD_TOOL_CODI"
 elif os.getenv("DAOF_AD_MODE") == "A1S":
     libSuffix = "ADR"
-    definedADMode = "-DDAOF_AD_MODE_A1S"
+    definedADMode = "-DDAOF_AD_MODE_A1S -DDAOF_AD_TOOL_CODI"
 else:
     print("DAOF_AD_MODE not found!")
     exit(1)
@@ -65,10 +71,11 @@ ext = [
             os.getenv("FOAM_LIBBIN"),
             # CoDiPack and AdjointMPI
             os.getenv("FOAM_SRC") + "/../CoDiPack/include",
-            os.getenv("FOAM_SRC") + "/Pstream/mpi/AdjointMPI/include",
-            os.getenv("FOAM_SRC") + "/Pstream/mpi/AdjointMPI/src",
+            #os.getenv("FOAM_SRC") + "/Pstream/mpi/AdjointMPI/include",
+            #os.getenv("FOAM_SRC") + "/Pstream/mpi/AdjointMPI/src",
             # DAFoam include
             os.getenv("PETSC_DIR") + "/include",
+            os.getenv("MPI_ARCH_PATH") + "/include",
             petsc4py.get_include(),
             numpy.get_include(),
             os.getenv("PETSC_DIR") + "/" + os.getenv("PETSC_ARCH") + "/include",
@@ -126,7 +133,7 @@ ext = [
             "-m64",
             "-pthread",
             "-DOPENFOAM=2112",
-            "-DDAOF_AD_TOOL_DCO_FOAM",
+            definedADMode,
             #"-Dlinux64",
             #"-DWM_ARCH_OPTION=64",
             "-DWM_DP",
@@ -142,7 +149,6 @@ ext = [
             "-ftemplate-depth-100",
             "-fPIC",
             "-c",
-            definedADMode,
         ],
         # Extra link flags for OpenFOAM, users don't need to touch this
         extra_link_args=["-shared", "-Xlinker", "--add-needed", "-Xlinker", "--no-as-needed"],

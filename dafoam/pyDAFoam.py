@@ -20,6 +20,7 @@ import copy
 import shutil
 import numpy as np
 from mpi4py import MPI
+from shell_source import source
 from collections import OrderedDict
 import petsc4py
 from petsc4py import PETSc
@@ -3145,19 +3146,19 @@ class PYDAFOAM(object):
         solverName = self.getOption("solverName")
         solverArg = solverName + " -python " + self.parallelFlag
 
-        from .pyDASolver import pyDASolvers
+        from dafoam.A1S import pyDASolvers
 
         self.solver = pyDASolvers(solverArg.encode(), self.options)
 
         if self.getOption("useAD")["mode"] == "forward":
 
-            from .pyDASolverADF import pyDASolvers as pyDASolversAD
+            from dafoam.T1S import pyDASolvers as pyDASolversAD
 
             self.solverAD = pyDASolversAD(solverArg.encode(), self.options)
 
         elif self.getOption("useAD")["mode"] == "reverse":
 
-            from .pyDASolverADR import pyDASolvers as pyDASolversAD
+            from dafoam.A1S import pyDASolvers as pyDASolversAD
 
             self.solverAD = pyDASolversAD(solverArg.encode(), self.options)
 
@@ -3190,7 +3191,7 @@ class PYDAFOAM(object):
         Info("|                       Running Coloring Solver                            |")
         Info("+--------------------------------------------------------------------------+")
 
-        from .pyColoring import pyColoring
+        from .A1S.pyColoring import pyColoring
 
         solverArg = "Coloring -python " + self.parallelFlag
         solver = pyColoring(solverArg.encode(), self.options)
@@ -4154,7 +4155,7 @@ class PYDAFOAM(object):
         Get number of local adjoint states
         """
         return self.solver.getNLocalAdjointStates()
-    
+
     def getNLocalPoints(self):
         """
         Get number of local points
@@ -4218,7 +4219,7 @@ class PYDAFOAM(object):
             residuals[iRel] = resVec[i]
 
         return residuals
-    
+
     def setVolCoords(self, volCoords):
         """
         Set the volCoords to the OpenFOAM's mesh coordinate

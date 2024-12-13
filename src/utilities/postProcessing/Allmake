@@ -5,9 +5,9 @@ if [ -z "$WM_PROJECT" ]; then
   exit 1
 fi
 
-if [ "$WM_CODI_AD_MODE" = "CODI_AD_FORWARD" ]; then
+if [ "$DAOF_AD_MODE" = "DAOF_AD_MODE_A1S" ]; then
   exit 0
-elif [ "$WM_CODI_AD_MODE" = "CODI_AD_REVERSE" ]; then
+elif [ "$DAOF_AD_MODE" = "DAOF_AD_MODE_A1S" ]; then
   exit 0
 fi
 

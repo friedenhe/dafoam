@@ -818,6 +818,9 @@ public:
                 return idxI;
             }
         }
+        FatalErrorIn("getFunctionListIndex") << "function name and part not found!"
+                                             << exit(FatalError);
+        return -1;
     }
 
     /// calculate and save the unsteady objective function
@@ -833,34 +836,10 @@ public:
     }
 
     /// get the unsteady adjoint start time index
-    label getUnsteadyFunctionStartTimeIndex()
-    {
-        // we assume the adjoint is for deltaT to endTime
-        // but users can also prescribed a custom time range
-        scalar startTime = this->getRunTime().deltaT().value();
-        scalar startTimeRead = daOptionPtr_->getSubDictOption<scalar>("unsteadyAdjoint", "functionStartTime");
-        if (startTimeRead >= 0)
-        {
-            startTime = startTimeRead;
-        }
-        scalar deltaT = this->getRunTime().deltaT().value();
-        return round(startTime / deltaT);
-    }
+    label getUnsteadyFunctionStartTimeIndex();
 
     /// get the unsteady adjoint end time index
-    label getUnsteadyFunctionEndTimeIndex()
-    {
-        // we assume the adjoint is for deltaT to endTime
-        // but users can also prescribed a custom time range
-        scalar endTime = this->getRunTime().endTime().value();
-        scalar endTimeRead = daOptionPtr_->getSubDictOption<scalar>("unsteadyAdjoint", "functionEndTime");
-        if (endTimeRead >= 0)
-        {
-            endTime = endTimeRead;
-        }
-        scalar deltaT = this->getRunTime().deltaT().value();
-        return round(endTime / deltaT);
-    }
+    label getUnsteadyFunctionEndTimeIndex();
 
     /// check the mesh quality and return meshOK
     label checkMesh() const
@@ -1242,10 +1221,11 @@ public:
         return runTimePtr_->elapsedCpuTime();
     }
 
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
 
     /// global tape for reverse-mode AD
-    codi::RealReverse::Tape& globalADTape_;
+    //codi::RealReverse::Tape& globalADTape_;
+    codi::RealReverse::TapeType& globalADTape_;
 
 #endif
 
@@ -1311,10 +1291,14 @@ label DASolver::validateField(const classType& field)
     Description:
         Check if a field variable has invalid in it. If the values are valid, return 0
     */
-
+/*
     forAll(field, idxI)
     {
-        const scalar& val = field[idxI];
+#if defined(DAOF_AD_MODE_Passive)
+        scalar val = field[idxI];
+#else
+        double val = field[idxI].getValue();
+#endif
         if (std::isnan(val) || std::isinf(val) || fabs(val) > 1e15)
         {
             return 1;
@@ -1324,14 +1308,18 @@ label DASolver::validateField(const classType& field)
     {
         forAll(field.boundaryField()[patchI], faceI)
         {
-            const scalar& val = field.boundaryField()[patchI][faceI];
+#if defined(DAOF_AD_MODE_Passive)
+            scalar val = field.boundaryField()[patchI][faceI];
+#else
+            double val = field.boundaryField()[patchI][faceI].getValue();
+#endif
             if (std::isnan(val) || std::isinf(val) || fabs(val) > 1e15)
             {
                 return 1;
             }
         }
     }
-
+*/
     return 0;
 }
 
@@ -1342,12 +1330,16 @@ label DASolver::validateVectorField(const classType& field)
     Description:
         Check if a field variable has invalid in it. If the values are valid, return 0
     */
-
+/*
     forAll(field, idxI)
     {
         for (label compI = 0; compI < 3; compI++)
         {
-            const scalar& val = field[idxI][compI];
+#if defined(DAOF_AD_MODE_Passive)
+            scalar val = field[idxI][compI];
+#else
+            double val = field[idxI][compI].getValue();
+#endif
             if (std::isnan(val) || std::isinf(val) || fabs(val) > 1e15)
             {
                 return 1;
@@ -1360,7 +1352,11 @@ label DASolver::validateVectorField(const classType& field)
         {
             for (label compI = 0; compI < 3; compI++)
             {
-                const scalar& val = field.boundaryField()[patchI][faceI][compI];
+#if defined(DAOF_AD_MODE_Passive)
+                scalar val = field.boundaryField()[patchI][faceI][compI];
+#else
+                double val = field.boundaryField()[patchI][faceI][compI].getValue();
+#endif
                 if (std::isnan(val) || std::isinf(val) || fabs(val) > 1e15)
                 {
                     return 1;
@@ -1368,7 +1364,7 @@ label DASolver::validateVectorField(const classType& field)
             }
         }
     }
-
+*/
     return 0;
 }
 

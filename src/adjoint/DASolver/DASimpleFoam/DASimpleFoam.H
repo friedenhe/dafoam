@@ -101,9 +101,9 @@ protected:
     /// pressure reference value
     scalar pRefValue_ = 0.0;
 
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
     /// tape positions for consistent fixed-point adjoint
-    using Position = typename codi::RealReverse::Tape::Position;
+    using Position = typename codi::RealReverse::TapeType::Position;
     Position adjResStart_;
     Position adjResEnd_;
     Position gradPStart_;

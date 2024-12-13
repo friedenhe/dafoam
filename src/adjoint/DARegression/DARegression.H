@@ -105,7 +105,7 @@ protected:
     /// a list of scalarField to save the input features
     HashTable<PtrList<volScalarField>> features_;
 
-#if defined(CODI_AD_FORWARD)
+#if defined(DAOF_AD_MODE_T1S)
     /// a flatten double feature array for externalTensorFlow model (forward AD)
     double* featuresFlattenArrayDouble_;
 
@@ -139,7 +139,7 @@ public:
     {
         if (useExternalModel_)
         {
-#if defined(CODI_AD_FORWARD)
+#if defined(DAOF_AD_MODE_T1S)
             delete[] featuresFlattenArrayDouble_;
             delete[] outputFieldArrayDouble_;
 #else
@@ -218,8 +218,8 @@ public:
         }
     }
 
-#ifdef CODI_AD_REVERSE
-
+#ifdef DAOF_AD_MODE_A1S
+/*
     /// these two functions are for AD external functions
     static void betaCompute(
         const double* x,
@@ -242,6 +242,7 @@ public:
     {
         DAUtility::pyCalcBetaJacVecProdInterface(x, x_b, n, y, y_b, m, DAUtility::pyCalcBetaJacVecProd);
     }
+*/
 #endif
 };
 

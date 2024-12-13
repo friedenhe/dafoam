@@ -354,7 +354,7 @@ public:
     /// Update the OpenFOAM field values (including both internal and boundary fields) based on the states array
     void updateOFFieldArray(const double* states)
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         DASolverPtr_->updateOFField(states);
 #else
         label localSize = this->getNLocalAdjointStates();
@@ -371,7 +371,7 @@ public:
     /// Assign the OpenFOAM field values to the states array
     void getOFField(double* states)
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         DASolverPtr_->getOFField(states);
 #else
         label localSize = this->getNLocalAdjointStates();
@@ -379,7 +379,7 @@ public:
         DASolverPtr_->getOFField(statesArray);
         for (label i = 0; i < localSize; i++)
         {
-            states[i] = statesArray[i].value();
+            states[i] = statesArray[i].getValue();
         }
         delete[] statesArray;
 #endif
@@ -394,7 +394,7 @@ public:
     /// Update the OpenFoam mesh point coordinates based on the point vector xvVec
     void updateOFMeshArray(const double* volCoords)
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         DASolverPtr_->updateOFMesh(volCoords);
 #else
         label localSize = this->getNLocalPoints() * 3;
@@ -518,7 +518,7 @@ public:
         const double* volCoords,
         double* surfCoords)
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         DASolverPtr_->calcCouplingFaceCoords(volCoords, surfCoords);
         return;
 #endif
@@ -547,7 +547,7 @@ public:
         const double* states,
         double* thermal)
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         DASolverPtr_->getThermal(volCoords, states, thermal);
         return;
 #endif
@@ -799,7 +799,7 @@ public:
     /// return the endTime
     double getEndTime()
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         return DASolverPtr_->getRunTime().endTime().value();
 #endif
         FatalErrorIn("getEndTime") << "should not call this func in AD mode!"
@@ -809,7 +809,7 @@ public:
     /// return the deltaT
     double getDeltaT()
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         return DASolverPtr_->getRunTime().deltaT().value();
 #endif
         FatalErrorIn("getDeltaT") << "should not call this func in AD mode!"
@@ -819,7 +819,7 @@ public:
     /// get the unsteady adjoint start time
     int getUnsteadyFunctionStartTimeIndex()
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         return DASolverPtr_->getUnsteadyFunctionStartTimeIndex();
 #endif
         FatalErrorIn("getUnsteadyFunctionStartTimeIndex") << "should not call this func in AD mode!"
@@ -829,7 +829,7 @@ public:
     /// get the unsteady adjoint end time
     int getUnsteadyFunctionEndTimeIndex()
     {
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         return DASolverPtr_->getUnsteadyFunctionEndTimeIndex();
 #endif
         FatalErrorIn("getUnsteadyFunctionEndTimeIndex") << "should not call this func in AD mode!"
@@ -1020,7 +1020,7 @@ public:
     double getLatestTime()
     {
         double latestTime = 0.0;
-#if !defined(CODI_AD_REVERSE) && !defined(CODI_AD_FORWARD)
+#if !defined(DAOF_AD_MODE_A1S) && !defined(DAOF_AD_MODE_T1S)
         latestTime = DASolverPtr_->getLatestTime();
 #else
         scalar tmp = DASolverPtr_->getLatestTime();

@@ -49,7 +49,7 @@ void DAField::resetOFSeeds()
         OpenFoam field variables's gradients will be reset to zeros
     */
 
-#ifdef CODI_AD_REVERSE
+#ifdef DAOF_AD_MODE_A1S
 
     const objectRegistry& db = mesh_.thisDb();
 

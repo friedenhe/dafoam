@@ -138,7 +138,7 @@ DARegression::DARegression(
         if (useExternalModel_)
         {
 
-#if defined(CODI_AD_FORWARD)
+#if defined(DAOF_AD_MODE_T1S)
             featuresFlattenArrayDouble_ = new double[featuresFlattenArraySize_];
             outputFieldArrayDouble_ = new double[mesh_.nCells()];
 #else
@@ -499,8 +499,8 @@ label DARegression::compute()
             DAUtility::pySetModelNameInterface(modelName.c_str(), DAUtility::pySetModelName);
 
             // NOTE: forward mode not supported..
-#if defined(CODI_AD_REVERSE)
-
+#if defined(DAOF_AD_MODE_A1S)
+/*
             // assign features_ to featuresFlattenArray_
             // here featuresFlattenArray_ should be order like this to facilitate Python layer reshape:
             // [(cell1, feature1), (cell1, feature2), ... (cell2, feature1), (cell2, feature2) ... ]
@@ -546,8 +546,9 @@ label DARegression::compute()
             {
                 outputField[cellI] = outputFieldArray_[cellI];
             }
-
-#elif defined(CODI_AD_FORWARD)
+*/
+#elif defined(DAOF_AD_MODE_T1S)
+/*
             // assign features_ to featuresFlattenArray_
             // here featuresFlattenArray_ should be order like this to facilitate Python layer reshape:
             // [(cell1, feature1), (cell1, feature2), ... (cell2, feature1), (cell2, feature2) ... ]
@@ -576,7 +577,7 @@ label DARegression::compute()
             {
                 outputField[cellI] = outputFieldArrayDouble_[cellI];
             }
-
+*/
 #else
             // assign features_ to featuresFlattenArray_
             // here featuresFlattenArray_ should be order like this to facilitate Python layer reshape:
@@ -696,22 +697,28 @@ label DARegression::checkOutput(word modelName, volScalarField& outputField)
     label isBounded = 0;
     forAll(mesh_.cells(), cellI)
     {
-        if (std::isnan(outputField[cellI]))
+
+#if defined(DAOF_AD_MODE_Passive)
+        scalar val = outputField[cellI];
+#else
+        double val = outputField[cellI].value();
+#endif
+        if (std::isnan(val))
         {
             outputField[cellI] = defaultOutputValue_[modelName];
             isNaN = 1;
         }
-        if (std::isinf(outputField[cellI]))
+        if (std::isinf(val))
         {
             outputField[cellI] = defaultOutputValue_[modelName];
             isInf = 1;
         }
-        if (outputField[cellI] > outputUpperBound_[modelName])
+        if (val > outputUpperBound_[modelName])
         {
             outputField[cellI] = outputUpperBound_[modelName];
             isBounded = 1;
         }
-        if (outputField[cellI] < outputLowerBound_[modelName])
+        if (val < outputLowerBound_[modelName])
         {
             outputField[cellI] = outputLowerBound_[modelName];
             isBounded = 1;

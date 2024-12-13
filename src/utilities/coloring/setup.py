@@ -24,13 +24,13 @@ solverName = "pyColoring"
 
 if os.getenv("DAOF_AD_MODE") == "Passive":
     libSuffix = ""
-    definedADMode = "-DDAOF_AD_MODE_Passive"
+    definedADMode = "-DDAOF_AD_MODE_Passive -DDAOF_AD_TOOL_DCO_FOAM"
 elif os.getenv("DAOF_AD_MODE") == "T1S":
     libSuffix = "ADF"
-    definedADMode = "-DDAOF_AD_MODE_T1S"
+    definedADMode = "-DDAOF_AD_MODE_T1S -DDAOF_AD_TOOL_CODI"
 elif os.getenv("DAOF_AD_MODE") == "A1S":
     libSuffix = "ADR"
-    definedADMode = "-DDAOF_AD_MODE_A1S"
+    definedADMode = "-DDAOF_AD_MODE_A1S -DDAOF_AD_TOOL_CODI"
 else:
     print("DAOF_AD_MODE not found!")
     exit(1)
@@ -124,7 +124,6 @@ ext = [
             "-m64",
             "-pthread",
             "-DOPENFOAM=2112",
-            "-DDAOF_AD_TOOL_DCO_FOAM",
             #"-Dlinux64",
             #"-DWM_ARCH_OPTION=64",
             "-DWM_DP",
