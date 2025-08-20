@@ -448,7 +448,7 @@ class DAFoamSolver(ImplicitComponent):
             dFdW = DASolver.array2Vec(dFdWArray)
 
             # run coloring
-            if self.DASolver.getOption("adjUseColoring") and self.runColoring:
+            if self.runColoring:
                 self.DASolver.solver.runColoring()
                 self.runColoring = False
 
