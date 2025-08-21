@@ -36,7 +36,7 @@
 #include "DASolver.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fvCFD.H"
-#include "CMULESDF.H"
+#include "MULESDF.H"
 #include "EulerDdtScheme.H"
 #include "localEulerDdtScheme.H"
 #include "CrankNicolsonDdtScheme.H"
@@ -120,6 +120,8 @@ protected:
 
     /// whether is a restart run
     bool alphaRestart_ = false;
+
+    autoPtr<MULESDF> MULESDFPtr_;
 
 public:
     TypeName("DAInterFoam");

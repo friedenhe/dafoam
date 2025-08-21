@@ -20,7 +20,7 @@
 #include "EulerDdtScheme.H"
 #include "gaussConvectionScheme.H"
 #include "upwind.H"
-#include "CMULESDF.H"
+#include "MULESDF.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -66,7 +66,9 @@ protected:
     /// pimpleControl object which will be initialized in this class
     pimpleControl pimple_;
 
-    bool  MULESCorr_;
+    bool MULESCorr_;
+
+    MULESDF& MULESDF_;
 
 public:
     TypeName("DAInterFoam");

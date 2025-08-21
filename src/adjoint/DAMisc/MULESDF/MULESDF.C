@@ -1,7 +1,12 @@
 /*---------------------------------------------------------------------------*\
-Description:
+
+    DAFoam  : Discrete Adjoint with OpenFOAM
+    Version : v4
+
+    Description:
         A modified version of CMULES from
         src/finiteVolume/fvMatrices/solvers/MULES
+
 License
     This file is part of OpenFOAM.
 
@@ -21,9 +26,46 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "MULESDF.H"
-#include "profiling.H"
+
+namespace Foam
+{
+defineTypeNameAndDebug(MULESDF, 0);
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+Foam::MULESDF::MULESDF(
+    fvMesh& mesh
+)
+    : regIOobject(
+        IOobject(
+            "MULESDF", 
+            mesh.time().timeName(),
+            mesh, // register to mesh
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            true // always register object
+            ))
+{
+}
+
+void Foam::MULESDF::correct(
+    volScalarField& psi,
+    const surfaceScalarField& phi,
+    surfaceScalarField& phiPsiCorr,
+    const scalar psiMax,
+    const scalar psiMin)
+{
+    correct(
+        geometricOneField(),
+        psi,
+        phi,
+        phiPsiCorr,
+        zeroField(),
+        zeroField(),
+        psiMax,
+        psiMin);
+}
 
 void Foam::MULESDF::explicitSolve(
     volScalarField& psi,

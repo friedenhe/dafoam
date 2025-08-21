@@ -47,7 +47,8 @@ DAResidualInterFoam::DAResidualInterFoam(
       turbulence_(mesh_.thisDb().lookupObjectRef<incompressible::turbulenceModel>("turbulenceProperties")),
       daTurb_(const_cast<DATurbulenceModel&>(daModel.getDATurbulenceModel())),
       // create simpleControl
-      pimple_(const_cast<fvMesh&>(mesh))
+      pimple_(const_cast<fvMesh&>(mesh)),
+      MULESDF_(mesh_.thisDb().lookupObjectRef<MULESDF>("MULESDF"))
 {
     const dictionary& alphaControls = mesh.solverDict(alpha1_.name());
 

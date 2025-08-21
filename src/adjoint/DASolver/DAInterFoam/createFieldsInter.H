@@ -144,3 +144,5 @@ alphaPhi10Ptr_.reset(
 
 // MULES Correction
 // tmp<surfaceScalarField> talphaPhi1Corr0;
+
+MULESDFPtr_.reset(new MULESDF(mesh));

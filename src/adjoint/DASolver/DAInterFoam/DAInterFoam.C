@@ -55,7 +55,8 @@ DAInterFoam::DAInterFoam(
       alphaPhi10Ptr_(nullptr),
       mixturePtr_(nullptr),
       turbulencePtr_(nullptr),
-      daTurbulenceModelPtr_(nullptr)
+      daTurbulenceModelPtr_(nullptr),
+      MULESDFPtr_(nullptr)
 {
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

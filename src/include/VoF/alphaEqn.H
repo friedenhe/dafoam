@@ -103,7 +103,7 @@
             tmp<surfaceScalarField> talphaPhi1Corr(talphaPhi1Un() - alphaPhi10);
             volScalarField alpha10("alpha10", alpha1);
 
-            MULESDF::correct(
+            MULESDFPtr_->correct(
                 geometricOneField(),
                 alpha1,
                 talphaPhi1Un(),
@@ -128,7 +128,7 @@
         {
             alphaPhi10 = talphaPhi1Un;
 
-            MULESDF::explicitSolve(
+            MULESDFPtr_->explicitSolve(
                 geometricOneField(),
                 alpha1,
                 phiCN,

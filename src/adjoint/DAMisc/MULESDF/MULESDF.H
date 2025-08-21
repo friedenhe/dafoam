@@ -1,5 +1,9 @@
 /*---------------------------------------------------------------------------*\
-Description:
+
+    DAFoam  : Discrete Adjoint with OpenFOAM
+    Version : v4
+
+    Description:
         A modified version of CMULES from
         src/finiteVolume/fvMatrices/solvers/MULES
         
@@ -20,27 +24,34 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Global
-    MULESDF
+    MULES
 
 Description
-    MULESDF: Multidimensional universal limiter for explicit solution.
+    CMULES: Multidimensional universal limiter for
+    explicit corrected implicit solution.
 
     Solve a convective-only transport equation using an explicit universal
-    multi-dimensional limiter.
+    multi-dimensional limiter to correct an implicit conservative bounded
+    obtained using rigorously bounded schemes such as Euler-implicit in time
+    upwind in space.
 
     Parameters are the variable to solve, the normal convective flux and the
     actual explicit flux of the variable which is also used to return limited
     flux used in the bounded-solution.
 
 SourceFiles
-    MULESDF.C
-    MULESDFTemplates.C
+    CMULES.C
+    CMULESTemplates.C
 
 \*---------------------------------------------------------------------------*/
 
 #ifndef MULESDF_H
 #define MULESDF_H
 
+#include "MULESDF.H"
+#include "EulerDdtScheme.H"
+#include "localEulerDdtScheme.H"
+#include "gaussConvectionScheme.H"
 #include "volFieldsFwd.H"
 #include "surfaceFieldsFwd.H"
 #include "primitiveFieldsFwd.H"
@@ -48,85 +59,160 @@ SourceFiles
 #include "zero.H"
 #include "zeroField.H"
 #include "UPtrList.H"
+#include "upwind.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-namespace MULESDF
+
+class MULESDF
+    : public regIOobject
 {
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    //- No copy construct
+    MULESDF(const MULESDF&) = delete;
 
-template<class RdeltaTType, class RhoType, class SpType, class SuType>
-void explicitSolve(
-    const RdeltaTType& rDeltaT,
-    const RhoType& rho,
-    volScalarField& psi,
-    const surfaceScalarField& phiPsi,
-    const SpType& Sp,
-    const SuType& Su);
+    //- No copy assignment
+    void operator=(const MULESDF&) = delete;
 
-template<class RhoType, class SpType, class SuType>
-void explicitSolve(
-    const RhoType& rho,
-    volScalarField& psi,
-    const surfaceScalarField& phiPsi,
-    const SpType& Sp,
-    const SuType& Su);
+public:
+    // Declare name of the class and its debug switch
+    ClassName("MULESDF");
 
-template<class RhoType, class SpType, class SuType>
-void explicitSolve(
-    const RhoType& rho,
-    volScalarField& psi,
-    const surfaceScalarField& phiBD,
-    surfaceScalarField& phiPsi,
-    const SpType& Sp,
-    const SuType& Su,
-    const scalar psiMax,
-    const scalar psiMin);
+    //- Constructor
+    MULESDF(fvMesh& mesh);
 
-void explicitSolve(
-    volScalarField& psi,
-    const surfaceScalarField& phiBD,
-    surfaceScalarField& phiPsi,
-    const scalar psiMax,
-    const scalar psiMin);
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-template<class RdeltaTType, class RhoType, class SpType, class SuType>
-void limiter(
-    scalarField& allLambda,
-    const RdeltaTType& rDeltaT,
-    const RhoType& rho,
-    const volScalarField& psi,
-    const surfaceScalarField& phiBD,
-    const surfaceScalarField& phiCorr,
-    const SpType& Sp,
-    const SuType& Su,
-    const scalar psiMax,
-    const scalar psiMin);
+    template<class RdeltaTType, class RhoType, class SpType, class SuType>
+    void correct(
+        const RdeltaTType& rDeltaT,
+        const RhoType& rho,
+        volScalarField& psi,
+        const surfaceScalarField& phi,
+        const surfaceScalarField& phiCorr,
+        const SpType& Sp,
+        const SuType& Su);
 
-template<class RdeltaTType, class RhoType, class SpType, class SuType>
-void limit(
-    const RdeltaTType& rDeltaT,
-    const RhoType& rho,
-    const volScalarField& psi,
-    const surfaceScalarField& phi,
-    surfaceScalarField& phiPsi,
-    const SpType& Sp,
-    const SuType& Su,
-    const scalar psiMax,
-    const scalar psiMin,
-    const bool returnCorr);
+    template<class RhoType, class SpType, class SuType>
+    void correct(
+        const RhoType& rho,
+        volScalarField& psi,
+        const surfaceScalarField& phi,
+        surfaceScalarField& phiCorr,
+        const SpType& Sp,
+        const SuType& Su,
+        const scalar psiMax,
+        const scalar psiMin);
 
-void limitSum(UPtrList<scalarField>& phiPsiCorrs);
+    void correct(
+        volScalarField& psi,
+        const surfaceScalarField& phi,
+        surfaceScalarField& phiCorr,
+        const scalar psiMax,
+        const scalar psiMin);
 
-template<class SurfaceScalarFieldList>
-void limitSum(SurfaceScalarFieldList& phiPsiCorrs);
+    template<class RdeltaTType, class RhoType, class SpType, class SuType>
+    void limiterCorr(
+        scalarField& allLambda,
+        const RdeltaTType& rDeltaT,
+        const RhoType& rho,
+        const volScalarField& psi,
+        const surfaceScalarField& phi,
+        const surfaceScalarField& phiCorr,
+        const SpType& Sp,
+        const SuType& Su,
+        const scalar psiMax,
+        const scalar psiMin);
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    template<class RdeltaTType, class RhoType, class SpType, class SuType>
+    void limitCorr(
+        const RdeltaTType& rDeltaT,
+        const RhoType& rho,
+        const volScalarField& psi,
+        const surfaceScalarField& phi,
+        surfaceScalarField& phiCorr,
+        const SpType& Sp,
+        const SuType& Su,
+        const scalar psiMax,
+        const scalar psiMin);
 
-} // End namespace MULESDF
+    template<class RdeltaTType, class RhoType, class SpType, class SuType>
+    void explicitSolve(
+        const RdeltaTType& rDeltaT,
+        const RhoType& rho,
+        volScalarField& psi,
+        const surfaceScalarField& phiPsi,
+        const SpType& Sp,
+        const SuType& Su);
+
+    template<class RhoType, class SpType, class SuType>
+    void explicitSolve(
+        const RhoType& rho,
+        volScalarField& psi,
+        const surfaceScalarField& phiPsi,
+        const SpType& Sp,
+        const SuType& Su);
+
+    template<class RhoType, class SpType, class SuType>
+    void explicitSolve(
+        const RhoType& rho,
+        volScalarField& psi,
+        const surfaceScalarField& phiBD,
+        surfaceScalarField& phiPsi,
+        const SpType& Sp,
+        const SuType& Su,
+        const scalar psiMax,
+        const scalar psiMin);
+
+    void explicitSolve(
+        volScalarField& psi,
+        const surfaceScalarField& phiBD,
+        surfaceScalarField& phiPsi,
+        const scalar psiMax,
+        const scalar psiMin);
+
+    template<class RdeltaTType, class RhoType, class SpType, class SuType>
+    void limiter(
+        scalarField& allLambda,
+        const RdeltaTType& rDeltaT,
+        const RhoType& rho,
+        const volScalarField& psi,
+        const surfaceScalarField& phiBD,
+        const surfaceScalarField& phiCorr,
+        const SpType& Sp,
+        const SuType& Su,
+        const scalar psiMax,
+        const scalar psiMin);
+
+    template<class RdeltaTType, class RhoType, class SpType, class SuType>
+    void limit(
+        const RdeltaTType& rDeltaT,
+        const RhoType& rho,
+        const volScalarField& psi,
+        const surfaceScalarField& phi,
+        surfaceScalarField& phiPsi,
+        const SpType& Sp,
+        const SuType& Su,
+        const scalar psiMax,
+        const scalar psiMin,
+        const bool returnCorr);
+
+    void limitSum(UPtrList<scalarField>& phiPsiCorrs);
+
+    template<class SurfaceScalarFieldList>
+    void limitSum(SurfaceScalarFieldList& phiPsiCorrs);
+
+    /// virtual function for regIOobject
+    bool writeData(Ostream& os) const
+    {
+        return true;
+    }
+
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+}; // End class MULESDF
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
