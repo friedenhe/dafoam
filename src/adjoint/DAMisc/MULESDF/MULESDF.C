@@ -35,11 +35,10 @@ defineTypeNameAndDebug(MULESDF, 0);
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 Foam::MULESDF::MULESDF(
-    fvMesh& mesh
-)
+    fvMesh& mesh)
     : regIOobject(
         IOobject(
-            "MULESDF", 
+            "MULESDF",
             mesh.time().timeName(),
             mesh, // register to mesh
             IOobject::NO_READ,
