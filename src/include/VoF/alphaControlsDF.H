@@ -4,6 +4,8 @@ label nAlphaCorr(alphaControls.get<label>("nAlphaCorr"));
 
 label nAlphaSubCycles(alphaControls.get<label>("nAlphaSubCycles"));
 
+bool MULESCorr(alphaControls.lookupOrDefault("MULESCorr", false));
+
 // Isotropic compression coefficient
 scalar icAlpha(
     alphaControls.lookupOrDefault<scalar>("icAlpha", 0));

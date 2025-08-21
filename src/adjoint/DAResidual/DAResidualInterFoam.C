@@ -49,6 +49,9 @@ DAResidualInterFoam::DAResidualInterFoam(
       // create simpleControl
       pimple_(const_cast<fvMesh&>(mesh))
 {
+    const dictionary& alphaControls = mesh.solverDict(alpha1_.name());
+
+    MULESCorr_ = alphaControls.lookupOrDefault("MULESCorr", false);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -87,6 +90,9 @@ void DAResidualInterFoam::calcResiduals(const dictionary& options)
     // ******** alpha1 Residuals **********
     // copied and modified from alphaEqn.H
 
+    word alphaScheme("div(phi,alpha)");
+    word alpharScheme("div(phirb,alpha)");
+
     volScalarField& alpha1(mixture_.alpha1());
     volScalarField& alpha2(mixture_.alpha2());
     const dimensionedScalar& rho1 = mixture_.rho1();
@@ -111,26 +117,27 @@ void DAResidualInterFoam::calcResiduals(const dictionary& options)
 
     tmp<surfaceScalarField> phiCN(phi_);
 
+    if (MULESCorr_)
+    {
 #include "alphaSuSp.H"
-
-    fvScalarMatrix alpha1Eqn(
-        (
-            fv::EulerDdtScheme<scalar>(mesh_).fvmDdt(alpha1))
-            + fv::gaussConvectionScheme<scalar>(
-                  mesh_,
-                  phiCN,
-                  upwind<scalar>(mesh_, phiCN))
-                  .fvmDiv(phiCN, alpha1)
-        == Su + fvm::Sp(Sp + divU, alpha1));
-    /*
-    tmp<surfaceScalarField> talphaPhi1UD(alpha1Eqn.flux());
-    alphaPhi10_ = talphaPhi1UD();
-
+        fvScalarMatrix alpha1Eqn(
+            (
+                fv::EulerDdtScheme<scalar>(mesh_).fvmDdt(alpha1))
+                + fv::gaussConvectionScheme<scalar>(
+                      mesh_,
+                      phiCN,
+                      upwind<scalar>(mesh_, phiCN))
+                      .fvmDiv(phiCN, alpha1)
+            // - fvm::Sp(fvc::ddt(dimensionedScalar("1", dimless, 1), mesh)
+            //           + fvc::div(phiCN), alpha1)
+            == Su + fvm::Sp(Sp + divU, alpha1));
+        alpha1Res_ = alpha1Eqn & alpha1_;
+        normalizeResiduals(alpha1Res);
+    }
+    else
+    {
 
         surfaceScalarField phir(phic * mixture_.nHatf());
-
-        word alphaScheme("div(phi,alpha)");
-        word alpharScheme("div(phirb,alpha)");
 
         tmp<surfaceScalarField> talphaPhi1Un(
             fvc::flux(
@@ -142,40 +149,30 @@ void DAResidualInterFoam::calcResiduals(const dictionary& options)
                 alpha1,
                 alpharScheme));
 
-        tmp<surfaceScalarField> talphaPhi1Corr(talphaPhi1Un() - alphaPhi10_);
-        volScalarField alpha10("alpha10", alpha1);
+        alphaPhi10_ = talphaPhi1Un;
 
-        const scalar rDeltaT = 1.0 / mesh_.time().deltaTValue();
+        const scalar& rDeltaT = 1.0 / mesh_.time().deltaTValue();
 
-        MULESDF::limitCorr(
-            rDeltaT,
-            geometricOneField(),
-            alpha1,
-            talphaPhi1Un(),
-            talphaPhi1Corr.ref(),
-            Sp,
-            (-Sp * alpha1)(),
-            1,
-            0);
+        scalarField psiIf = alpha1;
+        const scalarField& psi0 = alpha1.oldTime();
 
-        // Under-relax the correction for all but the 1st corrector
-        if (aCorr == 0)
+        forAll(psiIf, cellI)
         {
-            alphaPhi10_ += talphaPhi1Corr();
+            psiIf[cellI] = 0.0;
         }
-        else
+        fvc::surfaceIntegrate(psiIf, alphaPhi10_);
+
+        forAll(alpha1Res_, cellI)
         {
-            //alpha1 = 0.5 * alpha1 + 0.5 * alpha10;
-            alphaPhi10_ += 0.5 * talphaPhi1Corr();
+            alpha1Res_[cellI] = ((rho_.oldTime()[cellI] * psi0[cellI] * rDeltaT - psiIf[cellI])
+                                     / (rho_[cellI] * rDeltaT)
+                                 - alpha1_[cellI])
+                * rDeltaT / mesh_.V()[cellI];
         }
-
-
-    // #include "rhofs.H"
-
-    // rhoPhi_ = alphaPhi10_ * (rho1f - rho2f) + phiCN * rho2f;
-*/
-    alpha1Res_ = alpha1Eqn & alpha1_;
-    normalizeResiduals(alpha1Res);
+        normalizeResiduals(alpha1Res);
+        // update rhoPhi here
+        rhoPhi_ = alphaPhi10_ * (rho1 - rho2) + phiCN * rho2;
+    }
 
     // ******** U Residuals **********
     // copied and modified from UEqn.H
@@ -268,6 +265,183 @@ void DAResidualInterFoam::calcPCMatWithFvMatrix(Mat PCMat)
     Description:
         Calculate the diagonal block of the preconditioner matrix dRdWTPC using the fvMatrix
     */
+
+    const labelUList& owner = mesh_.owner();
+    const labelUList& neighbour = mesh_.neighbour();
+
+    PetscScalar val;
+
+    dictionary normStateDict = daOption_.getAllOptions().subDict("normalizeStates");
+    wordList normResDict = daOption_.getOption<wordList>("normalizeResiduals");
+
+    scalar UScaling = 1.0;
+    if (normStateDict.found("U"))
+    {
+        UScaling = normStateDict.getScalar("U");
+    }
+    scalar UResScaling = 1.0;
+
+    fvVectorMatrix UEqn(
+        fvm::ddt(rho_, U_)
+        + fvm::div(rhoPhi_, U_, "div(pc)")
+        + turbulence_.divDevRhoReff(rho_, U_));
+
+    UEqn.relax(1.0);
+
+    // set diag
+    forAll(U_, cellI)
+    {
+        if (normResDict.found("URes"))
+        {
+            UResScaling = mesh_.V()[cellI];
+        }
+        for (label i = 0; i < 3; i++)
+        {
+            PetscInt rowI = daIndex_.getGlobalAdjointStateIndex("U", cellI, i);
+            PetscInt colI = rowI;
+            scalarField D = UEqn.D();
+            scalar val1 = D[cellI] * UScaling / UResScaling;
+            assignValueCheckAD(val, val1);
+            MatSetValues(PCMat, 1, &rowI, 1, &colI, &val, INSERT_VALUES);
+        }
+    }
+
+    // set lower/owner
+    for (label faceI = 0; faceI < daIndex_.nLocalInternalFaces; faceI++)
+    {
+        label ownerCellI = owner[faceI];
+        label neighbourCellI = neighbour[faceI];
+
+        if (normResDict.found("URes"))
+        {
+            UResScaling = mesh_.V()[neighbourCellI];
+        }
+
+        for (label i = 0; i < 3; i++)
+        {
+            PetscInt rowI = daIndex_.getGlobalAdjointStateIndex("U", neighbourCellI, i);
+            PetscInt colI = daIndex_.getGlobalAdjointStateIndex("U", ownerCellI, i);
+            scalar val1 = UEqn.lower()[faceI] * UScaling / UResScaling;
+            assignValueCheckAD(val, val1);
+            MatSetValues(PCMat, 1, &colI, 1, &rowI, &val, INSERT_VALUES);
+        }
+    }
+
+    // set upper/neighbour
+    for (label faceI = 0; faceI < daIndex_.nLocalInternalFaces; faceI++)
+    {
+        label ownerCellI = owner[faceI];
+        label neighbourCellI = neighbour[faceI];
+
+        if (normResDict.found("URes"))
+        {
+            UResScaling = mesh_.V()[ownerCellI];
+        }
+
+        for (label i = 0; i < 3; i++)
+        {
+            PetscInt rowI = daIndex_.getGlobalAdjointStateIndex("U", ownerCellI, i);
+            PetscInt colI = daIndex_.getGlobalAdjointStateIndex("U", neighbourCellI, i);
+            scalar val1 = UEqn.upper()[faceI] * UScaling / UResScaling;
+            assignValueCheckAD(val, val1);
+            MatSetValues(PCMat, 1, &colI, 1, &rowI, &val, INSERT_VALUES);
+        }
+    }
+
+    label pRefCell = 0;
+    scalar pRefValue = 0.0;
+
+    volScalarField rAU(1.0 / UEqn.A());
+    surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
+    autoPtr<volVectorField> HbyAPtr = nullptr;
+    label useConstrainHbyA = daOption_.getOption<label>("useConstrainHbyA");
+    if (useConstrainHbyA)
+    {
+        HbyAPtr.reset(new volVectorField(constrainHbyA(rAU * UEqn.H(), U_, p_rgh_)));
+    }
+    else
+    {
+        HbyAPtr.reset(new volVectorField("HbyA", U_));
+        HbyAPtr() = rAU * UEqn.H();
+    }
+    volVectorField& HbyA = HbyAPtr();
+
+    surfaceScalarField phiHbyA(
+        "phiHbyA",
+        fvc::flux(HbyA));
+
+    surfaceScalarField phig(
+        (
+            mixture_.surfaceTensionForce()
+            - ghf_ * fvc::snGrad(rho_))
+        * rAUf * mesh_.magSf());
+
+    phiHbyA += phig;
+
+    fvScalarMatrix p_rghEqn(
+        fvm::laplacian(rAUf, p_rgh_)
+        == fvc::div(phiHbyA));
+
+    p_rghEqn.setReference(pRefCell, pRefValue);
+
+    // ********* p
+    scalar pScaling = 1.0;
+    if (normStateDict.found("p"))
+    {
+        pScaling = normStateDict.getScalar("p");
+    }
+    scalar pResScaling = 1.0;
+    // set diag
+    forAll(p_rgh_, cellI)
+    {
+        if (normResDict.found("pRes"))
+        {
+            pResScaling = mesh_.V()[cellI];
+        }
+
+        PetscInt rowI = daIndex_.getGlobalAdjointStateIndex("p_rgh", cellI);
+        PetscInt colI = rowI;
+        scalarField D = p_rghEqn.D();
+        scalar val1 = D[cellI] * pScaling / pResScaling;
+        assignValueCheckAD(val, val1);
+        MatSetValues(PCMat, 1, &rowI, 1, &colI, &val, INSERT_VALUES);
+    }
+
+    // set lower/owner
+    for (label faceI = 0; faceI < daIndex_.nLocalInternalFaces; faceI++)
+    {
+        label ownerCellI = owner[faceI];
+        label neighbourCellI = neighbour[faceI];
+
+        if (normResDict.found("pRes"))
+        {
+            pResScaling = mesh_.V()[neighbourCellI];
+        }
+
+        PetscInt rowI = daIndex_.getGlobalAdjointStateIndex("p_rgh", neighbourCellI);
+        PetscInt colI = daIndex_.getGlobalAdjointStateIndex("p_rgh", ownerCellI);
+        scalar val1 = p_rghEqn.lower()[faceI] * pScaling / pResScaling;
+        assignValueCheckAD(val, val1);
+        MatSetValues(PCMat, 1, &colI, 1, &rowI, &val, INSERT_VALUES);
+    }
+
+    // set upper/neighbour
+    for (label faceI = 0; faceI < daIndex_.nLocalInternalFaces; faceI++)
+    {
+        label ownerCellI = owner[faceI];
+        label neighbourCellI = neighbour[faceI];
+
+        if (normResDict.found("pRes"))
+        {
+            pResScaling = mesh_.V()[ownerCellI];
+        }
+
+        PetscInt rowI = daIndex_.getGlobalAdjointStateIndex("p_rgh", ownerCellI);
+        PetscInt colI = daIndex_.getGlobalAdjointStateIndex("p_rgh", neighbourCellI);
+        scalar val1 = p_rghEqn.upper()[faceI] * pScaling / pResScaling;
+        assignValueCheckAD(val, val1);
+        MatSetValues(PCMat, 1, &colI, 1, &rowI, &val, INSERT_VALUES);
+    }
 }
 
 void DAResidualInterFoam::updateIntermediateVariables()
@@ -287,7 +461,10 @@ void DAResidualInterFoam::updateIntermediateVariables()
     rho_ == alpha1* rho1 + alpha2* rho2;
 
     // TODO this is a simplification for now.
-    rhoPhi_ = fvc::interpolate(rho_) * phi_;
+    if (MULESCorr_)
+    {
+        rhoPhi_ = fvc::interpolate(rho_) * phi_;
+    }
 
     volScalarField& p = mesh_.thisDb().lookupObjectRef<volScalarField>("p");
     p == p_rgh_ + rho_* gh_;

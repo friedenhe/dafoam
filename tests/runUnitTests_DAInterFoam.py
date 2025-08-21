@@ -14,6 +14,9 @@ if gcomm.rank == 0:
     os.system("rm -rf processor* *.bin")
     replace_text_in_file("system/controlDict", "endTime         0.04;", "endTime         0.2;")
     replace_text_in_file("system/controlDict", "deltaT          0.004;", "deltaT          0.01;")
+    replace_text_in_file("system/fvSolution", "nAlphaCorr      5;", "nAlphaCorr      2;")
+    replace_text_in_file("system/fvSolution", "nAlphaSubCycles 5;", "nAlphaSubCycles 1;")
+    replace_text_in_file("system/fvSolution", "MULESCorr       no;", "MULESCorr       yes;")
 
 
 daOptions = {

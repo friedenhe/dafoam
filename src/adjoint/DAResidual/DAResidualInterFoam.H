@@ -66,6 +66,8 @@ protected:
     /// pimpleControl object which will be initialized in this class
     pimpleControl pimple_;
 
+    bool  MULESCorr_;
+
 public:
     TypeName("DAInterFoam");
     // Constructors

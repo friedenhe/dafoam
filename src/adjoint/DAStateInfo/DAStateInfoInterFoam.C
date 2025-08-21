@@ -120,7 +120,7 @@ DAStateInfoInterFoam::DAStateInfoInterFoam(
         alphaResidualName,
         {
             {"U", "p_rgh", "nut", alphaStateName, "phi"}, // lv0
-            {"U", "p_rgh", "nut", alphaStateName}, // lv1
+            {"U", "p_rgh", "nut", alphaStateName, "phi"}, // lv1
             {"U", alphaStateName} // lv2
         });
 

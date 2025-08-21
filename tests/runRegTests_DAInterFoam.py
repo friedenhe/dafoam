@@ -24,6 +24,9 @@ if gcomm.rank == 0:
     replace_text_in_file("system/fvSchemes", "meshWave;", "meshWaveFrozen;")
     replace_text_in_file("system/controlDict", "endTime         0.2;", "endTime         0.04;")
     replace_text_in_file("system/controlDict", "deltaT          0.01;", "deltaT          0.004;")
+    replace_text_in_file("system/fvSolution", "nAlphaCorr      2;", "nAlphaCorr      5;")
+    replace_text_in_file("system/fvSolution", "nAlphaSubCycles 1;", "nAlphaSubCycles 5;")
+    replace_text_in_file("system/fvSolution", "MULESCorr       yes;", "MULESCorr       no;")
 
 daOptions = {
     "designSurfaces": ["lowerWall", "leftWall", "rightWall"],
@@ -34,12 +37,13 @@ daOptions = {
     },
     "debug": False,
     "useConstrainHbyA": False,
+    "useDdtCorr": False,
     "unsteadyAdjoint": {
         "mode": "timeAccurate",
-        "PCMatPrecomputeInterval": 5,
-        "PCMatUpdateInterval": 100,
+        "PCMatPrecomputeInterval": 10,
+        "PCMatUpdateInterval": 1,
         "readZeroFields": True,
-        "reduceIO": False,
+        "reduceIO": True,
         "additionalOutput": ["rho"],
         "additionalOldTime": ["rho"],
     },
@@ -66,11 +70,12 @@ daOptions = {
     # "adjPartDerivFDStep": {"State": 1e-5},
     "adjStateOrdering": "cell",
     "adjEqnOption": {
-        "gmresRelTol": 1.0e-3,
+        "gmresRelTol": 1.0e-4,
+        "gmresAbsTol": 1.0e-4,
         "pcFillLevel": 1,
         "jacMatReOrdering": "natural",
     },
-    "normalizeStates": {"U": 1.0, "p": 10.0, "phi": 1.0, "nuTilda": 1e-3, "alpha.water": 1.0},
+    "normalizeStates": {"U": 1.0, "p": 1.0, "phi": 1.0, "nuTilda": 1e-3, "alpha.water": 1.0},
     "inputInfo": {
         "aero_vol_coords": {"type": "volCoord", "components": ["solver", "function"]},
     },

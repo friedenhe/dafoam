@@ -1,9 +1,5 @@
 /*---------------------------------------------------------------------------*\
-
-    DAFoam  : Discrete Adjoint with OpenFOAM
-    Version : v4
-
-    Description:
+Description:
         A modified version of CMULES from
         src/finiteVolume/fvMatrices/solvers/MULES
         
@@ -24,34 +20,27 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Global
-    MULES
+    MULESDF
 
 Description
-    CMULES: Multidimensional universal limiter for
-    explicit corrected implicit solution.
+    MULESDF: Multidimensional universal limiter for explicit solution.
 
     Solve a convective-only transport equation using an explicit universal
-    multi-dimensional limiter to correct an implicit conservative bounded
-    obtained using rigorously bounded schemes such as Euler-implicit in time
-    upwind in space.
+    multi-dimensional limiter.
 
     Parameters are the variable to solve, the normal convective flux and the
     actual explicit flux of the variable which is also used to return limited
     flux used in the bounded-solution.
 
 SourceFiles
-    CMULES.C
-    CMULESTemplates.C
+    MULESDF.C
+    MULESDFTemplates.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef CMULESDF_H
-#define CMULESDF_H
+#ifndef MULESDF_H
+#define MULESDF_H
 
-#include "MULESDF.H"
-#include "EulerDdtScheme.H"
-#include "localEulerDdtScheme.H"
-#include "gaussConvectionScheme.H"
 #include "volFieldsFwd.H"
 #include "surfaceFieldsFwd.H"
 #include "primitiveFieldsFwd.H"
@@ -59,7 +48,6 @@ SourceFiles
 #include "zero.H"
 #include "zeroField.H"
 #include "UPtrList.H"
-#include "upwind.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -71,40 +59,47 @@ namespace MULESDF
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class RdeltaTType, class RhoType, class SpType, class SuType>
-void correct(
+void explicitSolve(
     const RdeltaTType& rDeltaT,
     const RhoType& rho,
     volScalarField& psi,
-    const surfaceScalarField& phi,
-    const surfaceScalarField& phiCorr,
+    const surfaceScalarField& phiPsi,
     const SpType& Sp,
     const SuType& Su);
 
 template<class RhoType, class SpType, class SuType>
-void correct(
+void explicitSolve(
     const RhoType& rho,
     volScalarField& psi,
-    const surfaceScalarField& phi,
-    surfaceScalarField& phiCorr,
+    const surfaceScalarField& phiPsi,
+    const SpType& Sp,
+    const SuType& Su);
+
+template<class RhoType, class SpType, class SuType>
+void explicitSolve(
+    const RhoType& rho,
+    volScalarField& psi,
+    const surfaceScalarField& phiBD,
+    surfaceScalarField& phiPsi,
     const SpType& Sp,
     const SuType& Su,
     const scalar psiMax,
     const scalar psiMin);
 
-void correct(
+void explicitSolve(
     volScalarField& psi,
-    const surfaceScalarField& phi,
-    surfaceScalarField& phiCorr,
+    const surfaceScalarField& phiBD,
+    surfaceScalarField& phiPsi,
     const scalar psiMax,
     const scalar psiMin);
 
 template<class RdeltaTType, class RhoType, class SpType, class SuType>
-void limiterCorr(
+void limiter(
     scalarField& allLambda,
     const RdeltaTType& rDeltaT,
     const RhoType& rho,
     const volScalarField& psi,
-    const surfaceScalarField& phi,
+    const surfaceScalarField& phiBD,
     const surfaceScalarField& phiCorr,
     const SpType& Sp,
     const SuType& Su,
@@ -112,16 +107,22 @@ void limiterCorr(
     const scalar psiMin);
 
 template<class RdeltaTType, class RhoType, class SpType, class SuType>
-void limitCorr(
+void limit(
     const RdeltaTType& rDeltaT,
     const RhoType& rho,
     const volScalarField& psi,
     const surfaceScalarField& phi,
-    surfaceScalarField& phiCorr,
+    surfaceScalarField& phiPsi,
     const SpType& Sp,
     const SuType& Su,
     const scalar psiMax,
-    const scalar psiMin);
+    const scalar psiMin,
+    const bool returnCorr);
+
+void limitSum(UPtrList<scalarField>& phiPsiCorrs);
+
+template<class SurfaceScalarFieldList>
+void limitSum(SurfaceScalarFieldList& phiPsiCorrs);
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -131,7 +132,7 @@ void limitCorr(
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-#include "CMULESDFTemplates.C"
+#include "MULESDFTemplates.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
