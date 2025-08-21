@@ -13,7 +13,7 @@ if (nAlphaSubCycles > 1)
         subCycle<volScalarField> alphaSubCycle(alpha1, nAlphaSubCycles);
         !(++alphaSubCycle).end();)
     {
-#include "alphaEqn.H"
+#include "alphaEqnInter.H"
         rhoPhiSum += (runTime.deltaT() / totalDeltaT) * rhoPhi;
     }
 
@@ -21,7 +21,7 @@ if (nAlphaSubCycles > 1)
 }
 else
 {
-#include "alphaEqn.H"
+#include "alphaEqnInter.H"
 }
 
 rho == alpha1* rho1 + alpha2* rho2;

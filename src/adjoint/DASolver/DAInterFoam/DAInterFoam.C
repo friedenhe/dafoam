@@ -112,7 +112,7 @@ label DAInterFoam::solvePrimal()
     */
 
 #include "createRefsInter.H"
-#include "alphaControlsDF.H"
+#include "alphaControlsInter.H"
 
     // call correctNut, this is equivalent to turbulence->validate();
     daTurbulenceModelPtr_->updateIntermediateVariables();
@@ -168,7 +168,7 @@ label DAInterFoam::solvePrimal()
                 pimplePrintToScreen = 0;
             }
 
-#include "alphaEqnSubCycle.H"
+#include "alphaEqnSubCycleInter.H"
 
             mixture.correct();
 
