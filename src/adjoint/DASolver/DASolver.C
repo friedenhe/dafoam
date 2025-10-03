@@ -58,11 +58,15 @@ DASolver::DASolver(
     // initialize fvMesh and Time object pointer
 #include "setArgs.H"
 #include "setRootCasePython.H"
+
+    Info << "Initializing mesh and runtime for DASolver" << endl;
 #include "createTimePython.H"
 #include "createMeshPython.H"
-    Info << "Initializing mesh and runtime for DASolver" << endl;
 
     daOptionPtr_.reset(new DAOption(meshPtr_(), pyOptions_));
+
+    // force to use meshWaveFrozen for wallDist->method, regardless what is actually set in fvSchemes
+    this->forceMeshWaveFrozen();
 
     // if the dynamic mesh is used, set moving to true here
     dictionary allOptions = daOptionPtr_->getAllOptions();
@@ -634,6 +638,8 @@ void DASolver::calcPrimalResidualStatistics(
 
     this->calcResiduals();
 
+    scalar totalResNorm2 = 0.0;
+
     forAll(stateInfo_["volVectorStates"], idxI)
     {
         const word stateName = stateInfo_["volVectorStates"][idxI];
@@ -669,6 +675,7 @@ void DASolver::calcPrimalResidualStatistics(
         vecResMean = vecResMean / Pstream::nProcs();
         reduce(vecResNorm2, sumOp<vector>());
         reduce(vecResMax, maxOp<vector>());
+        totalResNorm2 += vecResNorm2.x() + vecResNorm2.y() + vecResNorm2.z();
         vecResNorm2.x() = pow(vecResNorm2.x(), 0.5);
         vecResNorm2.y() = pow(vecResNorm2.y(), 0.5);
         vecResNorm2.z() = pow(vecResNorm2.z(), 0.5);
@@ -704,6 +711,7 @@ void DASolver::calcPrimalResidualStatistics(
         scalarResMean = scalarResMean / Pstream::nProcs();
         reduce(scalarResNorm2, sumOp<scalar>());
         reduce(scalarResMax, maxOp<scalar>());
+        totalResNorm2 += scalarResNorm2;
         scalarResNorm2 = pow(scalarResNorm2, 0.5);
         if (mode == "print")
         {
@@ -737,6 +745,7 @@ void DASolver::calcPrimalResidualStatistics(
         scalarResMean = scalarResMean / Pstream::nProcs();
         reduce(scalarResNorm2, sumOp<scalar>());
         reduce(scalarResMax, maxOp<scalar>());
+        totalResNorm2 += scalarResNorm2;
         scalarResNorm2 = pow(scalarResNorm2, 0.5);
         if (mode == "print")
         {
@@ -781,6 +790,7 @@ void DASolver::calcPrimalResidualStatistics(
         phiResMean = phiResMean / Pstream::nProcs();
         reduce(phiResNorm2, sumOp<scalar>());
         reduce(phiResMax, maxOp<scalar>());
+        totalResNorm2 += phiResNorm2;
         phiResNorm2 = pow(phiResNorm2, 0.5);
         if (mode == "print")
         {
@@ -793,6 +803,12 @@ void DASolver::calcPrimalResidualStatistics(
         {
             stateRes.write();
         }
+    }
+
+    totalResNorm2 = pow(totalResNorm2, 0.5);
+    if (mode == "print")
+    {
+        Info << "Total Residual Norm2: " << totalResNorm2 << endl;
     }
 
     Info << " " << endl;
@@ -3414,6 +3430,27 @@ void DASolver::setPrimalBoundaryConditions(const label printInfo)
     }
 }
 
+void DASolver::setPrimalInitialConditions(const label printInfo)
+{
+    /*
+    Description:
+        Update the state initial conditions based on the ones defined in primalBC
+    */
+
+    // first check if we need to change the ini conditions based on
+    // the primalBC dict in DAOption. NOTE: this will overwrite whatever
+    // ini conditions defined in the "0" folder
+    dictionary iniDict = daOptionPtr_->getAllOptions().subDict("primalInitCondition");
+    if (iniDict.toc().size() != 0)
+    {
+        if (printInfo)
+        {
+            Info << "Setting up primal initial conditions based on pyOptions: " << endl;
+        }
+        daFieldPtr_->setPrimalInitialConditions(printInfo);
+    }
+}
+
 label DASolver::runFPAdj(
     Vec dFdW,
     Vec psi)
@@ -3446,12 +3483,17 @@ label DASolver::solveAdjointFP(
     return 1;
 }
 
-void DASolver::getInitStateVals(HashTable<scalar>& initState)
+void DASolver::getInitStateVals(const label printInfo)
 {
     /*
     Description:
         Get the initial state values from the field's average value
     */
+
+    if (stateInfo_.size() < 1)
+    {
+        return;
+    }
 
     forAll(stateInfo_["volVectorStates"], idxI)
     {
@@ -3471,7 +3513,7 @@ void DASolver::getInitStateVals(HashTable<scalar>& initState)
 
         for (label i = 0; i < 3; i++)
         {
-            initState.set(stateName + Foam::name(i), avgState[i]);
+            initStateVals_.set(stateName + Foam::name(i), avgState[i]);
         }
     }
 
@@ -3487,7 +3529,7 @@ void DASolver::getInitStateVals(HashTable<scalar>& initState)
         avgState /= daIndexPtr_->nGlobalCells;
         reduce(avgState, sumOp<scalar>());
 
-        initState.set(stateName, avgState);
+        initStateVals_.set(stateName, avgState);
     }
 
     forAll(stateInfo_["modelStates"], idxI)
@@ -3502,7 +3544,7 @@ void DASolver::getInitStateVals(HashTable<scalar>& initState)
         avgState /= daIndexPtr_->nGlobalCells;
         reduce(avgState, sumOp<scalar>());
 
-        initState.set(stateName, avgState);
+        initStateVals_.set(stateName, avgState);
     }
 
     forAll(stateInfo_["surfaceScalarStates"], idxI)
@@ -3510,10 +3552,13 @@ void DASolver::getInitStateVals(HashTable<scalar>& initState)
         const word stateName = stateInfo_["surfaceScalarStates"][idxI];
         // const surfaceScalarField& state = meshPtr_->thisDb().lookupObject<surfaceScalarField>(stateName);
         // we can reset the flux to zeros
-        initState.set(stateName, 0.0);
+        initStateVals_.set(stateName, 0.0);
     }
 
-    Info << "initState: " << initState << endl;
+    if (printInfo)
+    {
+        Info << "initState: " << initStateVals_ << endl;
+    }
 }
 
 void DASolver::resetStateVals()
@@ -4232,6 +4277,57 @@ void DASolver::updateInputFieldUnsteady()
             FatalErrorIn("") << "fieldType not valid" << exit(FatalError);
         }
     }
+}
+
+void DASolver::forceMeshWaveFrozen()
+{
+    /*
+    Description:
+        replace meshWave with meshWaveFrozen for wallDist->method, regardless what is actually set in fvSchemes
+    */
+
+    label forceMeshWaveFrozen = daOptionPtr_->getAllOptions().getLabel("forceMeshWaveFrozen");
+
+    if (!forceMeshWaveFrozen)
+    {
+        return;
+    }
+
+    // Get fvSchemes dictionary from the object registry
+    IOdictionary& fvSchemes =
+        const_cast<IOdictionary&>(
+            meshPtr_->lookupObject<IOdictionary>("fvSchemes"));
+
+    // Prepare a working copy of the wallDist subdict (or a fresh one)
+    dictionary wallDistDict;
+    if (fvSchemes.found("wallDist"))
+    {
+        wallDistDict = fvSchemes.subDict("wallDist");
+    }
+
+    // Read current method (default empty)
+    word method("meshWave");
+    if (wallDistDict.found("method"))
+    {
+        method = word(wallDistDict.lookup("method"));
+    }
+
+    // If user asked for meshWave, silently upgrade to meshWaveFrozen
+    if (method == "meshWave")
+    {
+        Info << "Replacing wallDist.method meshWave -> meshWaveFrozen" << nl;
+        wallDistDict.set("method", word("meshWaveFrozen"));
+        // write back to fvSchemes in-memory dictionary
+        if (fvSchemes.found("wallDist"))
+        {
+            fvSchemes.set("wallDist", wallDistDict);
+        }
+        else
+        {
+            fvSchemes.add("wallDist", wallDistDict);
+        }
+    }
+    // else: leave meshWaveFrozen or any other method untouched
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

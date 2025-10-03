@@ -23,7 +23,7 @@ if gcomm.rank == 0:
     os.system("cp -r constant/turbulenceProperties.sa constant/turbulenceProperties")
     os.system("cp -r 0.incompressible/* 0/")
     os.system("cp -r system.incompressible.unsteady/* system/")
-    replace_text_in_file("system/fvSchemes", "meshWaveFrozen;", "meshWave;")
+    # replace_text_in_file("system/fvSchemes", "meshWaveFrozen;", "meshWave;")
 
 # aero setup
 U0 = 10.0
@@ -43,6 +43,26 @@ daOptions = {
         "readZeroFields": True,
         "additionalOutput": ["betaFINuTilda"],
         "reduceIO": True,
+    },
+    "regressionModel": {
+        "active": True,
+        "reg_model": {
+            "modelType": "neuralNetwork",
+            "inputNames": ["PoD", "PoD_dt"],
+            # use a dummy name so we don't compute the output, just writeFeatures
+            "outputName": "dummy",
+            "hiddenLayerNeurons": [5, 5],
+            "inputShift": [0.0, 0.0],
+            "inputScale": [1.0, 1.0],
+            "outputShift": 0.0,
+            "outputScale": 1.0,
+            "activationFunction": "sigmoid",
+            "printInputInfo": True,
+            "writeFeatures": True,
+            "outputUpperBound": 1e2,
+            "outputLowerBound": -1e2,
+            "defaultOutputValue": 1.0,
+        },
     },
     "function": {
         "CD": {

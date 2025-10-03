@@ -87,6 +87,16 @@ class DAOPTION(object):
         ##    },
         self.primalBC = {}
 
+        ## A general function to read the initial values from DAOption, and set
+        ## the corresponding values to the initial field.
+        ## Example
+        ## "primalInitCondition":
+        ## {
+        ##     "U": [10.0, 0.0, 0.0],
+        ##     "p": 101325.0
+        ## }
+        self.primalInitCondition = {}
+
         ## State normalization for dRdWT computation. Typically, we set far field value for each state
         ## variable. NOTE: If you forget to set normalization value for a state variable, the adjoint
         ## may not converge or it may be inaccurate! For "phi", use 1.0 to normalization
@@ -396,6 +406,10 @@ class DAOPTION(object):
         ## constrainHbyA back to the primal and adjoint solvers.
         self.useConstrainHbyA = True
 
+        ## force to use meshWaveFrozen in fvSchemes->wallDist->method, regardless what is actually
+        ## set in fvSchemes. meshWaveFrozen improves the parallel adjoint accuracy.
+        self.forceMeshWaveFrozen = True
+
         ## whether to use the ddtCorr term for unsteady solvers. We notice that adding this term
         ## will degrade the adjoint accuracy, so it is set to false by default.
         self.useDdtCorr = False
@@ -502,6 +516,9 @@ class DAOPTION(object):
             "fpMinResTolDiff": 1.0e2,
             "fpPCUpwind": False,
             "dynAdjustTol": False,
+            "KSPCalcEigen": 0,
+            "KSPCalcSingularVal": 0,
+            "readPCMat": 0,
         }
 
         ## Normalization for residuals. We should normalize all residuals!
@@ -570,13 +587,6 @@ class DAOPTION(object):
             "maxSkewness": 4.0,
             "maxIncorrectlyOrientedFaces": 0,
         }
-
-        ## The sensitivity map will be saved to disk during optimization for the given design variable
-        ## names in the list. Currently only support design variable type FFD and Field
-        ## NOTE: this function only supports useAD->mode:reverse
-        ## Example:
-        ##     "writeSensMap" : ["shapex", "shapey"]
-        self.writeSensMap = ["NONE"]
 
         ## Whether to write deformed FFDs to the disk during optimization, i.e., DVGeo.writeTecplot
         self.writeDeformedFFDs = False
@@ -682,7 +692,8 @@ class PYDAFOAM(object):
         self.solverInitialized = 0
         self._initSolver()
 
-        # set the primal boundary condition after initializing the solver
+        # set the primal initial and boundary condition after initializing the solver
+        self.setPrimalInitialConditions()
         self.setPrimalBoundaryConditions()
 
         # initialize the number of primal and adjoint calls
@@ -754,8 +765,8 @@ class PYDAFOAM(object):
         """
 
         self.solverRegistry = {
-            "Incompressible": ["DASimpleFoam", "DAPimpleFoam", "DAPimpleDyMFoam", "DAInterFoam"],
-            "Compressible": ["DARhoSimpleFoam", "DARhoSimpleCFoam", "DATurboFoam", "DARhoPimpleFoam"],
+            "Incompressible": ["DASimpleFoam", "DAPimpleFoam", "DAPimpleDyMFoam", "DAInterFoam", "DATopoChtFoam"],
+            "Compressible": ["DARhoSimpleFoam", "DARhoSimpleCFoam", "DATurboFoam", "DARhoPimpleFoam", "DAHisaFoam"],
             "Solid": ["DASolidDisplacementFoam", "DAHeatTransferFoam", "DAScalarTransportFoam"],
         }
 
@@ -813,10 +824,6 @@ class PYDAFOAM(object):
 
         if not self.getOption("useAD")["mode"] in ["reverse", "forward"]:
             raise Error("useAD->mode only supports reverse, or forward!")
-
-        if "NONE" not in self.getOption("writeSensMap"):
-            if not self.getOption("useAD")["mode"] in ["reverse"]:
-                raise Error("writeSensMap is only compatible with useAD->mode=reverse")
 
         if self.getOption("adjEqnSolMethod") == "fixedPoint":
             # for the fixed-point adjoint, we should not normalize the states and residuals
@@ -1597,6 +1604,15 @@ class PYDAFOAM(object):
         """
         self.solver.setPrimalBoundaryConditions(printInfo)
         self.solverAD.setPrimalBoundaryConditions(printInfoAD)
+
+    def setPrimalInitialConditions(self, printInfo=1, printInfoAD=0):
+        """
+        Assign the initial condition defined in primalInitCondition to the OF fields
+        """
+        self.solver.setPrimalInitialConditions(printInfo)
+        self.solver.getInitStateVals(printInfo)
+        self.solverAD.setPrimalInitialConditions(printInfoAD)
+        self.solverAD.getInitStateVals(printInfoAD)
 
     def _computeBasicFamilyInfo(self):
         """
