@@ -898,13 +898,13 @@ void DAkOmegaSSTLM::addModelResidualCon(HashTable<List<List<word>>>& allCon) con
 
     word pName;
 
-    if (mesh_.thisDb().foundObject<volScalarField>("p"))
-    {
-        pName = "p";
-    }
-    else if (mesh_.thisDb().foundObject<volScalarField>("p_rgh"))
+    if (mesh_.thisDb().foundObject<volScalarField>("p_rgh"))
     {
         pName = "p_rgh";
+    }
+    else if (mesh_.thisDb().foundObject<volScalarField>("p"))
+    {
+        pName = "p";
     }
     else
     {
