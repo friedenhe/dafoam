@@ -226,31 +226,45 @@ void DASolver::calcFuncStd()
 {
     /*
     Description:
-        Calculate the function std.
+        Calculate the std of the means of two halves of the function time series.
+        The window is split into a first half and a second half, and convergence
+        is indicated when their means are close. This is insensitive to periodic
+        oscillations (e.g., 1.01, 1.02, 1.01, 1.02) as long as the mean has
+        converged, making it suitable as a CFD convergence criterion.
     */
     label timeIndex = runTimePtr_->timeIndex();
     label listIndex = timeIndex - 1;
     label funcIdx = this->getFunctionListIndex(primalFuncStdName_);
     label startIdx = max(0, listIndex - primalFuncStdSteps_ + 1);
-
-    scalar mean = 0.0;
     label nActualSteps = listIndex - startIdx + 1;
-    for (label i = listIndex; i >= startIdx; i--)
-    {
-        mean += functionTimeSteps_[funcIdx][i];
-    }
-    mean /= nActualSteps;
 
-    funcStd_ = 0.0;
-    for (label i = listIndex; i >= startIdx; i--)
+    if (nActualSteps < 2)
     {
-        funcStd_ += (functionTimeSteps_[funcIdx][i] - mean) * (functionTimeSteps_[funcIdx][i] - mean);
+        funcStd_ = GREAT;
+        return;
     }
-    funcStd_ /= nActualSteps;
-    funcStd_ = sqrt(funcStd_) / mag(mean);
+
+    // Compute the mean of the first and second halves of the window
+    label mid = startIdx + nActualSteps / 2;
+    label n1 = mid - startIdx;
+    label n2 = listIndex - mid + 1;
+    scalar mean1 = 0.0, mean2 = 0.0;
+    for (label i = startIdx; i < mid; i++)
+    {
+        mean1 += functionTimeSteps_[funcIdx][i];
+    }
+    mean1 /= n1;
+    for (label i = mid; i <= listIndex; i++)
+    {
+        mean2 += functionTimeSteps_[funcIdx][i];
+    }
+    mean2 /= n2;
+
+    scalar overallMean = (mean1 * n1 + mean2 * n2) / nActualSteps;
+    funcStd_ = mag(mean1 - mean2) / mag(overallMean);
     //Info << "funcTS " << functionTimeSteps_[funcIdx] << endl;
-    //Info << "mean " << mean << endl;
-    //Info << "nActualSteps " << nActualSteps << endl;
+    //Info << "mean1 " << mean1 << " mean2 " << mean2 << endl;
+    //Info << "overallMean " << overallMean << endl;
     //Info << "funcStd " << funcStd_ << endl;
 }
 
