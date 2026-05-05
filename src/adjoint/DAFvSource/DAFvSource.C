@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*\
 
     DAFoam  : Discrete Adjoint with OpenFOAM
-    Version : v4
+    Version : v5
 
 \*---------------------------------------------------------------------------*/
 
@@ -58,31 +58,19 @@ autoPtr<DAFvSource> DAFvSource::New(
         Info << "Selecting " << modelType << " for DAFvSource" << endl;
     }
 
-    dictionaryConstructorTable::iterator cstrIter =
-        dictionaryConstructorTablePtr_->find(modelType);
+    auto* ctorPtr = dictionaryConstructorTable(modelType);
 
-    // if the solver name is not found in any child class, print an error
-    if (cstrIter == dictionaryConstructorTablePtr_->end())
+    if (!ctorPtr)
     {
-        FatalErrorIn(
-            "DAFvSource::New"
-            "("
-            "    const word,"
-            "    const fvMesh&,"
-            "    const DAOption&,"
-            "    const DAModel&,"
-            "    const DAIndex&"
-            ")")
-            << "Unknown DAFvSource type "
-            << modelType << nl << nl
-            << "Valid DAFvSource types:" << endl
-            << dictionaryConstructorTablePtr_->sortedToc()
+        FatalErrorInLookup(
+            "DAFvSource",
+            modelType,
+            *dictionaryConstructorTablePtr_)
             << exit(FatalError);
     }
 
-    // child class found
     return autoPtr<DAFvSource>(
-        cstrIter()(modelType, mesh, daOption, daModel, daIndex));
+        ctorPtr(modelType, mesh, daOption, daModel, daIndex));
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -145,11 +133,16 @@ void DAFvSource::findGlobalSnappedCenter(
     scalar centerY = 0.0;
     scalar centerZ = 0.0;
 
+    // NOTE: DO NOT delete this line, we need to call mesh_.C to initialize the mesh_ object to prevent MPI hanging in ADR
+    // without calling this line, the code will hang in findGlobalSnappedCenter. The problem is that the mesh.C() can not
+    // be called for only one processor in the following line...
+    const volVectorField& C = mesh_.C();
+
     if (snappedCenterCellI >= 0)
     {
-        centerX = mesh_.C()[snappedCenterCellI][0];
-        centerY = mesh_.C()[snappedCenterCellI][1];
-        centerZ = mesh_.C()[snappedCenterCellI][2];
+        centerX = C[snappedCenterCellI][0];
+        centerY = C[snappedCenterCellI][1];
+        centerZ = C[snappedCenterCellI][2];
     }
     reduce(centerX, sumOp<scalar>());
     reduce(centerY, sumOp<scalar>());
